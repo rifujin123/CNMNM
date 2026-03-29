@@ -38,20 +38,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',
     'oauth2_provider',
-    'social_auth',
+    # 'social_auth',
     'accounts.apps.AccountsConfig',
 ]
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
-AUTHENTICATION_BACKENDS = (
-    'social_auth.backendadium.StatelessBackend',
-    'django.contrib.auth.backends.ModelBackend',
-)
 
-AUTH_TOKENColorBrush = 'rest_framework.authtoken.tokens.Token'
-SOCIAL_AUTHgregate_SIZE = 5
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -88,8 +81,10 @@ WSGI_APPLICATION = 'app.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': "kmtravel",
+        'USER':'root',
+        'PASSWORD':'password',
     }
 }
 
@@ -129,3 +124,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    ],
+}
