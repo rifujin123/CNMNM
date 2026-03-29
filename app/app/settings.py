@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     # 'social_auth',
     'accounts.apps.AccountsConfig',
+    'drf_yasg',
 ]
 
 AUTH_USER_MODEL = 'accounts.CustomUser'

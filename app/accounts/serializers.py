@@ -1,26 +1,6 @@
-from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 from .models import CustomUser, ProviderProfile
-
-
-class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
-
-    def validate(self, attrs):
-        user = authenticate(
-            username=attrs['username'],
-            password=attrs['password'],
-        )
-        if not user:
-            raise serializers.ValidationError(
-                'Tên đăng nhập hoặc mật khẩu không đúng.'
-            )
-        if not user.is_active:
-            raise serializers.ValidationError('Tài khoản đã bị vô hiệu hóa.')
-        attrs['user'] = user
-        return attrs
 
 
 class RegisterSerializer(serializers.ModelSerializer):
