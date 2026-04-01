@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     # 'social_auth',
     'accounts.apps.AccountsConfig',
+    'services.apps.ServicesConfig',
     'drf_yasg',
 ]
 

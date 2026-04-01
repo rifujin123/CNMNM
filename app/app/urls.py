@@ -33,6 +33,7 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/accounts/', include('accounts.urls')),
+    path('api/services/', include('services.urls')),
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', 
