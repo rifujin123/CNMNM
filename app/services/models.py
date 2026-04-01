@@ -1,6 +1,3 @@
-import enum
-
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 # Create your models here.
@@ -82,7 +79,10 @@ class Transport(BaseService):
     brand_name = models.CharField(max_length=255)
     license_plate = models.CharField(max_length=100, blank = True, null = True)
     vehicle_type = models.CharField(max_length=100)
-    total_seats = models.PositiveIntegerField(default=0)
+
+    @property
+    def total_seats(self):
+        return self.physical_seats.count()
 
 class SeatType(models.Model):
     name = models.CharField(max_length=255)
@@ -129,7 +129,9 @@ class SeatStatus(models.Model):
     )
 
     class Meta:
-        unique_together = ('route', 'physical_seat')
+        constraints = [
+            models.UniqueConstraint(fields=['route', 'physical_seat'], name='uniq_seat_status_per_route'),
+        ]
 
 class TourPackage(models.Model):
     tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='packages')
