@@ -1,199 +1,112 @@
 from rest_framework import serializers
-
 from .models import (
     BaseService,
     Category,
-    City,
-    Hotel,
-    PhysicalSeat,
-    RoomType,
-    SeatType,
+    Package,
     TourPackage,
-    Transport,
     TravelTour,
-)
-
+    Comment,
+    Hotel,
+    Room,
+    RoomType,
+    Route,
+    Transport,
+    PhysicalSeat,
+) 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name']
 
-
-class CitySerializer(serializers.ModelSerializer):
-    country_name = serializers.CharField(source='country.name', read_only=True)
-
-    class Meta:
-        model = City
-        fields = ['id', 'name', 'country_name']
-
-
-class BaseServiceWriteSerializer(serializers.ModelSerializer):
+class BaseServiceSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = BaseService
-        fields = ['name', 'description', 'is_active', 'city', 'provider', 'category']
+        fields = ['id', 'name', 'city', 'base_price', 'star_rating']
 
-    def validate(self, attrs):
-        provider = attrs.get('provider') or getattr(self.instance, 'provider', None)
-        if provider and not provider.is_provider:
-            raise serializers.ValidationError({'provider': 'Provider phải là tài khoản nhà cung cấp.'})
-        return attrs
-
-
-class BaseServiceListSerializer(serializers.ModelSerializer):
-    city_name = serializers.CharField(source='city.name', read_only=True)
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    provider_username = serializers.CharField(source='provider.username', read_only=True)
-
+# TravelTour
+class PackageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = BaseService
-        fields = ['id', 'name', 'is_active', 'city_name', 'category_name', 'provider_username']
-
-
-class BaseServiceDetailSerializer(serializers.ModelSerializer):
-    city = CitySerializer(read_only=True)
-    category = CategorySerializer(read_only=True)
-    provider_username = serializers.CharField(source='provider.username', read_only=True)
-
-    class Meta:
-        model = BaseService
-        fields = [
-            'id',
-            'name',
-            'description',
-            'is_active',
-            'created_at',
-            'updated_at',
-            'city',
-            'category',
-            'provider',
-            'provider_username',
-        ]
-
-
-class TravelTourCreateSerializer(BaseServiceWriteSerializer):
-    class Meta(BaseServiceWriteSerializer.Meta):
-        model = TravelTour
-        fields = BaseServiceWriteSerializer.Meta.fields + ['time_start', 'empty_slot', 'base_price']
-
-
-class TravelTourUpdateSerializer(TravelTourCreateSerializer):
-    pass
-
-
-class TravelTourListSerializer(BaseServiceListSerializer):
-    class Meta(BaseServiceListSerializer.Meta):
-        model = TravelTour
-        fields = BaseServiceListSerializer.Meta.fields + ['time_start', 'empty_slot', 'base_price']
-
-
-class TravelTourDetailSerializer(BaseServiceDetailSerializer):
-    class Meta(BaseServiceDetailSerializer.Meta):
-        model = TravelTour
-        fields = BaseServiceDetailSerializer.Meta.fields + ['time_start', 'empty_slot', 'base_price']
-
-
-class HotelCreateSerializer(BaseServiceWriteSerializer):
-    class Meta(BaseServiceWriteSerializer.Meta):
-        model = Hotel
-        fields = BaseServiceWriteSerializer.Meta.fields + ['star_rating', 'address_detail']
-
-
-class HotelUpdateSerializer(HotelCreateSerializer):
-    pass
-
-
-class HotelListSerializer(BaseServiceListSerializer):
-    class Meta(BaseServiceListSerializer.Meta):
-        model = Hotel
-        fields = BaseServiceListSerializer.Meta.fields + ['star_rating', 'address_detail']
-
-
-class HotelDetailSerializer(BaseServiceDetailSerializer):
-    room_type_count = serializers.IntegerField(source='room_types.count', read_only=True)
-
-    class Meta(BaseServiceDetailSerializer.Meta):
-        model = Hotel
-        fields = BaseServiceDetailSerializer.Meta.fields + ['star_rating', 'address_detail', 'room_type_count']
-
-
-class RoomTypeCreateUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RoomType
-        fields = ['hotel', 'name', 'price', 'capacity', 'total_rooms', 'available_rooms', 'description']
-
-
-class RoomTypeListSerializer(serializers.ModelSerializer):
-    hotel_name = serializers.CharField(source='hotel.name', read_only=True)
-
-    class Meta:
-        model = RoomType
-        fields = ['id', 'hotel', 'hotel_name', 'name', 'price', 'capacity', 'total_rooms', 'available_rooms']
-
-
-class SeatTypeCreateUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SeatType
-        fields = ['name', 'price']
-
-
-class SeatTypeListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SeatType
+        model = Package
         fields = ['id', 'name', 'price']
 
+class TourPackageSerializer(serializers.ModelSerializer):
+    packages = PackageSerializer(many=True, read_only=True)
+    total_price = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+        source="total_price",
+    )
+    class Meta:
+        model = TourPackage
+        fields = ['id', 'name', 'total_price', 'packages']
 
-class TransportCreateSerializer(BaseServiceWriteSerializer):
-    class Meta(BaseServiceWriteSerializer.Meta):
-        model = Transport
-        fields = BaseServiceWriteSerializer.Meta.fields + ['brand_name', 'license_plate', 'vehicle_type']
+class TravelTourSimpleSerializer(BaseServiceSimpleSerializer):
+    class Meta:
+        model = TravelTour
+        fields = BaseServiceSimpleSerializer.Meta.fields
 
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'content']
 
-class TransportUpdateSerializer(TransportCreateSerializer):
-    pass
+class TravelTourDetailSerializer(TravelTourSimpleSerializer):
+    tour_packages = TourPackageSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    get_total_price = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+        source="get_total_price",
+    )
+    class Meta:
+        model = TravelTour
+        fields = TravelTourSimpleSerializer.Meta.fields + ['description','tour_packages','get_total_price','comments']
 
+# Hotel
+class RoomTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoomType
+        fields = ['id', 'name', 'price']
 
-class TransportListSerializer(BaseServiceListSerializer):
-    total_seats = serializers.IntegerField(read_only=True)
+class RoomSerializer(serializers.ModelSerializer):
+    room_type = RoomTypeSerializer(read_only=True)
+    class Meta:
+        model = Room
+        fields = ['id', 'room_type', 'room_number', 'is_available', 'total_beds']
 
-    class Meta(BaseServiceListSerializer.Meta):
-        model = Transport
-        fields = BaseServiceListSerializer.Meta.fields + ['brand_name', 'vehicle_type', 'total_seats']
+class HotelSimpleSerializer(BaseServiceSimpleSerializer):
+    class Meta:
+        model = Hotel
+        fields = BaseServiceSimpleSerializer.Meta.fields
 
+class HotelDetailSerializer(HotelSimpleSerializer):
+    total_rooms = serializers.IntegerField(read_only=True, source='total_rooms')
+    class Meta:
+        model = Hotel
+        fields = HotelSimpleSerializer.Meta.fields + ['total_rooms','address_detail']
 
+# Transport
 class PhysicalSeatSerializer(serializers.ModelSerializer):
-    seat_type_name = serializers.CharField(source='seat_type.name', read_only=True)
-
+    seat_type = serializers.CharField(read_only=True, source='seat_type.name')
     class Meta:
         model = PhysicalSeat
-        fields = ['id', 'seat_number', 'seat_type', 'seat_type_name']
+        fields = ['id', 'seat_type', 'seat_number']
 
+class RouteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Route
+        fields = ['id', 'from_city', 'to_city', 'departure_time', 'arrival_time']
 
-class TransportDetailSerializer(BaseServiceDetailSerializer):
-    total_seats = serializers.IntegerField(read_only=True)
-    physical_seats = PhysicalSeatSerializer(many=True, read_only=True)
-
-    class Meta(BaseServiceDetailSerializer.Meta):
+class TransportSimpleSerializer(BaseServiceSimpleSerializer):
+    class Meta:
         model = Transport
-        fields = BaseServiceDetailSerializer.Meta.fields + [
-            'brand_name',
-            'license_plate',
-            'vehicle_type',
-            'total_seats',
-            'physical_seats',
-        ]
+        fields = BaseServiceSimpleSerializer.Meta.fields
 
-
-class TourPackageCreateUpdateSerializer(serializers.ModelSerializer):
+class TransportDetailSerializer(TransportSimpleSerializer):
+    routes = RouteSerializer(many=True, read_only=True)
     class Meta:
-        model = TourPackage
-        fields = ['tour', 'name', 'price', 'included_services']
-
-
-class TourPackageDetailSerializer(serializers.ModelSerializer):
-    tour_name = serializers.CharField(source='tour.name', read_only=True)
-    included_services = BaseServiceListSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = TourPackage
-        fields = ['id', 'tour', 'tour_name', 'name', 'price', 'included_services']
+        model = Transport
+        fields = TransportSimpleSerializer.Meta.fields + ['brand_name', 'license_plate', 'vehicle_type', 'total_seats', 'routes']

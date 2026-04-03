@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
 # Create your models here.
 class Continent(models.Model):
@@ -28,10 +29,13 @@ class Category(models.Model):
     name = models.CharField(max_length=255)
     def __str__(self):
         return self.name
-    
+
 class BaseService(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
+    star_rating = models.DecimalField(max_digits=2, decimal_places=1, validators=[MinValueValidator(1), MaxValueValidator(5)], default=5)
+    base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -47,20 +51,34 @@ class BaseService(models.Model):
 class TravelTour(BaseService):
     time_start = models.DateTimeField()
     empty_slot = models.PositiveIntegerField()
-    base_price = models.DecimalField(max_digits=12, decimal_places=2)
+
+    @property
+    def get_total_price(self):
+        total_packages_price = self.tour_packages.aggregate(
+            total=models.Sum("packages__price")
+        )["total"]
+        return (self.base_price or Decimal("0")) + (total_packages_price or Decimal("0"))
+
 
 class Hotel(BaseService):
-    star_rating = models.DecimalField(max_digits=2, decimal_places=1, validators=[MinValueValidator(1), MaxValueValidator(5)])
     address_detail = models.CharField(max_length=255, blank = True)
+    @property
+    def total_rooms(self):
+        return self.rooms.count()
+
+class Room(models.Model):
+    hotel = models.ForeignKey('Hotel', on_delete=models.CASCADE, related_name='rooms')
+    room_type = models.ForeignKey('RoomType', on_delete=models.CASCADE, related_name='rooms')
+    room_number = models.CharField(max_length=10)
+    is_available = models.BooleanField(default=True)
+    total_beds = models.PositiveIntegerField(default = 1)
+    def __str__(self):
+        return f"{self.hotel.name} - {self.room_type.name} - {self.room_number}"
 
 class RoomType(models.Model):
     hotel = models.ForeignKey('Hotel', on_delete=models.CASCADE, related_name='room_types')
     name = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=12, decimal_places=2)
-    capacity = models.PositiveIntegerField(default = 2)
-    total_rooms = models.PositiveIntegerField(default = 1)
-    available_rooms = models.PositiveIntegerField()
-    description = models.TextField(blank=True)
 
     class Meta:
         constraints = [
@@ -69,7 +87,6 @@ class RoomType(models.Model):
 
     def __str__(self):
         return f"{self.hotel.name} - {self.name}"
-
 
 class Transport(BaseService):
     brand_name = models.CharField(max_length=255)
@@ -129,12 +146,20 @@ class SeatStatus(models.Model):
             models.UniqueConstraint(fields=['route', 'physical_seat'], name='uniq_seat_status_per_route'),
         ]
 
-class TourPackage(models.Model):
-    tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='packages')
+class Package(models.Model):
     name = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=12, decimal_places=2)
+    
 
-    included_services = models.ManyToManyField('BaseService', related_name='included_in_packages', blank=True)
+class TourPackage(models.Model):
+    tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='tour_packages')
+    name = models.CharField(max_length=255)
+    packages = models.ManyToManyField('Package', related_name='packages', blank=True)
+
+    @property
+    def total_price(self):
+        total = self.packages.aggregate(total=models.Sum("price"))["total"]
+        return total or Decimal("0")
 
     class Meta:
         constraints = [
@@ -143,6 +168,11 @@ class TourPackage(models.Model):
 
     def __str__(self):
         return f"{self.tour.name} - {self.name}"
+
+class Comment(models.Model):
+    user = models.ForeignKey('accounts.CustomUser', on_delete=models.CASCADE, related_name='comments')
+    travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='comments')
+    content = models.TextField()
 
 class Bus(Transport):
     pass
