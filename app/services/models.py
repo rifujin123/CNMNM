@@ -8,8 +8,6 @@ class Continent(models.Model):
 
 class Country(models.Model):
     name = models.CharField(max_length=255)
-    code = models.CharField(max_length=100, unique=True)
-    icon = models.ImageField(upload_to='country_flags/', blank=True)
     continent = models.ForeignKey('Continent', on_delete=models.CASCADE, related_name='countries')
     def __str__(self):
         return self.name
@@ -28,8 +26,6 @@ class City(models.Model):
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    icon = models.ImageField(upload_to='category_icons/', blank=True)
     def __str__(self):
         return self.name
     
