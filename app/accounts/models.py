@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 # Create your models here.
-class CustomUser(AbstractUser):
+class User(AbstractUser):
     email = models.EmailField(unique=True)
     avatar = models.ImageField(upload_to='profiles/', blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -10,7 +10,7 @@ class CustomUser(AbstractUser):
     is_provider = models.BooleanField(default=False)
 
 class ProviderProfile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='provider_profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='provider_profile')
     business_name = models.CharField(max_length=255)
     business_license = models.ImageField(upload_to='licenses/')
     tax_code = models.CharField(max_length=20)

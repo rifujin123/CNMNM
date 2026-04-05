@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import CustomUser, ProviderProfile
+from .models import User, ProviderProfile
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -15,7 +15,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     business_license = serializers.ImageField(write_only=True, required=False)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = [
             'username',
             'email',
@@ -52,7 +52,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         provider_tax_code = validated_data.pop('provider_tax_code', '') or ''
         business_license = validated_data.pop('business_license', None)
         password = validated_data.pop('password')
-        user = CustomUser(**validated_data)
+        user = User(**validated_data)
         user.set_password(password)
         user.save()
         if user.is_provider:

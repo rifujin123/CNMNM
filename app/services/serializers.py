@@ -11,7 +11,6 @@ from .models import (
     RoomType,
     Route,
     Transport,
-    PhysicalSeat,
     SeatType,
 ) 
 
@@ -30,8 +29,13 @@ class PackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Package
         fields = ['id', 'name', 'price']
+        
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Giá phải lớn hơn 0')
+        return value
 
-class TourPackageSerializer(serializers.ModelSerializer):
+class TourPackageSimpleSerializer(serializers.ModelSerializer):
     packages = PackageSerializer(many=True, read_only=True)
     total_price = serializers.DecimalField(
         max_digits=12,
@@ -42,6 +46,12 @@ class TourPackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = TourPackage
         fields = ['id', 'name', 'total_price', 'packages']
+
+class TourPackageSerializer(TourPackageSimpleSerializer):
+    packages = PackageSerializer(many=True, read_only=True)
+    class Meta:
+        model = TourPackage
+        fields = TourPackageSimpleSerializer.Meta.fields + ['packages']
 
 class TravelTourSimpleSerializer(BaseServiceSimpleSerializer):
     class Meta:
@@ -96,12 +106,6 @@ class SeatTypeSerializer(serializers.ModelSerializer):
         fields = ['id', 'provider', 'name', 'price']
         read_only_fields = ['provider']
 
-
-class PhysicalSeatSerializer(serializers.ModelSerializer):
-    seat_type = serializers.CharField(read_only=True, source='seat_type.name')
-    class Meta:
-        model = PhysicalSeat
-        fields = ['id', 'seat_type', 'seat_number']
 
 class RouteSerializer(serializers.ModelSerializer):
     class Meta:

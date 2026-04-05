@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'drf_yasg',
 ]
 
-AUTH_USER_MODEL = 'accounts.CustomUser'
+AUTH_USER_MODEL = 'accounts.User'
 
 
 MIDDLEWARE = [

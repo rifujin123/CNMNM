@@ -43,7 +43,7 @@ class BaseService(models.Model):
 
     city = models.ForeignKey('City', on_delete=models.CASCADE, related_name='services')
 
-    provider = models.ForeignKey('accounts.CustomUser', on_delete=models.CASCADE, related_name='services')
+    provider = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='services')
     category = models.ForeignKey('Category',on_delete = models.CASCADE, related_name='services' )
 
     def __str__(self):
@@ -54,12 +54,8 @@ class TravelTour(BaseService):
     empty_slot = models.PositiveIntegerField()
 
     @property
-    def get_total_price(self):
-        total_packages_price = self.tour_packages.aggregate(
-            total=models.Sum("packages__price")
-        )["total"]
-        return (self.base_price or Decimal("0")) + (total_packages_price or Decimal("0"))
-
+    def total_price(self):
+        return self.base_price + self.tour_package.price
 
 class Hotel(BaseService):
     address_detail = models.CharField(max_length=255, blank = True)
@@ -100,7 +96,7 @@ class Transport(BaseService):
 
 class SeatType(models.Model):
     provider = models.ForeignKey(
-        'accounts.CustomUser',
+        'accounts.User',
         on_delete=models.CASCADE,
         related_name='seat_types',
     )
@@ -130,62 +126,24 @@ class Route(models.Model):
     def __str__(self):
         return f"{self.transport.brand_name} from {self.from_city.name} to {self.to_city.name} at {self.departure_time}"
 
-
-class PhysicalSeat(models.Model):
-    transport = models.ForeignKey('Transport', on_delete=models.CASCADE, related_name='physical_seats')
-    seat_type = models.ForeignKey('SeatType', on_delete=models.CASCADE, related_name='physical_seats')
-    seat_number = models.CharField(max_length=10)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['transport', 'seat_number'], name='uniq_seat_per_transport'),
-        ]
-
-    def __str__(self):
-        return f"{self.transport.brand_name} - {self.seat_type.name} - Seat {self.seat_number}"
-class SeatStatus(models.Model):
-    class StatusChoices(models.TextChoices):
-        AVAILABLE = 'AVAILABLE', 'Còn trống'
-        PENDING = 'PENDING', 'Đang giữ chỗ'
-        BOOKED = 'BOOKED', 'Đã đặt'
-    route = models.ForeignKey('Route', on_delete=models.CASCADE, related_name='seat_statuses')
-    physical_seat = models.ForeignKey('PhysicalSeat', on_delete=models.CASCADE, related_name='seat_statuses')
-    status = models.CharField(
-        max_length=20,
-        choices=StatusChoices.choices,
-        default=StatusChoices.AVAILABLE
-    )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['route', 'physical_seat'], name='uniq_seat_status_per_route'),
-        ]
-
 class Package(models.Model):
-    name = models.CharField(max_length=255)
-    price = models.DecimalField(max_digits=12, decimal_places=2)
-    
+    name = models.CharField(max_length=255)    
 
 class TourPackage(models.Model):
-    tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='tour_packages')
+    tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='tour_package')
     name = models.CharField(max_length=255)
     packages = models.ManyToManyField('Package', related_name='packages', blank=True)
-
-    @property
-    def total_price(self):
-        total = self.packages.aggregate(total=models.Sum("price"))["total"]
-        return total or Decimal("0")
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['tour', 'name'], name='uniq_package_name_per_tour'),
-        ]
+    price = models.DecimalField(max_digits=12, decimal_places=2)
 
     def __str__(self):
         return f"{self.tour.name} - {self.name}"
 
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Giá phải lớn hơn 0')
+        return value
 class Comment(models.Model):
-    user = models.ForeignKey('accounts.CustomUser', on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='comments')
     travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='comments')
     content = models.TextField()
 
