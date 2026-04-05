@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
 # Create your models here.
@@ -98,8 +99,22 @@ class Transport(BaseService):
         return self.physical_seats.count()
 
 class SeatType(models.Model):
+    provider = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.CASCADE,
+        related_name='seat_types',
+    )
     name = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['provider', 'name'],
+                name='uniq_seat_type_name_per_provider',
+            ),
+        ]
+
     def __str__(self):
         return self.name
     

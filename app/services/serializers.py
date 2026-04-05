@@ -12,6 +12,7 @@ from .models import (
     Route,
     Transport,
     PhysicalSeat,
+    SeatType,
 ) 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -89,6 +90,13 @@ class HotelDetailSerializer(HotelSimpleSerializer):
         fields = HotelSimpleSerializer.Meta.fields + ['total_rooms','address_detail']
 
 # Transport
+class SeatTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SeatType
+        fields = ['id', 'provider', 'name', 'price']
+        read_only_fields = ['provider']
+
+
 class PhysicalSeatSerializer(serializers.ModelSerializer):
     seat_type = serializers.CharField(read_only=True, source='seat_type.name')
     class Meta:
