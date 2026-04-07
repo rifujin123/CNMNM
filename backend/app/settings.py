@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     # 'social_auth',
     'accounts.apps.AccountsConfig',
     'services.apps.ServicesConfig',
+    'locations.apps.LocationsConfig',
     'drf_yasg',
 ]
 
