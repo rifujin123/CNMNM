@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     # 'social_auth',
     'accounts.apps.AccountsConfig',
     'services.apps.ServicesConfig',
+    'bookings.apps.BookingsConfig',
+    'payments.apps.PaymentsConfig',
     'drf_yasg',
 ]
 
@@ -86,7 +88,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': "kmtravel",
         'USER':'root',
-        'PASSWORD':'password',
+        'PASSWORD':'123456',
     }
 }
 

@@ -142,6 +142,7 @@ class TourPackage(models.Model):
         if value <= 0:
             raise serializers.ValidationError('Giá phải lớn hơn 0')
         return value
+    
 class Comment(models.Model):
     user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='comments')
     travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='comments')
@@ -154,4 +155,7 @@ class Train(Transport):
     pass
 
 class Flight(Transport):
+    pass
+
+class booking():
     pass
