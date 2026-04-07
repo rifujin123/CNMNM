@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from accounts.serializers import UserReadSerializer
+from locations.serializers import CityReadSerializer
 from .models import (
     BaseService,
     Category,
@@ -13,26 +14,15 @@ from .models import (
     Route,
     Transport,
     SeatType,
-    Continent,
-    Country,
-    City,
 ) 
 
-
-
-
-class CategoryReadSerializer(serializers.ModelSerializer):
+class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id','name']
 
-class CategoryWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = ['name']
-
 class BaseServiceReadSerializer(serializers.ModelSerializer):
-    category = CategoryReadSerializer()
+    category = CategorySerializer()
     city = CityReadSerializer()
     provider = UserReadSerializer()
     class Meta:
@@ -42,7 +32,7 @@ class BaseServiceReadSerializer(serializers.ModelSerializer):
 class PackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Package
-        fields = ['name']
+        fields = ['id','name']
 
 class TourPackageSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -64,7 +54,7 @@ class TravelTourReadDetailSerializer(TravelTourSimpleReadSerializer):
     tour_package = TourPackageSimpleReadSerializer(many=True)
     class Meta:
         model = TravelTour
-        fields = TravelTourSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','time_start','empty_slot','tour_package']
+        fields = TravelTourSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','empty_slot','tour_package']
 
 class TravelTourWriteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -74,15 +64,10 @@ class TravelTourWriteSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    user = UserReadSerializer()
+    username = serializers.CharField(source='user.username')
     class Meta:
         model = Comment
-        fields = ['user','content']
-
-class CommentWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Comment
-        fields = ['content']
+        fields = ['id','username','content']
 
 class HotelSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:
