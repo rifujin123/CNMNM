@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from accounts.serializers import UserReadSerializer
+from locations.serializers import CityReadSerializer
 from .models import (
     BaseService,
     Category,
@@ -17,108 +19,96 @@ from .models import (
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name']
+        fields = ['id','name']
 
-class BaseServiceSimpleSerializer(serializers.ModelSerializer):
+class BaseServiceReadSerializer(serializers.ModelSerializer):
+    category = CategorySerializer()
+    city = CityReadSerializer()
+    provider = UserReadSerializer()
     class Meta:
         model = BaseService
-        fields = ['id', 'name', 'city', 'base_price', 'star_rating']
+        fields = ['id','name','description','star_rating','base_price','city','provider','category']
 
-# TravelTour
 class PackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Package
-        fields = ['id', 'name', 'price']
-        
-    def validate_price(self, value):
-        if value <= 0:
-            raise serializers.ValidationError('Giá phải lớn hơn 0')
-        return value
+        fields = ['id','name']
 
-class TourPackageSimpleSerializer(serializers.ModelSerializer):
-    packages = PackageSerializer(many=True, read_only=True)
-    total_price = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        read_only=True,
-        source="total_price",
+class TourPackageSimpleReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TourPackage
+        fields = ['id','name','price']
+
+class TourPackageDetailReadSerializer(TourPackageSimpleReadSerializer):
+    packages = PackageSerializer(many=True)
+    class Meta:
+        model = TourPackage
+        fields = TourPackageSimpleReadSerializer.Meta.fields + ['tour','packages','price']
+
+
+class TourPackageWriteSerializer(serializers.ModelSerializer):
+    packages = serializers.PrimaryKeyRelatedField(
+        queryset=Package.objects.all(),
+        many=True,
+        required=False,
     )
+
     class Meta:
         model = TourPackage
-        fields = ['id', 'name', 'total_price', 'packages']
+        fields = ['tour', 'name', 'price', 'packages']
 
-class TourPackageSerializer(TourPackageSimpleSerializer):
-    packages = PackageSerializer(many=True, read_only=True)
-    class Meta:
-        model = TourPackage
-        fields = TourPackageSimpleSerializer.Meta.fields + ['packages']
-
-class TravelTourSimpleSerializer(BaseServiceSimpleSerializer):
+class TravelTourSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelTour
-        fields = BaseServiceSimpleSerializer.Meta.fields
+        fields = ['id','name','city','category']
+
+class TravelTourReadDetailSerializer(TravelTourSimpleReadSerializer):
+    tour_package = TourPackageSimpleReadSerializer(many=True)
+    class Meta:
+        model = TravelTour
+        fields = TravelTourSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','empty_slot','tour_package']
+
+class TravelTourWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TravelTour
+        fields = ['name','description','base_price','time_start']
+
+
 
 class CommentSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username')
     class Meta:
         model = Comment
-        fields = ['id', 'user', 'content']
+        fields = ['id','username','content']
 
-class TravelTourDetailSerializer(TravelTourSimpleSerializer):
-    tour_packages = TourPackageSerializer(many=True, read_only=True)
-    comments = CommentSerializer(many=True, read_only=True)
-    get_total_price = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        read_only=True,
-        source="get_total_price",
-    )
+class HotelSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:
-        model = TravelTour
-        fields = TravelTourSimpleSerializer.Meta.fields + ['description','tour_packages','get_total_price','comments']
+        model = Hotel
+        fields = ['id','name','city']
 
-# Hotel
-class RoomTypeSerializer(serializers.ModelSerializer):
+class HotelDetailReadSerializer(HotelSimpleReadSerializer):
+    class Meta:
+        model = Hotel
+        fields = HotelSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','address_detail','total_rooms']
+
+class HotelWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hotel
+        fields = ['name','description','address_detail']
+
+class RoomTypeSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = RoomType
-        fields = ['id', 'name', 'price']
+        fields = ['id','name']
 
-class RoomSerializer(serializers.ModelSerializer):
-    room_type = RoomTypeSerializer(read_only=True)
+class RoomSimpleReadSerializer(serializers.ModelSerializer):
+    room_type = RoomTypeSimpleReadSerializer()
     class Meta:
         model = Room
-        fields = ['id', 'room_type', 'room_number', 'is_available', 'total_beds']
+        fields = ['id','room_type','room_number','is_available','total_beds']
 
-class HotelSimpleSerializer(BaseServiceSimpleSerializer):
+class RoomWriteSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Hotel
-        fields = BaseServiceSimpleSerializer.Meta.fields
+        model = Room
+        fields = ['room_type','room_number','is_available','total_beds']
 
-class HotelDetailSerializer(HotelSimpleSerializer):
-    total_rooms = serializers.IntegerField(read_only=True, source='total_rooms')
-    class Meta:
-        model = Hotel
-        fields = HotelSimpleSerializer.Meta.fields + ['total_rooms','address_detail']
-
-# Transport
-class SeatTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SeatType
-        fields = ['id', 'provider', 'name', 'price']
-        read_only_fields = ['provider']
-
-
-class RouteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Route
-        fields = ['id', 'from_city', 'to_city', 'departure_time', 'arrival_time']
-
-class TransportSimpleSerializer(BaseServiceSimpleSerializer):
-    class Meta:
-        model = Transport
-        fields = BaseServiceSimpleSerializer.Meta.fields
-
-class TransportDetailSerializer(TransportSimpleSerializer):
-    routes = RouteSerializer(many=True, read_only=True)
-    class Meta:
-        model = Transport
-        fields = TransportSimpleSerializer.Meta.fields + ['brand_name', 'license_plate', 'vehicle_type', 'total_seats', 'routes']

@@ -63,3 +63,8 @@ class RegisterSerializer(serializers.ModelSerializer):
                 business_license=business_license,
             )
         return user
+
+class UserReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id','username']

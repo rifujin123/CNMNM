@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'services.apps.ServicesConfig',
     'bookings.apps.BookingsConfig',
     'payments.apps.PaymentsConfig',
+    'locations.apps.LocationsConfig',
     'drf_yasg',
 ]
 
