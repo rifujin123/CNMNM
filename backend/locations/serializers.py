@@ -1,32 +1,21 @@
 from rest_framework import serializers
-from .models import Continent, Country, City
-
-class ContinentReadSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Continent
-        fields = ['id', 'name']
-
-class ContinentWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Continent
-        fields = 'name'
+from .models import Country, City
 
 class CountryReadSerializer(serializers.ModelSerializer):
-    continent = ContinentReadSerializer()
     class Meta:
         model = Country
-        fields = ['id','name','continent']
+        fields = ['id', 'name']
 
 class CountryWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
-        fields = ['name','continent']
+        fields = ['name']
 
 class CityReadSerializer(serializers.ModelSerializer):
-    country = CountryReadSerializer()
+    country = serializers.CharField(source='country.name')
     class Meta:
         model = City
-        fields = ['id','name','country']
+        fields = ['id','country','name']
 
 class CityWriteSerializer(serializers.ModelSerializer):
     class Meta:

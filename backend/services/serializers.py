@@ -45,6 +45,18 @@ class TourPackageDetailReadSerializer(TourPackageSimpleReadSerializer):
         model = TourPackage
         fields = TourPackageSimpleReadSerializer.Meta.fields + ['tour','packages','price']
 
+
+class TourPackageWriteSerializer(serializers.ModelSerializer):
+    packages = serializers.PrimaryKeyRelatedField(
+        queryset=Package.objects.all(),
+        many=True,
+        required=False,
+    )
+
+    class Meta:
+        model = TourPackage
+        fields = ['tour', 'name', 'price', 'packages']
+
 class TravelTourSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelTour
