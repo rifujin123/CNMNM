@@ -14,8 +14,8 @@ export default UserAvatar
 
 const styles = StyleSheet.create({
     avatar: {
-        height: s(32),
-        width: s(32),
-        borderRadius: s(16),
+        height: s(52),
+        width: s(52),
+        borderRadius: s(26),
     }
 })
