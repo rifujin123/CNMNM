@@ -1,24 +1,21 @@
-import {
-  StyleSheet,
-  Text,
-  Touchable,
-  TouchableOpacity,
-  View,
-  TouchableWithoutFeedback,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { s } from "react-native-size-matters";
 import Entypo from "@expo/vector-icons/Entypo";
 const Section = () => {
   return (
-    <TouchableWithoutFeedback style={styles.section}>
+    <View>
       <View style={styles.section}>
-        <Text>Section</Text>
+        <View style={styles.sectionLeft}>
+          <Entypo name="dot-single" size={24} color="black" />
+          <Text>Section</Text>
+        </View>
         <TouchableOpacity style={styles.nextButton}>
           <Entypo name="chevron-right" size={24} color="black" />
         </TouchableOpacity>
       </View>
-    </TouchableWithoutFeedback>
+      <View style={styles.divider} />
+    </View>
   );
 };
 
@@ -26,16 +23,21 @@ export default Section;
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: "#fff",
     justifyContent: "space-between",
     flexDirection: "row",
-    paddingHorizontal: 17,
     alignItems: "center",
-    borderRadius: 20,
     height: s(60),
-    marginTop: s(10),
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    paddingHorizontal: 12,
+  },
+  sectionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  divider: {
+    height: 1,
+    marginHorizontal: 25,
+    backgroundColor: "#d9d9d9",
   },
   nextButton: {
     height: s(32),
@@ -46,5 +48,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });
