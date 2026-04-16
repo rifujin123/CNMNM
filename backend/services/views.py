@@ -106,4 +106,17 @@ class HotelViewSet(viewsets.ModelViewSet):
             return [IsApprovedProviderOrAdmin()]
         return [ServiceOwnerOrAdmin()]
 
+class TransportViewSet(viewsets.ModelViewSet):
+    queryset = Transport.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ['create','update','partial_update']:
+            return TransportWriteSerializer
+        return TransportDetailReadSerializer
     
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        if self.action in ['create']:
+            return [IsApprovedProviderOrAdmin()]
+        return [ServiceOwnerOrAdmin()]
