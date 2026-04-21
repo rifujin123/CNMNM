@@ -5,8 +5,9 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
+from django.db.models import Q
 from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package
-from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer
+from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer, TransportWriteSerializer, TransportDetailReadSerializer
 from .perms import (
     IsApprovedProviderOrAdmin,
     ServiceOwnerOrAdmin,
@@ -60,6 +61,78 @@ class TourPackageViewSet(viewsets.ModelViewSet):
 class TravelTourViewSet(viewsets.ModelViewSet):
     queryset = TravelTour.objects.all()
     serializer_class = TravelTourReadDetailSerializer
+
+    def get_queryset(self):
+        queryset = TravelTour.objects.all()
+        params = self.request.query_params
+
+        search_query = params.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query)
+                | Q(description__icontains=search_query)
+                | Q(city__name__icontains=search_query)
+                | Q(category__name__icontains=search_query)
+            )
+
+        city_id = params.get('city')
+        if city_id:
+            queryset = queryset.filter(city_id=city_id)
+
+        category_id = params.get('category')
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+
+        provider_id = params.get('provider')
+        if provider_id:
+            queryset = queryset.filter(provider_id=provider_id)
+
+        min_price = params.get('min_price')
+        if min_price:
+            queryset = queryset.filter(base_price__gte=min_price)
+
+        max_price = params.get('max_price')
+        if max_price:
+            queryset = queryset.filter(base_price__lte=max_price)
+
+        min_star = params.get('min_star')
+        if min_star:
+            queryset = queryset.filter(star_rating__gte=min_star)
+
+        max_star = params.get('max_star')
+        if max_star:
+            queryset = queryset.filter(star_rating__lte=max_star)
+
+        min_empty_slot = params.get('min_empty_slot')
+        if min_empty_slot:
+            queryset = queryset.filter(empty_slot__gte=min_empty_slot)
+
+        time_start_from = params.get('time_start_from')
+        if time_start_from:
+            queryset = queryset.filter(time_start__gte=time_start_from)
+
+        time_start_to = params.get('time_start_to')
+        if time_start_to:
+            queryset = queryset.filter(time_start__lte=time_start_to)
+
+        allowed_ordering = {
+            'newest': '-created_at',
+            'oldest': 'created_at',
+            'price_asc': 'base_price',
+            'price_desc': '-base_price',
+            'rating_asc': 'star_rating',
+            'rating_desc': '-star_rating',
+            'start_soon': 'time_start',
+            'start_late': '-time_start',
+        }
+        ordering = params.get('ordering')
+        if ordering in allowed_ordering:
+            queryset = queryset.order_by(allowed_ordering[ordering])
+        else:
+            queryset = queryset.order_by('-created_at')
+
+        return queryset
+
     def get_serializer_class(self):
         if self.action in ['create','update','partial_update']:
             return TravelTourWriteSerializer
