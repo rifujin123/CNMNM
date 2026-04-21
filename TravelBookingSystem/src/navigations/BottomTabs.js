@@ -46,7 +46,7 @@ export default function MyTabs() {
       />
       <Tab.Screen
         name="Saved"
-        component={AccountNotLoggedInScreen}
+        component={SavedScreen}
         options={{
           tabBarIcon: () => (
             <Ionicons name="bookmark-outline" size={24} color="black" />
