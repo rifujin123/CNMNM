@@ -2,13 +2,13 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { s } from "react-native-size-matters";
 import Entypo from "@expo/vector-icons/Entypo";
-const Section = () => {
+const Section = ({ title, icon }) => {
   return (
     <View>
       <View style={styles.section}>
         <View style={styles.sectionLeft}>
           <Entypo name="dot-single" size={24} color="black" />
-          <Text>Section</Text>
+          <Text>{title}</Text>
         </View>
         <TouchableOpacity style={styles.nextButton}>
           <Entypo name="chevron-right" size={24} color="black" />

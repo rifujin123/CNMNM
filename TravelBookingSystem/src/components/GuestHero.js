@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { s, vs } from "react-native-size-matters";
 
 export default function GuestHero(props) {
@@ -17,9 +17,9 @@ export default function GuestHero(props) {
         Track bookings, save trips, and manage your profile in one place.
       </Text>
 
-      <Pressable style={styles.button} onPress={onLoginPress}>
+      <TouchableOpacity style={styles.button} onPress={onLoginPress}>
         <Text style={styles.buttonText}>Sign In / Register</Text>
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 }

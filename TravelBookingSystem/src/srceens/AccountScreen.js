@@ -7,14 +7,7 @@ import Section from "../components/Section";
 
 const AccountScreen = () => {
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: "#eeeeee",
-        paddingTop: vs(50),
-        paddingHorizontal: 17,
-      }}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <UserAvatar />
@@ -30,14 +23,14 @@ const AccountScreen = () => {
         <NotiButton />
       </View>
       <View style={styles.profileContainer}>
-        <Section />
-        <Section />
-        <Section />
-        <Section />
+        <Section title="Personal Information" />
+        <Section title="Payment Methods" />
+        <Section title="Security" />
+        <Section title="Notifications" />
       </View>
       <View style={styles.profileContainer}>
-        <Section />
-        <Section />
+        <Section title="Help & Support" />
+        <Section title="Logout" />
       </View>
     </View>
   );
@@ -46,6 +39,12 @@ const AccountScreen = () => {
 export default AccountScreen;
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#eeeeee",
+    paddingTop: vs(50),
+    paddingHorizontal: 17,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
