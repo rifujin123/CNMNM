@@ -1,13 +1,13 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-
-export default function HomeHeader({ userName }) {
+import NotiButton from "./NotiButton";
+import { vs } from "react-native-size-matters";
+export default function AppHeader({ title }) {
   return (
     <View style={styles.row}>
-      <Text style={styles.greeting}>Hello, {userName}</Text>
-
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{userName?.[0] || "U"}</Text>
+      <Text style={styles.title}>{title}</Text>
+      <View style={styles.noti}>
+        <NotiButton />
       </View>
     </View>
   );
@@ -19,24 +19,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingBottom: vs(16),
   },
-  greeting: {
+  title: {
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "700",
     color: "#0F172A",
   },
-  avatar: {
+  noti: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#FDBA74",
     alignItems: "center",
     justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: 14,
-    color: "#FFF",
-    fontWeight: "700",
   },
 });
