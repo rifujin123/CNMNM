@@ -4,10 +4,11 @@ import UserAvatar from "../components/UserAvatar";
 import NotiButton from "../components/NotiButton";
 import { vs, s } from "react-native-size-matters";
 import Section from "../components/Section";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const AccountScreen = () => {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <UserAvatar />
@@ -32,7 +33,7 @@ const AccountScreen = () => {
         <Section title="Help & Support" />
         <Section title="Logout" />
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -42,7 +43,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#eeeeee",
-    paddingTop: vs(50),
     paddingHorizontal: 17,
   },
   header: {

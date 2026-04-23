@@ -2,11 +2,16 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import PlaceCard from "../components/PlaceCard";
 
-export default function NearbyPlaces({ places, onSeeAllPress }) {
+export default function PlaceSection({
+  title = "Recommended For You",
+  places = [],
+  onSeeAllPress,
+  renderCard,
+}) {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Nearby Places</Text>
+        <Text style={styles.title}>{title}</Text>
 
         <Pressable onPress={onSeeAllPress} hitSlop={8}>
           <Text style={styles.seeAll}>See All</Text>
@@ -18,8 +23,10 @@ export default function NearbyPlaces({ places, onSeeAllPress }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
       >
-        {places.map((place) => (
-          <PlaceCard key={place.id} place={place} />
+        {places.map((place, index) => (
+          <React.Fragment key={place.id ?? index}>
+            {renderCard ? renderCard(place) : <PlaceCard place={place} />}
+          </React.Fragment>
         ))}
       </ScrollView>
     </View>

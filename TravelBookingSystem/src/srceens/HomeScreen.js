@@ -1,13 +1,11 @@
 import React from "react";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
-import HomeHeader from "../components/HomeHeader";
+import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../components/SearchBar";
 import PromoBanner from "../components/PromoBanner";
 import CategoryChips from "../components/CategoryChips";
-import NearbyPlaces from "../components/NearbyPlaces";
-
-const categories = ["All", "Tour", "Hotel", "Transport"];
+import PlaceSection from "../components/PlaceSection";
 
 const places = [
   { id: "1", name: "Bali Beach", meta: "4.8 ★  •  2.3 km", color: "#93C5FD" },
@@ -23,12 +21,12 @@ const places = [
 const HomeScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content}>
-        <HomeHeader userName="Khoi" />
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <AppHeader title="Hello, Khoi" />
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
-        <CategoryChips items={categories} />
-        <NearbyPlaces places={places} />
+        <PlaceSection title="Nearby Places" places={places} />
+        <PlaceSection title="Recommended For You" places={places} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -45,15 +43,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#4b5563",
-    textAlign: "center",
   },
 });
