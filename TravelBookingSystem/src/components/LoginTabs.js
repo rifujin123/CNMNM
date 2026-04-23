@@ -7,7 +7,7 @@ const tabsArr = ["Login", "Register"];
 const ACTIVE_BG = "#FFFFFF";
 
 const ACTIVE_TEXT = "#0F172A";
-const INACTIVE_TEXT = "#E2E8F0";
+const INACTIVE_TEXT = "#64748B";
 
 const LoginTabs = ({ activeTab, onTabChange }) => {
   return (

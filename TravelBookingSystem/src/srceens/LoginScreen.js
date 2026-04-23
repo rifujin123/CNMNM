@@ -8,25 +8,43 @@ import {
 import React, { useState } from "react";
 import { s, vs } from "react-native-size-matters";
 import LoginTabs from "../components/LoginTabs";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import LoginRoleSelector from "../components/LoginRoleSelector";
+import GoogleLoginCard from "../components/GoogleLoginCard";
 
 const LoginScreen = () => {
   const [activeTab, setActiveTab] = useState("Login");
+  const [selectedRole, setSelectedRole] = useState("Customer");
   const isLoginTab = activeTab === "Login";
+  const isProviderRole = selectedRole === "Provider";
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{isLoginTab ? "Login" : "Register"}</Text>
+      <View style={styles.headerRow}>
+        <TouchableOpacity hitSlop={8} style={styles.closeButton}>
+          <Ionicons name="close" size={22} color="#0F172A" />
+        </TouchableOpacity>
+        <Text style={styles.title}>{isLoginTab ? "Login" : "Register"}</Text>
+      </View>
       <Text style={styles.subtitle}>
         {isLoginTab
           ? "Welcome back! Please login to your account"
           : "Create your account to start your journey"}
       </Text>
-      <LoginTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      <LoginTabs
+        activeTab={activeTab}
+        onTabChange={(tabName) => {
+          setActiveTab(tabName);
+          if (tabName === "Login") {
+            setSelectedRole("Customer");
+          }
+        }}
+      />
       {!isLoginTab && (
-        <View style={styles.roleRow}>
-          <Text style={styles.roleText}>I am joining as</Text>
-          <Text style={styles.subRoleText}>Choose your account type</Text>
-        </View>
+        <LoginRoleSelector
+          selectedRole={selectedRole}
+          onRoleChange={setSelectedRole}
+        />
       )}
 
       <TextInput style={styles.input} placeholder="Email Address" />
@@ -34,28 +52,53 @@ const LoginScreen = () => {
       {!isLoginTab && (
         <View>
           <TextInput style={styles.input} placeholder="Confirm Password" />
-          <TextInput
-            style={styles.input}
-            placeholder="Business name (Provider)"
-          />
-          <TextInput style={styles.input} placeholder="Tax code (Provider)" />
+          {isProviderRole && (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Business name (Provider)"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Tax code (Provider)"
+              />
+            </>
+          )}
         </View>
       )}
       <View style={styles.hyperlinkContainer}>
         {isLoginTab ? (
-          <Text style={styles.forgotPassword}>Wanna be our provider?</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setActiveTab("Register");
+              setSelectedRole("Provider");
+            }}
+          >
+            <Text style={styles.forgotPassword}>Wanna be our provider?</Text>
+          </TouchableOpacity>
         ) : (
           <View />
         )}
-        <Text style={styles.forgotPassword}>
-          {isLoginTab ? "Forgot Password?" : "Already have an account?"}
-        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            if (isLoginTab) {
+              return;
+            }
+            setActiveTab("Login");
+            setSelectedRole("Customer");
+          }}
+        >
+          <Text style={styles.forgotPassword}>
+            {isLoginTab ? "Forgot Password?" : "Already have an account?"}
+          </Text>
+        </TouchableOpacity>
       </View>
       <TouchableOpacity style={styles.button}>
         <Text style={styles.buttonText}>
           {isLoginTab ? "Login" : "Register"}
         </Text>
       </TouchableOpacity>
+      <GoogleLoginCard />
     </View>
   );
 };
@@ -69,11 +112,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: s(16),
     backgroundColor: "#FFFFFF",
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: vs(12),
+  },
+  closeButton: {
+    marginRight: s(8),
+  },
   title: {
-    fontSize: vs(24),
+    fontSize: vs(16),
     fontWeight: "bold",
     color: "#0F172A",
-    marginBottom: vs(12),
   },
   subtitle: {
     fontSize: vs(12),
@@ -92,7 +142,7 @@ const styles = StyleSheet.create({
   forgotPassword: {
     fontSize: vs(10),
     color: "#2563EB",
-    marginTop: vs(8),
+    marginTop: vs(4),
   },
   hyperlinkContainer: {
     marginTop: vs(8),
@@ -110,15 +160,5 @@ const styles = StyleSheet.create({
     fontSize: vs(14),
     fontWeight: "bold",
     textAlign: "center",
-  },
-  roleRow: {},
-  roleText: {
-    marginTop: vs(12),
-    fontSize: vs(10),
-    color: "#64748B",
-  },
-  subRoleText: {
-    fontSize: vs(8),
-    color: "#64748B",
   },
 });
