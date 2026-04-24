@@ -4,8 +4,9 @@ import HomeScreen from "../srceens/HomeScreen";
 import ExploreScreen from "../srceens/ExploreScreen";
 import TripsScreen from "../srceens/TripsScreen";
 import SavedScreen from "../srceens/SavedScreen";
-import AccountScreen from "../srceens/AccountScreen";
+import LoginScreen from "../srceens/LoginScreen";
 import AccountNotLoggedInScreen from "../srceens/AccountNotLoggedInScreen";
+import AccountScreen from "../srceens/AccountScreen";
 const Tab = createBottomTabNavigator();
 
 export default function MyTabs() {
@@ -55,7 +56,7 @@ export default function MyTabs() {
       />
       <Tab.Screen
         name="Profile"
-        component={AccountScreen}
+        component={AccountNotLoggedInScreen}
         options={{
           tabBarIcon: () => (
             <Ionicons name="person-outline" size={24} color="black" />
