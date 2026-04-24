@@ -7,6 +7,7 @@ export default function PlaceSection({
   places = [],
   onSeeAllPress,
   renderCard,
+  slidingCard = false,
 }) {
   return (
     <View style={styles.container}>
@@ -22,6 +23,10 @@ export default function PlaceSection({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        decelerationRate={slidingCard ? "fast" : "normal"}
+        snapToInterval={slidingCard ? 182 : undefined}
+        snapToAlignment={slidingCard ? "start" : undefined}
+        disableIntervalMomentum={slidingCard}
       >
         {places.map((place, index) => (
           <React.Fragment key={place.id ?? index}>

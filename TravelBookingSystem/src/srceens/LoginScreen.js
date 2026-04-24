@@ -11,8 +11,10 @@ import LoginTabs from "../components/LoginTabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import LoginRoleSelector from "../components/LoginRoleSelector";
 import GoogleLoginCard from "../components/GoogleLoginCard";
+import { useNavigation } from "@react-navigation/native";
 
 const LoginScreen = () => {
+  const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState("Login");
   const [selectedRole, setSelectedRole] = useState("Customer");
   const isLoginTab = activeTab === "Login";
@@ -21,7 +23,11 @@ const LoginScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <TouchableOpacity hitSlop={8} style={styles.closeButton}>
+        <TouchableOpacity
+          hitSlop={8}
+          style={styles.closeButton}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="close" size={22} color="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.title}>{isLoginTab ? "Login" : "Register"}</Text>
