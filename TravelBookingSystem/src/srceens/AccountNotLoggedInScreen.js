@@ -1,18 +1,20 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
-import UserAvatar from "../components/UserAvatar";
 import GuestHero from "../components/GuestHero";
-import { vs, s } from "react-native-size-matters";
-import NotiButton from "../components/NotiButton";
+import { SafeAreaView } from "react-native-safe-area-context";
+import AppHeader from "../components/AppHeader";
+import { useNavigation } from "@react-navigation/native";
+
 const AccountNotLoggedInScreen = () => {
+  const navigation = useNavigation();
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Account</Text>
-        <NotiButton />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <AppHeader title="Account" />
+        <GuestHero onLoginPress={() => navigation.navigate("Login")} />
       </View>
-      <GuestHero />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -21,19 +23,10 @@ export default AccountNotLoggedInScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#eeeeee",
-    paddingTop: vs(50),
-    paddingHorizontal: 17,
+    backgroundColor: "#F8FAFC",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: s(20),
-    lineHeight: vs(30),
-    fontWeight: "700",
-    color: "#0F172A",
+  content: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
   },
 });

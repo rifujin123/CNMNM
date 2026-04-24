@@ -1,26 +1,66 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+
+const banners = [
+  {
+    id: "b1",
+    title: "Summer Escape 30% Off",
+    sub: "Book your next trip today",
+    cta: "Explore now",
+    bg: "#2563EB",
+  },
+  {
+    id: "b2",
+    title: "Hotel Deals Up To 40%",
+    sub: "Best prices for your weekend stay",
+    cta: "Book hotels",
+    bg: "#0EA5E9",
+  },
+  {
+    id: "b3",
+    title: "Airport Transfer Promo",
+    sub: "Ride to city center with discount",
+    cta: "View rides",
+    bg: "#16A34A",
+  },
+];
 
 export default function PromoBanner() {
   return (
-    <View style={styles.banner}>
-      <Text style={styles.title}>Summer Escape 30% Off</Text>
-      <Text style={styles.sub}>Book your next trip today</Text>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.listContent}
+      decelerationRate="fast"
+      snapToInterval={308}
+      snapToAlignment="start"
+      disableIntervalMomentum
+    >
+      {banners.map((item) => (
+        <View key={item.id} style={[styles.banner, { backgroundColor: item.bg }]}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.sub}>{item.sub}</Text>
 
-      <Pressable style={styles.cta}>
-        <Text style={styles.ctaText}>Explore now</Text>
-      </Pressable>
-    </View>
+          <Pressable style={styles.cta}>
+            <Text style={styles.ctaText}>{item.cta}</Text>
+          </Pressable>
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  banner: {
+  listContent: {
     marginTop: 20,
+    paddingRight: 24,
+  },
+  banner: {
+    width: 296,
     height: 192,
     borderRadius: 22,
-    backgroundColor: "#2563EB",
     padding: 20,
+    marginRight: 12,
   },
   title: {
     fontSize: 24,

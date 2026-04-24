@@ -1,12 +1,13 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const SavedScreen = () => {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Saved</Text>
       <Text style={styles.subtitle}>Cac dia diem/tour da luu.</Text>
-    </View>
+    </SafeAreaView>
   );
 };
 

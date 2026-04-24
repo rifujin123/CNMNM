@@ -7,7 +7,7 @@ const Section = ({ title, icon }) => {
     <View>
       <View style={styles.section}>
         <View style={styles.sectionLeft}>
-          <Entypo name="dot-single" size={24} color="black" />
+          {icon}
           <Text>{title}</Text>
         </View>
         <TouchableOpacity style={styles.nextButton}>

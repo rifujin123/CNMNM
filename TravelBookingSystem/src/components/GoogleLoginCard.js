@@ -5,7 +5,7 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 const GoogleLoginCard = () => {
   return (
     <TouchableOpacity style={styles.container}>
-      <AntDesign name="google" size={24} color="#4285F4" />
+      <AntDesign name="google" size={24} color="#EA4335" />
       <Text style={styles.label}>Continue with Google</Text>
     </TouchableOpacity>
   );

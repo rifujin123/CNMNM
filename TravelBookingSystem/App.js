@@ -1,15 +1,17 @@
 import MyTabs from "./src/navigations/BottomTabs";
 import { NavigationContainer } from "@react-navigation/native";
-import IntroScreen from "./src/srceens/IntroScreen";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "./src/srceens/LoginScreen";
-import LoginTabs from "./src/components/LoginTabs";
-import { StyleSheet, View } from "react-native";
-import { vs } from "react-native-size-matters";
+
+const Stack = createNativeStackNavigator();
+
 export default function App() {
   return (
-    // <NavigationContainer>
-    //   <MyTabs />
-    // </NavigationContainer>
-    <LoginScreen />
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MainTabs" component={MyTabs} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
