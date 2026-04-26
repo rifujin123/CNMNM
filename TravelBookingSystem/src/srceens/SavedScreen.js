@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useMemo, useCallback } from "react";
 import { StyleSheet, Text, View, FlatList, Image, StatusBar } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import CategoryChips from "../components/CategoryChips";
+import PlaceCard from "../components/PlaceCard";
 
 const DATA = [
   {
@@ -34,7 +36,7 @@ const DATA = [
 ]
 const categories = ["All", "Tour", "Hotel", "Transport"];
 
-const SavedScreen = () => {
+const SavedScreen = ({ title, location, price, rating, description }) => {
 
   const renderItem = ({ item }) => (
     <View style={styles.item}>
@@ -50,9 +52,10 @@ const SavedScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Saved</Text>
+
         <View style={styles.headerIcons}>
           <Ionicons name="list-outline" size={24} color="black" />
           <Ionicons name="add-outline" size={24} color="black" />
@@ -63,12 +66,17 @@ const SavedScreen = () => {
 
         <FlatList
           data={DATA}
-          renderItem={renderItem}
           keyExtractor={(item) => item.id}
-          style={{ marginBottom: 20 }}
+          renderItem={({ item }) => (
+            <PlaceCard place={{
+              name: item.title,
+              meta: item.location,
+              color: "#E2E8F0"
+            }} />
+          )}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
