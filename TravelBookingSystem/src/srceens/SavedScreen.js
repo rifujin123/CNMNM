@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, FlatList, Image, StatusBar } from "react-native
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import CategoryChips from "../components/CategoryChips";
-import PlaceCard from "../components/PlaceCard";
+import PlaceCardSave from "../components/PlaceCardSave";
 
 const DATA = [
   {
@@ -36,21 +36,7 @@ const DATA = [
 ]
 const categories = ["All", "Tour", "Hotel", "Transport"];
 
-const SavedScreen = ({ title, location, price, rating, description }) => {
-
-  const renderItem = ({ item }) => (
-    <View style={styles.item}>
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <View style={styles.info}>
-        <Text style={styles.context}>{item.title}</Text>
-        <Text style={styles.location}>{item.location}</Text>
-        <Text style={styles.price}>{item.price}</Text>
-        <Text style={styles.rating}>{item.rating}</Text>
-
-      </View>
-    </View>
-  );
-
+const SavedScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -68,11 +54,15 @@ const SavedScreen = ({ title, location, price, rating, description }) => {
           data={DATA}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <PlaceCard place={{
-              name: item.title,
-              meta: item.location,
-              color: "#E2E8F0"
-            }} />
+            <PlaceCardSave place={
+              {
+                title: item.title,
+                location: item.location,
+                image: item.image,
+                price: item.price,
+                rating: item.rating
+              }
+            } />
           )}
         />
       </View>
