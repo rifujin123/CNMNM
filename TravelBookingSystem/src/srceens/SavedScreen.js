@@ -1,5 +1,12 @@
 import React, { useMemo, useCallback } from "react";
-import { StyleSheet, Text, View, FlatList, Image, StatusBar } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  Image,
+  StatusBar,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import CategoryChips from "../components/CategoryChips";
@@ -9,31 +16,37 @@ const DATA = [
   {
     id: "1",
     title: "Ha Long Bay",
-    image: "https://images.unsplash.com/photo-1582719478250-c89ea2641838?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    image:
+      "https://images.unsplash.com/photo-1582719478250-c89ea2641838?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
     location: "Quang Ninh, Vietnam",
     price: "$100",
     rating: "4.5",
-    description: "Ha Long Bay is a UNESCO World Heritage Site located in Quang Ninh province, Vietnam. It is known for its stunning limestone karsts and islands.",
+    description:
+      "Ha Long Bay is a UNESCO World Heritage Site located in Quang Ninh province, Vietnam. It is known for its stunning limestone karsts and islands.",
   },
   {
     id: "2",
     title: "Hoi An Ancient Town",
-    image: "https://images.unsplash.com/photo-1582719478250-c89ea2641838?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    image:
+      "https://images.unsplash.com/photo-1582719478250-c89ea2641838?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
     location: "Quang Nam, Vietnam",
     price: "$100",
     rating: "4.5",
-    description: "Hoi An Ancient Town is a UNESCO World Heritage Site located in Quang Nam province, Vietnam. It is known for its stunning limestone karsts and islands.",
+    description:
+      "Hoi An Ancient Town is a UNESCO World Heritage Site located in Quang Nam province, Vietnam. It is known for its stunning limestone karsts and islands.",
   },
   {
     id: "3",
     title: "Da Lat City",
-    image: "https://images.unsplash.com/photo-1582719478250-c89ea2641838?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    image:
+      "https://images.unsplash.com/photo-1582719478250-c89ea2641838?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
     location: "Lam Dong, Vietnam",
     price: "$100",
     rating: "4.5",
-    description: "Da Lat City is a UNESCO World Heritage Site located in Lam Dong province, Vietnam. It is known for its stunning limestone karsts and islands.",
+    description:
+      "Da Lat City is a UNESCO World Heritage Site located in Lam Dong province, Vietnam. It is known for its stunning limestone karsts and islands.",
   },
-]
+];
 const categories = ["All", "Tour", "Hotel", "Transport"];
 
 const SavedScreen = () => {
@@ -54,15 +67,15 @@ const SavedScreen = () => {
           data={DATA}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <PlaceCardSave place={
-              {
+            <PlaceCardSave
+              place={{
                 title: item.title,
                 location: item.location,
                 image: item.image,
                 price: item.price,
-                rating: item.rating
-              }
-            } />
+                rating: item.rating,
+              }}
+            />
           )}
         />
       </View>
@@ -77,7 +90,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     paddingHorizontal: 24,
-    marginTop: StatusBar.currentHeight || 0
+    marginTop: StatusBar.currentHeight || 0,
   },
   headerIcons: {
     flexDirection: "row",
@@ -92,16 +105,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 40,
     fontWeight: "700",
-    marginBottom: -20
+    marginBottom: -20,
   },
   context: {
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 4
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
     color: "#4b5563",
     textAlign: "center",
-  }
+  },
 });
