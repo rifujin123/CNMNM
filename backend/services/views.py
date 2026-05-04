@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.decorators import action
 from django.db.models import Q
 from django.db.models import Count
-from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package
-from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer, TransportWriteSerializer, TransportDetailReadSerializer
+from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package, PromoBanner
+from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer, TransportWriteSerializer, TransportDetailReadSerializer, PromoBannerSerializer
 from .perms import (
     IsApprovedProviderOrAdmin,
     ServiceOwnerOrAdmin,
@@ -16,6 +16,24 @@ from .perms import (
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+
+class PromoBannerViewSet(viewsets.ModelViewSet):
+    queryset = PromoBanner.objects.all()
+    serializer_class = PromoBannerSerializer
+
+    def get_queryset(self):
+        queryset = PromoBanner.objects.all()
+        if self.action == 'list':
+            is_active = self.request.query_params.get('is_active')
+            if is_active is not None:
+                queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        return queryset
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:

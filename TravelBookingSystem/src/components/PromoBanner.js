@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, FlatList } from "react-native";
 
 const banners = [
   {
@@ -26,27 +26,30 @@ const banners = [
 ];
 
 export default function PromoBanner() {
+  const renderBanner = ({ item }) => (
+    <View style={[styles.banner, { backgroundColor: item.bg }]}>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.sub}>{item.sub}</Text>
+
+      <Pressable style={styles.cta}>
+        <Text style={styles.ctaText}>{item.cta}</Text>
+      </Pressable>
+    </View>
+  );
+
   return (
-    <ScrollView
+    <FlatList
       horizontal
+      data={banners}
+      keyExtractor={(item) => item.id}
+      renderItem={renderBanner}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.listContent}
       decelerationRate="fast"
       snapToInterval={308}
       snapToAlignment="start"
       disableIntervalMomentum
-    >
-      {banners.map((item) => (
-        <View key={item.id} style={[styles.banner, { backgroundColor: item.bg }]}>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.sub}>{item.sub}</Text>
-
-          <Pressable style={styles.cta}>
-            <Text style={styles.ctaText}>{item.cta}</Text>
-          </Pressable>
-        </View>
-      ))}
-    </ScrollView>
+    />
   );
 }
 

@@ -14,6 +14,7 @@ from .models import (
     Route,
     Transport,
     SeatType,
+    PromoBanner,
 ) 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -148,3 +149,20 @@ class TransportWriteSerializer(serializers.ModelSerializer):
             'vehicle_type',
         ]
 
+
+class PromoBannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PromoBanner
+        fields = [
+            'id',
+            'title',
+            'subtitle',
+            'image',
+            'cta_text',
+            'background_color',
+            'is_active',
+            'display_order',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']

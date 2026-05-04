@@ -14,6 +14,18 @@ import CategoryChips from "../components/CategoryChips";
 import PlaceSection from "../components/PlaceSection";
 import Apis, { endpoints } from "../../configs/Apis";
 
+const categories = ["All", "Tour", "Hotel", "Transport"];
+
+const places = [
+  { id: "1", name: "Bali Beach", meta: "4.8 ★  •  2.3 km", color: "#93C5FD" },
+  {
+    id: "2",
+    name: "Mountain View",
+    meta: "4.7 ★  •  5.1 km",
+    color: "#86EFAC",
+  },
+];
+
 const loadPlaces = async () => {
   let url = `${endpoints["tours"]}`;
   const res = await Apis.get(url)
@@ -27,8 +39,9 @@ const HomeScreen = () => {
         <AppHeader title="Hello, Khoi" />
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
-        <PlaceSection title="Nearby Places" />
-        <PlaceSection title="Recommended For You" />
+        <CategoryChips items={categories} />
+        <PlaceSection title="Nearby Places" places={places} />
+        <PlaceSection title="Recommended For You" places={places} />
       </ScrollView>
       <TouchableOpacity onPress={loadPlaces}>
         <Text>Load Places</Text>

@@ -11,6 +11,8 @@ from .models import (
     SeatType,
     Route,
     Comment,
+    ServiceImage,
+    PromoBanner,
 )
 
 
@@ -88,3 +90,17 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'travel_tour']
     list_filter = ['travel_tour', 'user']
     search_fields = ['user__username', 'travel_tour__name', 'content']
+
+
+@admin.register(ServiceImage)
+class ServiceImageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'service', 'caption', 'created_at']
+    list_filter = ['created_at', 'service__category']
+    search_fields = ['caption', 'service__name']
+
+
+@admin.register(PromoBanner)
+class PromoBannerAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'is_active', 'display_order', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['title', 'subtitle', 'cta_text']

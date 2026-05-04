@@ -1,9 +1,9 @@
-import React, { memo } from "react";
+import React from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 import { scale, verticalScale, moderateScale } from "react-native-size-matters";
 import { Ionicons } from "@expo/vector-icons";
 
-export default memo(function PlaceCard({ place }) {
+function PlaceCard({ place }) {
     return (
         <View style={styles.card}>
             <Image source={{ uri: place.image }} style={styles.image} />
@@ -27,7 +27,9 @@ export default memo(function PlaceCard({ place }) {
             </View>
         </View>
     );
-});
+}
+
+export default PlaceCard;
 
 const styles = StyleSheet.create({
     card: {
