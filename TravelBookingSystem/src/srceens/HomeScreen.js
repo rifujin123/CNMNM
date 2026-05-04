@@ -8,10 +8,22 @@ import CategoryChips from "../components/CategoryChips";
 import PlaceSection from "../components/PlaceSection";
 import Apis, { endpoints } from "../../configs/Apis";
 
-const categories = ["All", "Tour", "Hotel", "Transport"];
-
 const HomeScreen = () => {
   const [placeList, setPlaceList] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+
+  const loadCategories = async () => {
+    try {
+      let url = `${endpoints["categories"]}`;
+      let res = await Apis.get(url);
+      let items = res?.data ?? [];
+      setCategories(items);
+    } catch (err) {
+      console.log("Error fetching categories:", err.message);
+    }
+  };
 
   const loadPlaces = async () => {
     try {
@@ -37,6 +49,7 @@ const HomeScreen = () => {
 
   useEffect(() => {
     loadPlaces();
+    loadCategories();
   }, []);
 
   return (
@@ -45,7 +58,11 @@ const HomeScreen = () => {
         <AppHeader title="Hello, Khoi" />
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
-        <CategoryChips items={categories} />
+        <CategoryChips
+          categories={categories}
+          activeIndex={activeCategoryIndex}
+          onSelect={(category, idx) => setActiveCategoryIndex(idx)}
+        />
         <PlaceSection title="Nearby Places" places={placeList} />
         <PlaceSection title="Recommended For You" places={placeList} />
       </ScrollView>

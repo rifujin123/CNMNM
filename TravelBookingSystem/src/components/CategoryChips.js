@@ -1,17 +1,28 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TouchableNativeFeedback,
+} from "react-native";
 
-export default function CategoryChips({ items, activeIndex = 0 }) {
+export default function CategoryChips({
+  categories = [],
+  activeIndex = 0,
+  onSelect,
+}) {
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Categories</Text>
 
       <View style={styles.row}>
-        {items.map((item, idx) => {
+        {categories.map((category, idx) => {
           const active = idx === activeIndex;
           return (
-            <View
-              key={item}
+            <Pressable
+              key={category.id}
+              onPress={() => onSelect?.(category, idx)}
               style={[styles.chip, active ? styles.active : styles.inactive]}
             >
               <Text
@@ -20,9 +31,9 @@ export default function CategoryChips({ items, activeIndex = 0 }) {
                   active ? styles.activeText : styles.inactiveText,
                 ]}
               >
-                {item}
+                {category.name}
               </Text>
-            </View>
+            </Pressable>
           );
         })}
       </View>
