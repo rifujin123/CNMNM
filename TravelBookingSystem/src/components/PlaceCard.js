@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-export default function PlaceCard({ place }) {
+export default memo(function PlaceCard({ place }) {
   return (
     <View style={styles.card}>
       <View style={[styles.thumb, { backgroundColor: place.color }]} />
@@ -9,7 +9,7 @@ export default function PlaceCard({ place }) {
       <Text style={styles.meta}>{place.meta}</Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

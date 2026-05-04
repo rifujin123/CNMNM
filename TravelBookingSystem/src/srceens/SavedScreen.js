@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useMemo, useCallback } from "react";
 import { StyleSheet, Text, View, FlatList, Image, StatusBar } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import CategoryChips from "../components/CategoryChips";
+import PlaceCardSave from "../components/PlaceCardSave";
 
 const DATA = [
   {
@@ -35,24 +37,11 @@ const DATA = [
 const categories = ["All", "Tour", "Hotel", "Transport"];
 
 const SavedScreen = () => {
-
-  const renderItem = ({ item }) => (
-    <View style={styles.item}>
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <View style={styles.info}>
-        <Text style={styles.context}>{item.title}</Text>
-        <Text style={styles.location}>{item.location}</Text>
-        <Text style={styles.price}>{item.price}</Text>
-        <Text style={styles.rating}>{item.rating}</Text>
-
-      </View>
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Saved</Text>
+
         <View style={styles.headerIcons}>
           <Ionicons name="list-outline" size={24} color="black" />
           <Ionicons name="add-outline" size={24} color="black" />
@@ -63,12 +52,21 @@ const SavedScreen = () => {
 
         <FlatList
           data={DATA}
-          renderItem={renderItem}
           keyExtractor={(item) => item.id}
-          style={{ marginBottom: 20 }}
+          renderItem={({ item }) => (
+            <PlaceCardSave place={
+              {
+                title: item.title,
+                location: item.location,
+                image: item.image,
+                price: item.price,
+                rating: item.rating
+              }
+            } />
+          )}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
