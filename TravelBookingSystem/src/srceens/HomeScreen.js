@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -6,6 +6,7 @@ import SearchBar from "../components/SearchBar";
 import PromoBanner from "../components/PromoBanner";
 import CategoryChips from "../components/CategoryChips";
 import PlaceSection from "../components/PlaceSection";
+import Apis, { endpoints } from "../../configs/Apis";
 
 const places = [
   { id: "1", name: "Bali Beach", meta: "4.8 ★  •  2.3 km", color: "#93C5FD" },

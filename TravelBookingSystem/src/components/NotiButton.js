@@ -11,7 +11,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 const NotiButton = () => {
   return (
     <TouchableOpacity style={styles.container}>
-      <Ionicons name="notifications-outline" size={32} color="black" />
+      <Ionicons name="person-circle-outline" size={32} color="black" />
     </TouchableOpacity>
   );
 };

@@ -54,15 +54,6 @@ export default function MyTabs() {
           ),
         }}
       />
-      <Tab.Screen
-        name="Profile"
-        component={AccountNotLoggedInScreen}
-        options={{
-          tabBarIcon: () => (
-            <Ionicons name="person-outline" size={24} color="black" />
-          ),
-        }}
-      />
     </Tab.Navigator>
   );
 }
