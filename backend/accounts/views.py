@@ -3,8 +3,16 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAdminUser
 
-from .serializers import RegisterSerializer
+from .models import User
+from .serializers import (
+    MeUpdateSerializer,
+    ProviderApprovalSerializer,
+    RegisterSerializer,
+    UserReadSerializer,
+)
 
 # Create your views here.
 class RegisterView(APIView):
@@ -37,3 +45,55 @@ class LogoutView(APIView):
         RefreshToken.objects.filter(access_token=token).delete()
         token.delete()
         return Response({'detail': 'Đăng xuất thành công.'}, status=status.HTTP_200_OK)
+
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(UserReadSerializer(request.user).data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = MeUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserReadSerializer(request.user).data, status=status.HTTP_200_OK)
+
+
+class PendingProviderListView(ListAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = UserReadSerializer
+
+    def get_queryset(self):
+        return User.objects.filter(is_provider=True, is_approved=False).order_by('-date_joined')
+
+
+class ProviderVerificationView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def patch(self, request, provider_id):
+        provider = User.objects.filter(id=provider_id, is_provider=True).first()
+        if not provider:
+            return Response({'detail': 'Không tìm thấy nhà cung cấp.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProviderApprovalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        approved = serializer.validated_data['approved']
+        reason = serializer.validated_data.get('reason', '')
+
+        provider.is_approved = approved
+        provider.save(update_fields=['is_approved'])
+
+        profile = getattr(provider, 'provider_profile', None)
+        if profile:
+            profile.is_verified = approved
+            profile.save(update_fields=['is_verified'])
+
+        return Response(
+            {
+                'provider_id': provider.id,
+                'approved': approved,
+                'reason': reason,
+            },
+            status=status.HTTP_200_OK,
+        )

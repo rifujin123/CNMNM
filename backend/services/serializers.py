@@ -112,3 +112,39 @@ class RoomWriteSerializer(serializers.ModelSerializer):
         model = Room
         fields = ['room_type','room_number','is_available','total_beds']
 
+
+class TransportSimpleReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transport
+        fields = ['id', 'name', 'city']
+
+
+class TransportDetailReadSerializer(TransportSimpleReadSerializer):
+    class Meta:
+        model = Transport
+        fields = TransportSimpleReadSerializer.Meta.fields + [
+            'description',
+            'star_rating',
+            'base_price',
+            'brand_name',
+            'license_plate',
+            'vehicle_type',
+            'total_seats',
+        ]
+
+
+class TransportWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transport
+        fields = [
+            'name',
+            'description',
+            'star_rating',
+            'base_price',
+            'city',
+            'category',
+            'brand_name',
+            'license_plate',
+            'vehicle_type',
+        ]
+

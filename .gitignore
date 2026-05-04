@@ -1,0 +1,8 @@
+/overview/
+/.cursor/
+
+# Python cache/bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd

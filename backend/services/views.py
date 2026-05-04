@@ -1,11 +1,11 @@
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
 from django.db.models import Q
+from django.db.models import Count
 from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package
 from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer, TransportWriteSerializer, TransportDetailReadSerializer
 from .perms import (
@@ -43,7 +43,9 @@ class TourPackageViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
-        return [TourPackageOwner()]
+        if self.action in ['create']:
+            return [IsApprovedProviderOrAdmin()]
+        return [IsApprovedProviderOrAdmin(), TourPackageOwner()]
 
     def perform_create(self, serializer):
         tour = serializer.validated_data.get('tour')
@@ -54,6 +56,8 @@ class TourPackageViewSet(viewsets.ModelViewSet):
             return
         if not getattr(self.request.user, 'is_provider', False):
             raise PermissionDenied("Chỉ provider hoặc admin mới được tạo TourPackage.")
+        if not getattr(self.request.user, 'is_approved', False):
+            raise PermissionDenied("Provider chưa được duyệt không thể tạo TourPackage.")
         if tour.provider_id != self.request.user.id:
             raise PermissionDenied("Bạn chỉ được tạo TourPackage cho tour của bạn.")
         serializer.save()
@@ -63,7 +67,7 @@ class TravelTourViewSet(viewsets.ModelViewSet):
     serializer_class = TravelTourReadDetailSerializer
 
     def get_queryset(self):
-        queryset = TravelTour.objects.all()
+        queryset = TravelTour.objects.annotate(popularity=Count('bookings'))
         params = self.request.query_params
 
         search_query = params.get('q')
@@ -124,6 +128,8 @@ class TravelTourViewSet(viewsets.ModelViewSet):
             'rating_desc': '-star_rating',
             'start_soon': 'time_start',
             'start_late': '-time_start',
+            'popularity_desc': '-popularity',
+            'popularity_asc': 'popularity',
         }
         ordering = params.get('ordering')
         if ordering in allowed_ordering:
@@ -165,7 +171,7 @@ class TravelTourViewSet(viewsets.ModelViewSet):
         
     
 class HotelViewSet(viewsets.ModelViewSet):
-    queryset = Hotel.objects.all()
+    queryset = Hotel.objects.annotate(popularity=Count('bookings'))
 
     def get_serializer_class(self):
         if self.action in ['create','update','partial_update']:
@@ -180,7 +186,7 @@ class HotelViewSet(viewsets.ModelViewSet):
         return [ServiceOwnerOrAdmin()]
 
 class TransportViewSet(viewsets.ModelViewSet):
-    queryset = Transport.objects.all()
+    queryset = Transport.objects.annotate(popularity=Count('bookings'))
 
     def get_serializer_class(self):
         if self.action in ['create','update','partial_update']:

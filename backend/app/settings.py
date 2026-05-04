@@ -89,7 +89,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': "kmtravel",
         'USER':'root',
-        'PASSWORD':'123456',
+        'PASSWORD':'password',
     }
 }
 

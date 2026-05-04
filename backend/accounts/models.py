@@ -8,6 +8,7 @@ class User(AbstractUser):
 
     is_customer = models.BooleanField(default=False)
     is_provider = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)
 
 class ProviderProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='provider_profile')

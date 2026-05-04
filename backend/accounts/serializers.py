@@ -65,6 +65,43 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class UserReadSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+    is_verified_provider = serializers.SerializerMethodField()
+
+    def get_role(self, obj):
+        if obj.is_staff:
+            return 'Admin'
+        if obj.is_provider:
+            return 'Provider'
+        return 'Customer'
+
+    def get_is_verified_provider(self, obj):
+        profile = getattr(obj, 'provider_profile', None)
+        return bool(obj.is_approved or (profile and profile.is_verified))
+
     class Meta:
         model = User
-        fields = ['id','username']
+        fields = [
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'avatar',
+            'is_customer',
+            'is_provider',
+            'is_approved',
+            'role',
+            'is_verified_provider',
+        ]
+
+
+class MeUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'date_of_birth', 'avatar']
+
+
+class ProviderApprovalSerializer(serializers.Serializer):
+    approved = serializers.BooleanField()
+    reason = serializers.CharField(required=False, allow_blank=True, default='')
