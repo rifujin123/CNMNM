@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-} from "react-native";
+import { StyleSheet, ScrollView } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../components/SearchBar";
@@ -16,23 +10,35 @@ import Apis, { endpoints } from "../../configs/Apis";
 
 const categories = ["All", "Tour", "Hotel", "Transport"];
 
-const places = [
-  { id: "1", name: "Bali Beach", meta: "4.8 ★  •  2.3 km", color: "#93C5FD" },
-  {
-    id: "2",
-    name: "Mountain View",
-    meta: "4.7 ★  •  5.1 km",
-    color: "#86EFAC",
-  },
-];
-
-const loadPlaces = async () => {
-  let url = `${endpoints["tours"]}`;
-  const res = await Apis.get(url)
-    .then((res) => console.log(res.data))
-    .catch((err) => console.log("Error fetching data:", err));
-};
 const HomeScreen = () => {
+  const [placeList, setPlaceList] = useState([]);
+
+  const loadPlaces = async () => {
+    try {
+      const url = `${endpoints["tours"]}`;
+      const res = await Apis.get(url);
+      const items = res?.data ?? [];
+
+      const mappedPlaces = items.map((item, index) => ({
+        id: String(item.id),
+        name: item.name,
+        star_rating: item.star_rating,
+        base_price: item.base_price_display,
+        city: item.city,
+        color: index % 2 === 0 ? "#93C5FD" : "#86EFAC",
+      }));
+
+      setPlaceList(mappedPlaces);
+    } catch (err) {
+      console.log("Error fetching places:", err.message);
+      setPlaceList([]);
+    }
+  };
+
+  useEffect(() => {
+    loadPlaces();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -40,12 +46,9 @@ const HomeScreen = () => {
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
         <CategoryChips items={categories} />
-        <PlaceSection title="Nearby Places" places={places} />
-        <PlaceSection title="Recommended For You" places={places} />
+        <PlaceSection title="Nearby Places" places={placeList} />
+        <PlaceSection title="Recommended For You" places={placeList} />
       </ScrollView>
-      <TouchableOpacity onPress={loadPlaces}>
-        <Text>Load Places</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };

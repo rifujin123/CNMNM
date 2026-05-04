@@ -1,12 +1,28 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import Entypo from "@expo/vector-icons/Entypo";
 function PlaceCard({ place }) {
   return (
     <View style={styles.card}>
       <View style={[styles.thumb, { backgroundColor: place.color }]} />
       <Text style={styles.name}>{place.name}</Text>
-      <Text style={styles.meta}>{place.meta}</Text>
+      <View style={styles.ratingLocationRow}>
+        <Text style={styles.rating}>
+          <FontAwesome name="star" size={16} color="#F59E0B" />
+          {place.star_rating}
+        </Text>
+        <Text>
+          <Entypo name="location-pin" size={12} color="black" />
+          {place?.city?.name ?? "Unknown"}
+        </Text>
+      </View>
+
+      <Text style={styles.price}>
+        From <FontAwesome6 name="dong-sign" size={13} color="black" />
+        {place.base_price}
+      </Text>
     </View>
   );
 }
@@ -15,9 +31,9 @@ export default PlaceCard;
 
 const styles = StyleSheet.create({
   card: {
-    width: 170,
-    height: 180,
-    borderRadius: 18,
+    width: 180,
+    height: 190,
+    borderRadius: 22,
     backgroundColor: "#FFFFFF",
     padding: 12,
     marginRight: 12,
@@ -29,13 +45,23 @@ const styles = StyleSheet.create({
   },
   name: {
     marginTop: 12,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
     color: "#0F172A",
   },
-  meta: {
+  rating: {
+    color: "#F59E0B",
+    fontWeight: "bold",
+  },
+  price: {
     marginTop: 4,
     fontSize: 13,
-    color: "#64748B",
+    fontWeight: "bold",
+  },
+  ratingLocationRow: {
+    fontSize: 12,
+    gap: 4,
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
