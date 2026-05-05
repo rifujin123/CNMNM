@@ -5,6 +5,8 @@ import LoginScreen from "./src/srceens/LoginScreen";
 import AccountNotLoggedInScreen from "./src/srceens/AccountNotLoggedInScreen";
 import AccountScreen from "./src/srceens/AccountScreen";
 import { AuthProvider } from "./context/AuthContext";
+import TripDetailScreen from "./src/srceens/TripDetailScreen";
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -19,6 +21,7 @@ export default function App() {
             name="AccountNotLoggedInScreen"
             component={AccountNotLoggedInScreen}
           />
+          <Stack.Screen name="TripDetail" component={TripDetailScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
