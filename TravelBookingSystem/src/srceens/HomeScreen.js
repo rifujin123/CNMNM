@@ -8,7 +8,7 @@ import CategoryChips from "../components/CategoryChips";
 import PlaceSection from "../components/PlaceSection";
 import Apis, { endpoints } from "../../configs/Apis";
 import { useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../../context/AuthContext";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -17,16 +17,7 @@ const HomeScreen = () => {
   const [categories, setCategories] = useState([]);
 
   const [refreshing, setRefreshing] = useState(false);
-
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const raw = await AsyncStorage.getItem("auth_user");
-      setUser(raw ? JSON.parse(raw) : null);
-    };
-    loadUser();
-  }, []);
+  const { user } = useAuth();
 
   const onPressPlace = (place) => {
     navigation.navigate("ItemDetail", { place });
@@ -92,7 +83,7 @@ const HomeScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <AppHeader title={`Hello, ${user?.first_name}`} />
+        <AppHeader title={`Hello, ${user?.first_name ?? "Guest"}`} />
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
         <CategoryChips

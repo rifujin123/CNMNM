@@ -3,19 +3,12 @@ import { View, Text, StyleSheet } from "react-native";
 import AvatarButton from "./AvatarButton";
 import { vs } from "react-native-size-matters";
 import { useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Apis from "../../configs/Apis";
+import { useAuth } from "../../context/AuthContext";
+
 export default function AppHeader({ title }) {
   const navigation = useNavigation();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const raw = await AsyncStorage.getItem("auth_user");
-      setUser(raw ? JSON.parse(raw) : null);
-    };
-    loadUser();
-  }, []);
+  const { user, isLoggedIn } = useAuth();
 
   const avatarPath = user?.avatar;
   const avatarUri = avatarPath
@@ -24,7 +17,11 @@ export default function AppHeader({ title }) {
       : `${Apis.defaults.baseURL}${avatarPath.startsWith("/") ? "" : "/"}${avatarPath}`
     : null;
   const onAvatarPress = () => {
-    navigation.navigate("AccountNotLoggedInScreen");
+    if (isLoggedIn) {
+      navigation.navigate("AccountScreen");
+    } else {
+      navigation.navigate("AccountNotLoggedInScreen");
+    }
   };
 
   return (

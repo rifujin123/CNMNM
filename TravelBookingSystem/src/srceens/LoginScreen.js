@@ -14,9 +14,11 @@ import GoogleLoginCard from "../components/GoogleLoginCard";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Apis, { authApis, endpoints } from "../../configs/Apis";
+import { useAuth } from "../../context/AuthContext";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
+  const { setAuthData } = useAuth();
   const [activeTab, setActiveTab] = useState("Login");
   const [selectedRole, setSelectedRole] = useState("Customer");
   const isLoginTab = activeTab === "Login";
@@ -58,6 +60,7 @@ const LoginScreen = () => {
 
       await AsyncStorage.setItem(AUTH_ACCESS_TOKEN_KEY, accessToken);
       await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(me ?? {}));
+      setAuthData({ accessToken, userInfo: me });
 
       navigation.navigate("MainTabs");
     } catch (err) {
