@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import HomeStack from "./HomeStack";
+import TripStack from "./TripStack";
 import ExploreScreen from "../srceens/ExploreScreen";
 import TripsScreen from "../srceens/TripsScreen";
 import SavedScreen from "../srceens/SavedScreen";
@@ -37,8 +38,8 @@ export default function MyTabs() {
         }}
       />
       <Tab.Screen
-        name="Trips"
-        component={TripsScreen}
+        name="TripTab"
+        component={TripStack}
         options={{
           tabBarIcon: () => (
             <Ionicons name="calendar-outline" size={24} color="black" />

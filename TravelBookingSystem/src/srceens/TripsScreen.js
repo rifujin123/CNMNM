@@ -6,12 +6,22 @@ import { useState, useMemo, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TripChips from "../components/TripChips";
 import { useNavigation } from "@react-navigation/native";
+import TripSumaryCard from "../components/TripSumaryCard";
 
+const tripSummaries = [
+  {
+    id: "1",
+    title: "TP. Hồ Chí Minh",
+    image: "https://cdn.pixabay.com/photo/2017/11/11/19/59/city-2940500_1280.jpg",
+  },
+];
 
 
 
 const TripsScreen = () => {
   const navigation = useNavigation();
+
+  const hasTrips = tripSummaries.length > 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -20,11 +30,20 @@ const TripsScreen = () => {
       <View style={styles.content}>
         <Button title="Mọi đơn đặt chỗ" onPress={() => navigation.navigate("TripDetail")} />
 
-        <View style={styles.textNoTrip}>
-          <Text style={styles.textNoTripTitle}>Chưa Có Đơn, Chưa Có Chuyến Đi!</Text>
-          <Text style={styles.textNoTripContent}>Khi quý khách tạo bất kỳ đơn nào, chúng tôi sẽ tạo chuyến đi tại đây để quý khách có thể lên kế hoạch và quản lý hành trình của mình.</Text>
-          <Button title="Đi Khám Phá" onPress={() => navigation.navigate("Home")} />
-        </View>
+
+        {hasTrips ? (tripSummaries.map((item) => (
+          <TripSumaryCard
+            key={item.id}
+            trip={item}
+            onPress={() => navigation.navigate("TripDetail")}
+          />
+        ))) : (
+          <View style={styles.textNoTrip}>
+            <Text style={styles.textNoTripTitle}>Chưa Có Đơn, Chưa Có Chuyến Đi!</Text>
+            <Text style={styles.textNoTripContent}>Khi quý khách tạo bất kỳ đơn nào, chúng tôi sẽ tạo chuyến đi tại đây để quý khách có thể lên kế hoạch và quản lý hành trình của mình.</Text>
+            <Button title="Đi Khám Phá" onPress={() => navigation.navigate("MainTabs", { screen: "HomeFeed", params: { screen: "Home" }, })} />
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );

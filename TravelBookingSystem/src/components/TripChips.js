@@ -5,10 +5,7 @@ import { scale } from "react-native-size-matters";
 export default function TripChips({ items, activeIndex = 0 }) {
     return (
         <View style={styles.container}>
-            <View style={styles.titleContainer}>
-                <Text style={styles.sectionTitle}>Đơn Đặt Tour</Text>
-                <Text style={styles.seeAllText}>Xem tất cả</Text>
-            </View>
+
 
             <View style={styles.row}>
                 {items.map((item, idx) => {

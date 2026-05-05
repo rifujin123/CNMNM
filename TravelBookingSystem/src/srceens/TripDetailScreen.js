@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import TripChips from "../components/TripChips";
 
 const tabs = ["upcoming", "completed", "cancelled"]
 
@@ -16,10 +17,11 @@ const TripDetailScreen = () => {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={32} color="black" />
+                    <Ionicons name="chevron-back" size={24} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Đơn đặt chỗ của tôi</Text>
             </View>
+            <TripChips items={tabs} activeIndex={0} />
         </SafeAreaView>
     );
 }
