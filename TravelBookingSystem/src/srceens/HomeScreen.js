@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, ScrollView, RefreshControl } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,21 +28,18 @@ const HomeScreen = () => {
     loadUser();
   }, []);
 
-  const onPressPlace = useCallback(
-    (place) => {
-      navigation.navigate("ItemDetail", { place });
-    },
-    [navigation],
-  );
+  const onPressPlace = (place) => {
+    navigation.navigate("ItemDetail", { place });
+  };
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = async () => {
     setRefreshing(true);
     try {
       await Promise.all([loadPlaces(), loadCategories()]);
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  };
 
   const loadCategories = async () => {
     try {
@@ -77,12 +74,9 @@ const HomeScreen = () => {
     }
   };
 
-  const handleCategoryPress = useCallback(
-    (category) => {
-      navigation.navigate("CategoryList", { category });
-    },
-    [navigation],
-  );
+  const handleCategoryPress = (category) => {
+    navigation.navigate("CategoryList", { category });
+  };
 
   useEffect(() => {
     loadPlaces();
