@@ -1,29 +1,31 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableWithoutFeedback } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Entypo from "@expo/vector-icons/Entypo";
-function PlaceCard({ place }) {
+function PlaceCard({ place, onPress }) {
   return (
-    <View style={styles.card}>
-      <View style={[styles.thumb, { backgroundColor: place.color }]} />
-      <Text style={styles.name}>{place.name}</Text>
-      <View style={styles.ratingLocationRow}>
-        <Text style={styles.rating}>
-          <FontAwesome name="star" size={16} color="#F59E0B" />
-          {place.star_rating}
-        </Text>
-        <Text>
-          <Entypo name="location-pin" size={12} color="black" />
-          {place?.city?.name ?? "Unknown"}
+    <TouchableWithoutFeedback onPress={onPress}>
+      <View style={styles.card}>
+        <View style={[styles.thumb, { backgroundColor: place.color }]} />
+        <Text style={styles.name}>{place.name}</Text>
+        <View style={styles.ratingLocationRow}>
+          <Text style={styles.rating}>
+            <FontAwesome name="star" size={16} color="#F59E0B" />
+            {place.star_rating}
+          </Text>
+          <Text>
+            <Entypo name="location-pin" size={12} color="black" />
+            {place?.city?.name ?? "Unknown"}
+          </Text>
+        </View>
+
+        <Text style={styles.price}>
+          From <FontAwesome6 name="dong-sign" size={13} color="black" />
+          {place.base_price}
         </Text>
       </View>
-
-      <Text style={styles.price}>
-        From <FontAwesome6 name="dong-sign" size={13} color="black" />
-        {place.base_price}
-      </Text>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 

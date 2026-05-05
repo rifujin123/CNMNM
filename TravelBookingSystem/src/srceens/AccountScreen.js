@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import UserAvatar from "../components/UserAvatar";
-import NotiButton from "../components/NotiButton";
+import AvatarButton from "../components/AvatarButton";
 import { vs, s } from "react-native-size-matters";
 import Section from "../components/Section";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,7 +25,7 @@ const AccountScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-        <NotiButton />
+        <AvatarButton />
       </View>
       <View style={styles.content}>
         <View style={styles.profileContainer}>

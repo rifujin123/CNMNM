@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, ScrollView } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { StyleSheet, ScrollView, RefreshControl } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../components/SearchBar";
@@ -7,12 +7,42 @@ import PromoBanner from "../components/PromoBanner";
 import CategoryChips from "../components/CategoryChips";
 import PlaceSection from "../components/PlaceSection";
 import Apis, { endpoints } from "../../configs/Apis";
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HomeScreen = () => {
+  const navigation = useNavigation();
+
   const [placeList, setPlaceList] = useState([]);
   const [categories, setCategories] = useState([]);
 
-  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const raw = await AsyncStorage.getItem("auth_user");
+      setUser(raw ? JSON.parse(raw) : null);
+    };
+    loadUser();
+  }, []);
+
+  const onPressPlace = useCallback(
+    (place) => {
+      navigation.navigate("ItemDetail", { place });
+    },
+    [navigation],
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadPlaces(), loadCategories()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   const loadCategories = async () => {
     try {
@@ -47,6 +77,13 @@ const HomeScreen = () => {
     }
   };
 
+  const handleCategoryPress = useCallback(
+    (category) => {
+      navigation.navigate("CategoryList", { category });
+    },
+    [navigation],
+  );
+
   useEffect(() => {
     loadPlaces();
     loadCategories();
@@ -54,17 +91,30 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <AppHeader title="Hello, Khoi" />
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <AppHeader title={`Hello, ${user?.first_name}`} />
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
         <CategoryChips
           categories={categories}
-          activeIndex={activeCategoryIndex}
-          onSelect={(category, idx) => setActiveCategoryIndex(idx)}
+          onChipPress={handleCategoryPress}
         />
-        <PlaceSection title="Nearby Places" places={placeList} />
-        <PlaceSection title="Recommended For You" places={placeList} />
+        <PlaceSection
+          title="Nearby Places"
+          places={placeList}
+          onPress={onPressPlace}
+        />
+        <PlaceSection
+          title="Recommended For You"
+          places={placeList}
+          onPress={onPressPlace}
+        />
       </ScrollView>
     </SafeAreaView>
   );

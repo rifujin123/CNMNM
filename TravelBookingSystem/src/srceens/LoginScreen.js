@@ -12,6 +12,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import LoginRoleSelector from "../components/LoginRoleSelector";
 import GoogleLoginCard from "../components/GoogleLoginCard";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Apis, { authApis, endpoints } from "../../configs/Apis";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -19,6 +21,56 @@ const LoginScreen = () => {
   const [selectedRole, setSelectedRole] = useState("Customer");
   const isLoginTab = activeTab === "Login";
   const isProviderRole = selectedRole === "Provider";
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const AUTH_ACCESS_TOKEN_KEY = "auth_access_token";
+  const AUTH_USER_KEY = "auth_user";
+
+  const handleLoginSubmit = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const formBody = new URLSearchParams({
+        grant_type: "password",
+        username: username.trim(),
+        password: password,
+        client_id: "geyWx8lpJCJIzICzeHuap5VDMCAmpBYq95VTmxHz",
+        client_secret:
+          "ln5SkGgxG14NvWnOCEbIEkjpdo3zK0QopUN84ris80HaJV0b3u31huVqGv0Be95oVOkUxvchUQTCl2MN8v85FNPQ95nB7yoWm6CD6nq2yV1flp05OwLp92uJteaoA4B4",
+      }).toString();
+
+      const tokenRes = await Apis.post(endpoints.login, formBody, {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
+
+      const accessToken = tokenRes?.data?.access_token;
+      if (!accessToken) {
+        throw new Error("Không lấy được access_token");
+      }
+
+      const meRes = await authApis(accessToken).get(endpoints.currentUser);
+      const me = meRes?.data;
+
+      await AsyncStorage.setItem(AUTH_ACCESS_TOKEN_KEY, accessToken);
+      await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(me ?? {}));
+
+      navigation.navigate("MainTabs");
+    } catch (err) {
+      const message =
+        err?.response?.data?.error_description ||
+        err?.response?.data?.detail ||
+        "Đăng nhập thất bại";
+      setError(message);
+      console.log("Login error:", err?.response?.data || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -53,8 +105,20 @@ const LoginScreen = () => {
         />
       )}
 
-      <TextInput style={styles.input} placeholder="Email Address" />
-      <TextInput style={styles.input} placeholder="Password" />
+      <TextInput
+        style={styles.input}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
       {!isLoginTab && (
         <View>
           <TextInput style={styles.input} placeholder="Confirm Password" />
@@ -99,9 +163,14 @@ const LoginScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.button}>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleLoginSubmit}
+        disabled={loading}
+      >
         <Text style={styles.buttonText}>
-          {isLoginTab ? "Login" : "Register"}
+          {loading ? "Loading..." : isLoginTab ? "Login" : "Register"}
         </Text>
       </TouchableOpacity>
       <GoogleLoginCard />
@@ -161,10 +230,18 @@ const styles = StyleSheet.create({
     padding: s(12),
     marginTop: vs(12),
   },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
   buttonText: {
     color: "#FFFFFF",
     fontSize: vs(14),
     fontWeight: "bold",
     textAlign: "center",
+  },
+  error: {
+    marginTop: vs(8),
+    color: "#DC2626",
+    fontSize: vs(11),
   },
 });

@@ -1,38 +1,40 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  TouchableNativeFeedback,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 
 export default function CategoryChips({
   categories = [],
-  activeIndex = 0,
-  onSelect,
+  items,
+  onChipPress,
 }) {
+  const list =
+    categories.length > 0 ? categories : Array.isArray(items) ? items : [];
+
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Categories</Text>
 
       <View style={styles.row}>
-        {categories.map((category, idx) => {
-          const active = idx === activeIndex;
+        {list.map((category, idx) => {
+          const key =
+            category != null &&
+            typeof category === "object" &&
+            category.id != null
+              ? String(category.id)
+              : `chip-${idx}`;
+          const label =
+            category != null &&
+            typeof category === "object" &&
+            category.name != null
+              ? String(category.name)
+              : String(category ?? "—");
           return (
             <Pressable
-              key={category.id}
-              onPress={() => onSelect?.(category, idx)}
-              style={[styles.chip, active ? styles.active : styles.inactive]}
+              key={key}
+              onPress={() => onChipPress?.(category, idx)}
+              style={styles.chip}
+              android_ripple={{ color: "rgba(15,23,42,0.08)" }}
             >
-              <Text
-                style={[
-                  styles.chipText,
-                  active ? styles.activeText : styles.inactiveText,
-                ]}
-              >
-                {category.name}
-              </Text>
+              <Text style={styles.chipText}>{label}</Text>
             </Pressable>
           );
         })}
@@ -56,10 +58,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#E2E8F0",
   },
-  active: { backgroundColor: "#0F172A" },
-  inactive: { backgroundColor: "#E2E8F0" },
-  chipText: { fontSize: 14, fontWeight: "500" },
-  activeText: { color: "#FFF" },
-  inactiveText: { color: "#475569" },
+  chipText: { fontSize: 14, fontWeight: "500", color: "#475569" },
 });

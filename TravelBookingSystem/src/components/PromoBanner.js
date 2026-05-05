@@ -22,6 +22,7 @@ const banners = [
     sub: "Ride to city center with discount",
     cta: "View rides",
     bg: "#16A34A",
+    image: null,
   },
 ];
 
