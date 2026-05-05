@@ -6,6 +6,7 @@ export default function PlaceSection({
   title = "Recommended For You",
   places = [],
   onSeeAllPress,
+  onPress,
   renderCard,
   slidingCard = false,
 }) {
@@ -24,7 +25,11 @@ export default function PlaceSection({
         data={places}
         keyExtractor={(item, index) => String(item?.id ?? index)}
         renderItem={({ item }) =>
-          renderCard ? renderCard(item) : <PlaceCard place={item} />
+          renderCard ? (
+            renderCard(item)
+          ) : (
+            <PlaceCard place={item} onPress={() => onPress?.(item)} />
+          )
         }
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}

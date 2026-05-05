@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, ScrollView } from "react-native";
+import { StyleSheet, ScrollView, RefreshControl } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../components/SearchBar";
@@ -7,11 +7,41 @@ import PromoBanner from "../components/PromoBanner";
 import CategoryChips from "../components/CategoryChips";
 import PlaceSection from "../components/PlaceSection";
 import Apis, { endpoints } from "../../configs/Apis";
-
-const categories = ["All", "Tour", "Hotel", "Transport"];
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../../context/AuthContext";
 
 const HomeScreen = () => {
+  const navigation = useNavigation();
+
   const [placeList, setPlaceList] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const { user } = useAuth();
+
+  const onPressPlace = (place) => {
+    navigation.navigate("ItemDetail", { place });
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadPlaces(), loadCategories()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      let url = `${endpoints["categories"]}`;
+      let res = await Apis.get(url);
+      let items = res?.data ?? [];
+      setCategories(items);
+    } catch (err) {
+      console.log("Error fetching categories:", err.message);
+    }
+  };
 
   const loadPlaces = async () => {
     try {
@@ -35,19 +65,41 @@ const HomeScreen = () => {
     }
   };
 
+  const handleCategoryPress = (category) => {
+    navigation.navigate("CategoryList", { category });
+  };
+
   useEffect(() => {
     loadPlaces();
+    loadCategories();
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <AppHeader title="Hello, Khoi" />
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <AppHeader title={`Hello, ${user?.first_name ?? "Guest"}`} />
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
-        <CategoryChips items={categories} />
-        <PlaceSection title="Nearby Places" places={placeList} />
-        <PlaceSection title="Recommended For You" places={placeList} />
+        <CategoryChips
+          categories={categories}
+          onChipPress={handleCategoryPress}
+        />
+        <PlaceSection
+          title="Nearby Places"
+          places={placeList}
+          onPress={onPressPlace}
+        />
+        <PlaceSection
+          title="Recommended For You"
+          places={placeList}
+          onPress={onPressPlace}
+        />
       </ScrollView>
     </SafeAreaView>
   );

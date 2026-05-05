@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import HomeScreen from "../srceens/HomeScreen";
+import HomeStack from "./HomeStack";
 import ExploreScreen from "../srceens/ExploreScreen";
 import TripsScreen from "../srceens/TripsScreen";
 import SavedScreen from "../srceens/SavedScreen";
@@ -19,8 +19,8 @@ export default function MyTabs() {
       }}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="HomeFeed"
+        component={HomeStack}
         options={{
           tabBarIcon: () => (
             <Ionicons name="home-outline" size={24} color="black" />
