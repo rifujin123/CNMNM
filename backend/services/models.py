@@ -29,6 +29,35 @@ class BaseService(models.Model):
     def __str__(self):
         return self.name
 
+class ServiceImage(models.Model):
+    service = models.ForeignKey('BaseService', on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='services/')
+    caption = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Image #{self.id} - {self.service.name}"
+
+class PromoBanner(models.Model):
+    title = models.CharField(max_length=255)
+    subtitle = models.CharField(max_length=255, blank=True)
+    image = models.ImageField(upload_to='promo_banners/')
+    cta_text = models.CharField(max_length=100, blank=True)
+    background_color = models.CharField(max_length=20, default='#2563EB')
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', '-created_at']
+
+    def __str__(self):
+        return self.title
+
 class TravelTour(BaseService):
     time_start = models.DateTimeField()
     empty_slot = models.PositiveIntegerField()
@@ -120,7 +149,7 @@ class TourPackage(models.Model):
 
     def validate_price(self, value):
         if value <= 0:
-            raise serializers.ValidationError('Giá phải lớn hơn 0')
+            raise ValidationError('Giá phải lớn hơn 0')
         return value
     
 class Comment(models.Model):

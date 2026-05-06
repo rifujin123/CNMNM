@@ -14,6 +14,7 @@ from .models import (
     Route,
     Transport,
     SeatType,
+    PromoBanner,
 ) 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -58,15 +59,23 @@ class TourPackageWriteSerializer(serializers.ModelSerializer):
         fields = ['tour', 'name', 'price', 'packages']
 
 class TravelTourSimpleReadSerializer(serializers.ModelSerializer):
+    city = CityReadSerializer()
+    category = CategorySerializer()
+
     class Meta:
         model = TravelTour
-        fields = ['id','name','city','category']
+        fields = ['id', 'name', 'city', 'category']
 
 class TravelTourReadDetailSerializer(TravelTourSimpleReadSerializer):
     tour_package = TourPackageSimpleReadSerializer(many=True)
+    base_price_display = serializers.SerializerMethodField()
+
+    def get_base_price_display(self, obj):
+        return f"{obj.base_price:,.0f}"
+
     class Meta:
         model = TravelTour
-        fields = TravelTourSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','empty_slot','tour_package']
+        fields = TravelTourSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','empty_slot','tour_package','base_price_display']
 
 class TravelTourWriteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -148,3 +157,20 @@ class TransportWriteSerializer(serializers.ModelSerializer):
             'vehicle_type',
         ]
 
+
+class PromoBannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PromoBanner
+        fields = [
+            'id',
+            'title',
+            'subtitle',
+            'image',
+            'cta_text',
+            'background_color',
+            'is_active',
+            'display_order',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']

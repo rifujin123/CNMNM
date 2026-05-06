@@ -1,17 +1,23 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet, TextInput } from "react-native";
 
-export default function SearchBar({ placeholder }) {
+export default function SearchBar({ placeholder, value, onChangeText }) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.text}>{placeholder}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor="#94A3B8"
+        value={value}
+        onChangeText={onChangeText}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    marginTop: 16,
+    marginTop: 5,
     height: 46,
     borderRadius: 14,
     backgroundColor: "#FFF",
@@ -21,9 +27,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
   },
-  text: {
+  input: {
     fontSize: 14,
     color: "#94A3B8",
   },

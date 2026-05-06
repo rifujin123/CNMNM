@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { StyleSheet, ScrollView, RefreshControl } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../components/SearchBar";
@@ -7,27 +7,99 @@ import PromoBanner from "../components/PromoBanner";
 import CategoryChips from "../components/CategoryChips";
 import PlaceSection from "../components/PlaceSection";
 import Apis, { endpoints } from "../../configs/Apis";
-
-const places = [
-  { id: "1", name: "Bali Beach", meta: "4.8 ★  •  2.3 km", color: "#93C5FD" },
-  {
-    id: "2",
-    name: "Mountain View",
-    meta: "4.7 ★  •  5.1 km",
-    color: "#86EFAC",
-  },
-  { id: "3", name: "Bali Beach", meta: "4.8 ★  •  2.3 km", color: "#93C5FD" },
-];
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../../context/AuthContext";
 
 const HomeScreen = () => {
+  const navigation = useNavigation();
+
+  const [placeList, setPlaceList] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const { user } = useAuth();
+
+  const onPressPlace = (place) => {
+    navigation.navigate("ItemDetail", { place });
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadPlaces(), loadCategories()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      let url = `${endpoints["categories"]}`;
+      let res = await Apis.get(url);
+      let items = res?.data ?? [];
+      setCategories(items);
+    } catch (err) {
+      console.log("Error fetching categories:", err.message);
+    }
+  };
+
+  const loadPlaces = async () => {
+    try {
+      const url = `${endpoints["tours"]}`;
+      const res = await Apis.get(url);
+      const items = res?.data ?? [];
+
+      const mappedPlaces = items.map((item, index) => ({
+        id: String(item.id),
+        name: item.name,
+        star_rating: item.star_rating,
+        base_price: item.base_price_display,
+        city: item.city,
+        color: index % 2 === 0 ? "#93C5FD" : "#86EFAC",
+      }));
+
+      setPlaceList(mappedPlaces);
+    } catch (err) {
+      console.log("Error fetching places:", err.message);
+      setPlaceList([]);
+    }
+  };
+
+  const handleCategoryPress = (category) => {
+    navigation.navigate("CategoryList", { category });
+  };
+
+  useEffect(() => {
+    loadPlaces();
+    loadCategories();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <AppHeader title="Hello, Khoi" />
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <AppHeader title={`Hello, ${user?.first_name ?? "Guest"}`} />
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
-        <PlaceSection title="Nearby Places" places={places} />
-        <PlaceSection title="Recommended For You" places={places} />
+        <CategoryChips
+          categories={categories}
+          onChipPress={handleCategoryPress}
+        />
+        <PlaceSection
+          title="Nearby Places"
+          places={placeList}
+          onPress={onPressPlace}
+        />
+        <PlaceSection
+          title="Recommended For You"
+          places={placeList}
+          onPress={onPressPlace}
+        />
       </ScrollView>
     </SafeAreaView>
   );

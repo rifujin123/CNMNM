@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import PlaceCard from "../components/PlaceCard";
 
 export default function PlaceSection({
   title = "Recommended For You",
   places = [],
   onSeeAllPress,
+  onPress,
   renderCard,
   slidingCard = false,
 }) {
@@ -19,21 +20,25 @@ export default function PlaceSection({
         </Pressable>
       </View>
 
-      <ScrollView
+      <FlatList
         horizontal
+        data={places}
+        keyExtractor={(item, index) => String(item?.id ?? index)}
+        renderItem={({ item }) =>
+          renderCard ? (
+            renderCard(item)
+          ) : (
+            <PlaceCard place={item} onPress={() => onPress?.(item)} />
+          )
+        }
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         decelerationRate={slidingCard ? "fast" : "normal"}
         snapToInterval={slidingCard ? 182 : undefined}
         snapToAlignment={slidingCard ? "start" : undefined}
         disableIntervalMomentum={slidingCard}
-      >
-        {places.map((place, index) => (
-          <React.Fragment key={place.id ?? index}>
-            {renderCard ? renderCard(place) : <PlaceCard place={place} />}
-          </React.Fragment>
-        ))}
-      </ScrollView>
+        ListEmptyComponent={null}
+      />
     </View>
   );
 }

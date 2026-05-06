@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-)3o#rkp(0+2s1%hprvn#1&*r#awm$x+x1y_*v_u57-5wlt&157
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -46,12 +46,15 @@ INSTALLED_APPS = [
     'payments.apps.PaymentsConfig',
     'locations.apps.LocationsConfig',
     'drf_yasg',
+    'corsheaders',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
 
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', 
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -60,6 +63,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'app.urls'
 

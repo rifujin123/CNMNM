@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'categories', views.CategoryViewSet, basename='category')
+router.register(r'promo-banners', views.PromoBannerViewSet, basename='promo-banner')
 router.register(r'packages', views.PackageViewSet, basename='package')
 router.register(r'tour-packages', views.TourPackageViewSet, basename='tour-package')
 router.register(r'travel-tours', views.TravelTourViewSet, basename='travel-tour')
