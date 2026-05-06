@@ -19,7 +19,7 @@ const HomeScreen = () => {
 
   const { user } = useAuth();
   const onPressPlace = (place) => {
-    navigation.navigate("ItemDetail", { place });
+    navigation.navigate("ItemDetail", { placeId: place?.id });
   };
 
   const handleCategoryPress = (category) => {
