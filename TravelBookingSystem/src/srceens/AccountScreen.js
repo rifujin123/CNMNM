@@ -9,15 +9,51 @@ import Octicons from "@expo/vector-icons/Octicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Apis, { endpoints } from "../../configs/Apis";
 
 const AccountScreen = () => {
+  const { user, token, clearAuth } = useAuth();
+  const navigation = useNavigation();
+
+  const handleLogout = async () => {
+    try {
+      if (!token) {
+        return;
+      }
+      await Apis.post(
+        endpoints.logout,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${String(token).trim()}`,
+          },
+        },
+      );
+    } catch (error) {
+      console.log("Logout error data:", error?.response?.data);
+      console.log("Logout status:", error?.response?.status);
+      console.log("Token:", token);
+    } finally {
+      await AsyncStorage.removeItem("auth_access_token");
+      await AsyncStorage.removeItem("auth_user");
+      clearAuth();
+
+      navigation.navigate("MainTabs", { screen: "HomeFeed" });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.userInfo}>
-          <UserAvatar />
+          <UserAvatar avatarUri={user?.avatar} />
           <View style={styles.userTextContainer}>
-            <Text style={styles.userName}>Tuan Khoi</Text>
+            <Text style={styles.userName}>
+              {user?.last_name} {user?.first_name}
+            </Text>
             <TouchableOpacity onPress={() => {}}>
               <Text style={styles.profileLink}>
                 Update personal information
@@ -25,37 +61,42 @@ const AccountScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-        <AvatarButton />
       </View>
       <View style={styles.content}>
         <View style={styles.profileContainer}>
           <Section
             title="Personal Information"
             icon={<Octicons name="person" size={24} color="black" />}
+            onPress={() => navigation.navigate("PersonalInformation")}
           />
           <Section
             title="Payment Methods"
             icon={<MaterialIcons name="payment" size={24} color="black" />}
+            onPress={() => navigation.navigate("PaymentMethods")}
           />
           <Section
             title="Security"
             icon={<Feather name="settings" size={24} color="black" />}
+            onPress={() => navigation.navigate("Security")}
           />
           <Section
             title="Notifications"
             icon={
               <Ionicons name="notifications-outline" size={24} color="black" />
             }
+            onPress={() => navigation.navigate("Notifications")}
           />
         </View>
         <View style={styles.profileContainer}>
           <Section
             title="Help & Support"
             icon={<Ionicons name="help-outline" size={24} color="black" />}
+            onPress={() => navigation.navigate("HelpAndSupport")}
           />
           <Section
             title="Logout"
             icon={<MaterialIcons name="logout" size={24} color="black" />}
+            onPress={handleLogout}
           />
         </View>
       </View>
@@ -71,27 +112,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   content: {
-    paddingHorizontal: 24,
-    paddingTop: 10,
+    paddingHorizontal: s(24),
+    paddingTop: vs(35),
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingTop: 10,
+    paddingHorizontal: s(14),
+    paddingTop: vs(10),
   },
   userInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: s(12),
   },
   userTextContainer: {
     justifyContent: "center",
-    gap: 4,
+    gap: s(4),
   },
   userName: {
-    fontSize: 18,
+    fontSize: vs(16),
     fontWeight: "600",
   },
   profileLink: {

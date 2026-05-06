@@ -1,21 +1,28 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import React from "react";
 import { s } from "react-native-size-matters";
 import Entypo from "@expo/vector-icons/Entypo";
-const Section = ({ title, icon }) => {
+
+const Section = ({ title, icon, onPress }) => {
   return (
-    <View>
+    <Pressable onPress={onPress}>
       <View style={styles.section}>
         <View style={styles.sectionLeft}>
           {icon}
           <Text>{title}</Text>
         </View>
-        <TouchableOpacity style={styles.nextButton}>
+        <View style={styles.nextButton}>
           <Entypo name="chevron-right" size={24} color="black" />
-        </TouchableOpacity>
+        </View>
       </View>
       <View style={styles.divider} />
-    </View>
+    </Pressable>
   );
 };
 

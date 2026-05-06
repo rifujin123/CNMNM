@@ -18,7 +18,7 @@ export default function AppHeader({ title }) {
     : null;
   const onAvatarPress = () => {
     if (isLoggedIn) {
-      navigation.navigate("AccountScreen");
+      navigation.navigate("AccountRoot");
     } else {
       navigation.navigate("AccountNotLoggedInScreen");
     }

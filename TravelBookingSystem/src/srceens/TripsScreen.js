@@ -1,14 +1,51 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, StatusBar, FlatList, Button } from "react-native";
+import AppHeader from "../components/AppHeader";
+import { scale } from "react-native-size-matters";
+import { useState, useMemo, useCallback } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import TripChips from "../components/TripChips";
+import { useNavigation } from "@react-navigation/native";
+import TripSumaryCard from "../components/TripSumaryCard";
+
+const tripSummaries = [
+  {
+    id: "1",
+    title: "TP. Hồ Chí Minh",
+    image: "https://cdn.pixabay.com/photo/2017/11/11/19/59/city-2940500_1280.jpg",
+  },
+];
+
+
 
 const TripsScreen = () => {
+  const navigation = useNavigation();
+
+  const hasTrips = tripSummaries.length > 0;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Trips</Text>
-      <Text style={styles.subtitle}>
-        Quan ly booking (upcoming/completed/cancelled).
-      </Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <AppHeader title="Trip" />
+
+      <View style={styles.content}>
+        <Button title="Mọi đơn đặt chỗ" onPress={() => navigation.navigate("TripDetail")} />
+
+
+        {hasTrips ? (tripSummaries.map((item) => (
+          <TripSumaryCard
+            key={item.id}
+            trip={item}
+            onPress={() => navigation.navigate("TripDetail")}
+          />
+        ))) : (
+          <View style={styles.textNoTrip}>
+            <Text style={styles.textNoTripTitle}>Chưa Có Đơn, Chưa Có Chuyến Đi!</Text>
+            <Text style={styles.textNoTripContent}>Khi quý khách tạo bất kỳ đơn nào, chúng tôi sẽ tạo chuyến đi tại đây để quý khách có thể lên kế hoạch và quản lý hành trình của mình.</Text>
+            <Button title="Đi Khám Phá" onPress={() => navigation.navigate("MainTabs", { screen: "HomeFeed", params: { screen: "Home" }, })} />
+          </View>
+        )}
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -18,18 +55,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    justifyContent: "center",
+    paddingHorizontal: scale(20),
+    marginTop: StatusBar.currentHeight || 0,
+  },
+  content: {
+    flexDirection: "column",
+    gap: scale(16)
+  },
+  textNoTrip: {
     alignItems: "center",
-    paddingHorizontal: 24,
+    justifyContent: "center",
+    gap: scale(8),
+    marginTop: scale(150)
   },
-  title: {
-    fontSize: 28,
+  textNoTripTitle: {
+    fontSize: 20,
+    lineHeight: 24,
     fontWeight: "700",
-    marginBottom: 8,
+    color: "#0F172A",
   },
-  subtitle: {
+  textNoTripContent: {
     fontSize: 14,
-    color: "#4b5563",
+    lineHeight: 20,
+    fontWeight: "400",
+    color: "#0F172A",
     textAlign: "center",
-  },
+  }
 });

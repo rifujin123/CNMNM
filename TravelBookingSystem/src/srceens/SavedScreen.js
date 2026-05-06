@@ -11,6 +11,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import CategoryChips from "../components/CategoryChips";
 import PlaceCardSave from "../components/PlaceCardSave";
+import AppHeader from "../components/AppHeader";
+import { scale } from "react-native-size-matters";
 
 const DATA = [
   {
@@ -52,17 +54,9 @@ const categories = ["All", "Tour", "Hotel", "Transport"];
 const SavedScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Saved</Text>
-
-        <View style={styles.headerIcons}>
-          <Ionicons name="list-outline" size={24} color="black" />
-          <Ionicons name="add-outline" size={24} color="black" />
-        </View>
-      </View>
-      <View style={styles.content}>
+      <AppHeader title="Saved" />
+      <View style={styles.content} >
         <CategoryChips items={categories} />
-
         <FlatList
           data={DATA}
           keyExtractor={(item) => item.id}
@@ -89,32 +83,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingHorizontal: 24,
+    paddingHorizontal: scale(20),
     marginTop: StatusBar.currentHeight || 0,
   },
-  headerIcons: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: "700",
-    marginBottom: -20,
-  },
-  context: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#4b5563",
-    textAlign: "center",
-  },
+  content: {
+    flexDirection: "column",
+    gap: scale(16)
+  }
 });
