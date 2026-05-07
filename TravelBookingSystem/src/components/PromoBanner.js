@@ -1,5 +1,15 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  FlatList,
+  ImageBackground,
+} from "react-native";
+
+const FALLBACK_BANNER_IMAGE =
+  "https://thumbs.dreamstime.com/b/promo-banner-template-ribbon-label-sign-sticker-195328082.jpg";
 
 const banners = [
   {
@@ -7,35 +17,38 @@ const banners = [
     title: "Summer Escape 30% Off",
     sub: "Book your next trip today",
     cta: "Explore now",
-    bg: "#2563EB",
   },
   {
     id: "b2",
     title: "Hotel Deals Up To 40%",
     sub: "Best prices for your weekend stay",
     cta: "Book hotels",
-    bg: "#0EA5E9",
   },
   {
     id: "b3",
     title: "Airport Transfer Promo",
     sub: "Ride to city center with discount",
     cta: "View rides",
-    bg: "#16A34A",
     image: null,
   },
 ];
 
 export default function PromoBanner() {
   const renderBanner = ({ item }) => (
-    <View style={[styles.banner, { backgroundColor: item.bg }]}>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.sub}>{item.sub}</Text>
+    <ImageBackground
+      source={{ uri: item.image || item.image_url || FALLBACK_BANNER_IMAGE }}
+      style={styles.banner}
+      imageStyle={styles.bannerImage}
+    >
+      <View style={styles.overlay}>
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.sub}>{item.sub}</Text>
 
-      <Pressable style={styles.cta}>
-        <Text style={styles.ctaText}>{item.cta}</Text>
-      </Pressable>
-    </View>
+        <Pressable style={styles.cta}>
+          <Text style={styles.ctaText}>{item.cta}</Text>
+        </Pressable>
+      </View>
+    </ImageBackground>
   );
 
   return (
@@ -62,9 +75,18 @@ const styles = StyleSheet.create({
   banner: {
     width: 296,
     height: 192,
-    borderRadius: 22,
-    padding: 20,
     marginRight: 12,
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+  bannerImage: {
+    borderRadius: 22,
+  },
+  overlay: {
+    flex: 1,
+    padding: 20,
+    borderRadius: 22,
+    backgroundColor: "rgba(15, 23, 42, 0.35)",
   },
   title: {
     fontSize: 24,
