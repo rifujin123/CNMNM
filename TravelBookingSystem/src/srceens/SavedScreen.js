@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import CategoryChips from "../components/CategoryChips";
-import PlaceCardSave from "../components/PlaceCardSave";
+import ItemCardSave from "../components/ItemCardSave";
 import AppHeader from "../components/AppHeader";
 import { scale } from "react-native-size-matters";
 
@@ -61,8 +61,8 @@ const SavedScreen = () => {
           data={DATA}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <PlaceCardSave
-              place={{
+            <ItemCardSave
+              item={{
                 title: item.title,
                 location: item.location,
                 image: item.image,

@@ -1,10 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
-import PlaceCard from "../components/PlaceCard";
+import ItemCard from "../components/ItemCard";
 
-export default function PlaceSection({
+export default function ItemSection({
   title = "Recommended For You",
-  places = [],
+  items = [],
   onSeeAllPress,
   onPress,
   renderCard,
@@ -22,13 +22,13 @@ export default function PlaceSection({
 
       <FlatList
         horizontal
-        data={places}
+        data={items}
         keyExtractor={(item, index) => String(item?.id ?? index)}
         renderItem={({ item }) =>
           renderCard ? (
             renderCard(item)
           ) : (
-            <PlaceCard place={item} onPress={() => onPress?.(item)} />
+            <ItemCard item={item} onPress={() => onPress?.(item)} />
           )
         }
         showsHorizontalScrollIndicator={false}

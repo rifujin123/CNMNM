@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import HomeStack from "./HomeStack";
 import TripStack from "./TripStack";
-import ExploreScreen from "../srceens/ExploreScreen";
+import ExploreStack from "./ExploreStack";
 import TripsScreen from "../srceens/TripsScreen";
 import SavedScreen from "../srceens/SavedScreen";
 import LoginScreen from "../srceens/LoginScreen";
@@ -30,7 +30,7 @@ export default function MyTabs() {
       />
       <Tab.Screen
         name="Explore"
-        component={ExploreScreen}
+        component={ExploreStack}
         options={{
           tabBarIcon: () => (
             <Ionicons name="search-outline" size={24} color="black" />

@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../components/SearchBar";
 import PromoBanner from "../components/PromoBanner";
 import CategoryChips from "../components/CategoryChips";
-import PlaceSection from "../components/PlaceSection";
+import ItemSection from "../components/ItemSection";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import usePullRefresh from "../../hooks/usePullRefresh";
@@ -18,8 +18,8 @@ const HomeScreen = () => {
   const [categories, setCategories] = useState([]);
 
   const { user } = useAuth();
-  const onPressPlace = (place) => {
-    navigation.navigate("ItemDetail", { placeId: place?.id });
+  const onPressItem = (item) => {
+    navigation.navigate("ItemDetail", { ItemId: item?.id });
   };
 
   const handleCategoryPress = (category) => {
@@ -58,15 +58,15 @@ const HomeScreen = () => {
           categories={categories}
           onChipPress={handleCategoryPress}
         />
-        <PlaceSection
+        <ItemSection
           title="Nearby Places"
-          places={places}
-          onPress={onPressPlace}
+          items={places}
+          onPress={onPressItem}
         />
-        <PlaceSection
+        <ItemSection
           title="Recommended For You"
-          places={places}
-          onPress={onPressPlace}
+          items={places}
+          onPress={onPressItem}
         />
       </ScrollView>
     </SafeAreaView>
