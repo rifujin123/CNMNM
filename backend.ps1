@@ -8,5 +8,6 @@ if (-not (Test-Path $Activate)) {
 }
 
 . $Activate
+$env:DJANGO_DEBUG = "True"
 Set-Location (Join-Path $RepoRoot "backend")
 python manage.py runserver 0.0.0.0:8000

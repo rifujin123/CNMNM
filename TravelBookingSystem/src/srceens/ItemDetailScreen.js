@@ -26,19 +26,20 @@ const FALLBACK_IMAGE_URI =
 const ItemDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const placeId = route.params?.placeId;
+  const ItemId = route.params?.ItemId;
   const [place, setPlace] = useState(null);
   const [isDescriptionModalVisible, setDescriptionModalVisible] =
     useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState(null);
 
   const scrollRef = useAnimatedRef();
   const scrollOffset = useScrollViewOffset(scrollRef);
 
   useEffect(() => {
-    if (!placeId) return;
+    if (!ItemId) return;
     const loadPlaceDetail = async () => {
       try {
-        const detail = await fetchPlaceDetail(placeId);
+        const detail = await fetchPlaceDetail(ItemId);
         setPlace(detail);
         console.log(detail);
       } catch (error) {
@@ -47,7 +48,7 @@ const ItemDetailScreen = () => {
     };
 
     loadPlaceDetail();
-  }, [placeId]);
+  }, [ItemId]);
 
   const imageAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -78,6 +79,9 @@ const ItemDetailScreen = () => {
     FALLBACK_IMAGE_URI;
   const description = place?.description ?? "";
   const shouldShowSeeAll = description.length > 120;
+  const selectedPackage = place?.tour_package?.find(
+    (pkg) => pkg.id === selectedPackageId,
+  );
 
   return (
     <View style={styles.container}>
@@ -126,8 +130,57 @@ const ItemDetailScreen = () => {
               </Pressable>
             )}
           </View>
+          <View style={styles.tourPackageSection}>
+            <Text style={styles.sectionTitle}>Tour Packages</Text>
+            {place?.tour_package?.length > 0 ? (
+              place.tour_package.map((pkg) => (
+                <Pressable
+                  key={pkg.id}
+                  style={[
+                    styles.packageCard,
+                    selectedPackageId === pkg.id && styles.packageCardSelected,
+                  ]}
+                  onPress={() => setSelectedPackageId(pkg.id)}
+                >
+                  <View style={styles.packageRadio}>
+                    <View
+                      style={[
+                        styles.radioOuter,
+                        selectedPackageId === pkg.id &&
+                          styles.radioOuterSelected,
+                      ]}
+                    >
+                      {selectedPackageId === pkg.id && (
+                        <View style={styles.radioInner} />
+                      )}
+                    </View>
+                  </View>
+                  <View style={styles.packageInfo}>
+                    <Text style={styles.packageName}>{pkg.name}</Text>
+                    <Text style={styles.packagePrice}>{pkg.price_display}</Text>
+                  </View>
+                </Pressable>
+              ))
+            ) : (
+              <Text style={styles.noPackagesText}>No packages available.</Text>
+            )}
+          </View>
         </View>
       </Animated.ScrollView>
+
+      <View style={styles.bottomContainer}>
+        <View style={styles.priceContainer}>
+          <Text style={styles.priceLabel}>Total Price</Text>
+          <Text style={styles.priceValue}>
+            {selectedPackage?.total_price_display ||
+              place?.base_price_display ||
+              "N/A"}
+          </Text>
+        </View>
+        <Pressable style={styles.purchaseButton}>
+          <Text style={styles.purchaseButtonText}>Purchase</Text>
+        </Pressable>
+      </View>
 
       <Modal
         visible={isDescriptionModalVisible}
@@ -244,6 +297,118 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textDecorationLine: "underline",
     alignSelf: "flex-start",
+  },
+  tourPackageSection: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 12,
+  },
+  packageCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
+    padding: 16,
+    marginBottom: 10,
+  },
+  packageCardSelected: {
+    borderColor: "#2563EB",
+    backgroundColor: "#EFF6FF",
+  },
+  packageRadio: {
+    marginRight: 12,
+  },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#94A3B8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioOuterSelected: {
+    borderColor: "#2563EB",
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#2563EB",
+  },
+  packageInfo: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  packageName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0F172A",
+  },
+  packagePrice: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2563EB",
+  },
+  noPackagesText: {
+    fontSize: 14,
+    color: "#94A3B8",
+    fontStyle: "italic",
+  },
+  bottomContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 30,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  priceContainer: {
+    flex: 1,
+  },
+  priceLabel: {
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 2,
+  },
+  priceValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  purchaseButton: {
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  purchaseButtonDisabled: {
+    backgroundColor: "#94A3B8",
+  },
+  purchaseButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
   modalBackdrop: {
     flex: 1,

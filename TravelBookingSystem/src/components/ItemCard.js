@@ -13,45 +13,45 @@ import Entypo from "@expo/vector-icons/Entypo";
 const FALLBACK_IMAGE_URI =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80";
 
-const getPlaceImageUri = (place) => {
+const getPlaceImageUri = (item) => {
   const candidates = [
-    place?.image,
-    place?.image_url,
-    place?.thumbnail,
-    place?.thumbnail_url,
+    item?.image,
+    item?.image_url,
+    item?.thumbnail,
+    item?.thumbnail_url,
   ];
   return candidates.find((uri) => typeof uri === "string" && uri.trim());
 };
 
-function PlaceCard({ place, onPress }) {
-  const imageUri = getPlaceImageUri(place) || FALLBACK_IMAGE_URI;
+function ItemCard({ item, onPress }) {
+  const imageUri = getPlaceImageUri(item) || FALLBACK_IMAGE_URI;
 
   return (
     <TouchableWithoutFeedback onPress={onPress}>
       <View style={styles.card}>
         <Image source={{ uri: imageUri }} style={styles.thumb} resizeMode="cover" />
-        <Text style={styles.name}>{place.name}</Text>
+        <Text style={styles.name}>{item.name}</Text>
         <View style={styles.ratingLocationRow}>
           <Text style={styles.rating}>
             <FontAwesome name="star" size={16} color="#F59E0B" />
-            {place.star_rating}
+            {item.star_rating}
           </Text>
           <Text>
             <Entypo name="location-pin" size={12} color="black" />
-            {place?.city?.name ?? "Unknown"}
+            {item?.city?.name ?? "Unknown"}
           </Text>
         </View>
 
         <Text style={styles.price}>
           From <FontAwesome6 name="dong-sign" size={13} color="black" />
-          {place.base_price}
+          {item.base_price}
         </Text>
       </View>
     </TouchableWithoutFeedback>
   );
 }
 
-export default PlaceCard;
+export default ItemCard;
 
 const styles = StyleSheet.create({
   card: {

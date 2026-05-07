@@ -3,33 +3,33 @@ import { View, Text, StyleSheet, Image } from "react-native";
 import { scale, verticalScale, moderateScale } from "react-native-size-matters";
 import { Ionicons } from "@expo/vector-icons";
 
-function PlaceCard({ place }) {
+function ItemCardSave({ item }) {
     return (
         <View style={styles.card}>
-            <Image source={{ uri: place.image }} style={styles.image} />
+            <Image source={{ uri: item.image }} style={styles.image} />
 
             <View style={styles.info}>
                 <Text style={styles.title}>
-                    {place.title}
+                    {item.title}
                 </Text>
                 <Text style={styles.location}>
-                    {place.location}
+                    {item.location}
                 </Text>
 
                 <View style={styles.rating}>
                     <Ionicons name="star" size={scale(14)} color="#F59E0B" />
-                    <Text style={styles.ratingText}>{place.rating}</Text>
+                    <Text style={styles.ratingText}>{item.rating}</Text>
                 </View>
 
                 <Text style={styles.price}>
-                    Từ $ {place.price}
+                    Từ $ {item.price}
                 </Text>
             </View>
         </View>
     );
 }
 
-export default PlaceCard;
+export default ItemCardSave;
 
 const styles = StyleSheet.create({
     card: {
