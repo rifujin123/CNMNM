@@ -17,3 +17,9 @@ export const fetchPlaces = async () => {
     color: index % 2 === 0 ? "#93C5FD" : "#86EFAC",
   }));
 };
+
+export const fetchPlaceDetail = async (id) => {
+  if (!id) return null;
+  const res = await Apis.get(`${endpoints.tours}${id}/`);
+  return res?.data ?? null;
+};
