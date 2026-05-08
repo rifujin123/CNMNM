@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 import { useAuth } from "../../context/AuthContext";
+import OAuthConfig from "../config/OAuthConfig";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -47,6 +48,11 @@ const LoginScreen = () => {
       return;
     }
 
+    if (!OAuthConfig.clientId || !OAuthConfig.clientSecret) {
+      setError("OAuth configuration is missing. Please contact admin.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -55,9 +61,8 @@ const LoginScreen = () => {
         grant_type: "password",
         username: username.trim(),
         password: password,
-        client_id: "geyWx8lpJCJIzICzeHuap5VDMCAmpBYq95VTmxHz",
-        client_secret:
-          "ln5SkGgxG14NvWnOCEbIEkjpdo3zK0QopUN84ris80HaJV0b3u31huVqGv0Be95oVOkUxvchUQTCl2MN8v85FNPQ95nB7yoWm6CD6nq2yV1flp05OwLp92uJteaoA4B4",
+        client_id: OAuthConfig.clientId,
+        client_secret: OAuthConfig.clientSecret,
       }).toString();
 
       const tokenRes = await Apis.post(endpoints.login, formBody, {

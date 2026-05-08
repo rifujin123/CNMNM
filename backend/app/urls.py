@@ -24,9 +24,9 @@ from rest_framework import permissions
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Your API",
+        title="KM Travel API",
         default_version='v1',
-        description="Your API description",
+        description="KM Travel API description",
     ),
     public=True,
     permission_classes = (permissions.AllowAny,)
