@@ -9,4 +9,7 @@ __pycache__/
 
 # Environment files
 .env
+.env.local
+.env.production
 backend/.env
+TravelBookingSystem/src/config/OAuthConfig.js
