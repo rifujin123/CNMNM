@@ -4,7 +4,6 @@ import AppHeader from "../components/AppHeader";
 import { scale } from "react-native-size-matters";
 import { useState, useMemo, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import TripChips from "../components/TripChips";
 import { useNavigation } from "@react-navigation/native";
 import TripSumaryCard from "../components/TripSumaryCard";
 

@@ -5,92 +5,62 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Entypo from "@expo/vector-icons/Entypo";
 
-const TripDetailCard = ({ trip, onPress }) => {
-    return (
-        <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
-            <Image source={{ uri: trip.image }} style={styles.image} />
-
-            <View style={styles.content}>
-                <View style={styles.topRow}>
-                    <Text style={styles.title} numberOfLines={1}>{trip.title}</Text>
-                    <View style={[styles.badge, getBadgeStyle(trip.status)]}>
-                        <Text style={styles.badgeText}>{getStatusLabel(trip.status)}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.infoRow}>
-                    <Entypo name="location-pin" size={scale(14)} color="#64748B" />
-                    <Text style={styles.infoText} numberOfLines={1}>
-                        {trip.location}
-                    </Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                    <Ionicons name="calendar-outline" size={scale(14)} color="#64748B" />
-                    <Text style={styles.infoText}>{trip.date}</Text>
-                </View>
-
-                <View style={styles.bottomRow}>
-                    <Text style={styles.price}>
-                        <FontAwesome6 name="dong-sign" size={scale(12)} color="#0F172A" />
-                        {" "}
-                        {trip.price}
-                    </Text>
-
-                    <Ionicons name="chevron-forward" size={scale(18)} color="#94A3B8" />
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-};
-
 const getStatusLabel = (status) => {
-    if (status === "upcoming") return "Sắp tới";
+    if (status === "upcomming") return "Sắp tới";
     if (status === "completed") return "Hoàn tất";
     if (status === "cancelled") return "Đã hủy";
     return status;
 };
 
 const getBadgeStyle = (status) => {
-    if (status === "upcoming") {
-        return { backgroundColor: "#DBEAFE" };
-    }
-
-    if (status === "completed") {
-        return { backgroundColor: "#DCFCE7" };
-    }
-
-    if (status === "cancelled") {
-        return { backgroundColor: "#FEE2E2" };
-    }
-
-    return { backgroundColor: "#E2E8F0" };
+    if (status === "upcomming") return { backgroundColor: "#FFF9C4", color: "#E65100" };
+    if (status === "completed") return { backgroundColor: "#C8E6C9", color: "#1B5E20" };
+    if (status === "cancelled") return { backgroundColor: "#FFCDD2", color: "#B71C1C" };
+    return { backgroundColor: "#E0E0E0", color: "#424242" };
 };
 
-export default memo(TripDetailCard);
+const TripSumaryCard = ({ trip, onPress }) => {
+    return (
+        <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onPress}>
+            <View style={styles.topRow}>
+                <View>
+                    <Text style={styles.title} numberOfLines={1}>{trip.title}</Text>
+
+                </View>
+                <View style={[styles.badge, getBadgeStyle(trip.status)]}>
+                    <Text style={styles.badgeText}>{getStatusLabel(trip.status)}</Text>
+                </View>
+            </View>
+            <View style={styles.infoRow}>
+                <Ionicons name="calendar-outline" size={scale(14)} color="#64748B" />
+                <Text style={styles.infoText}>{trip.date}</Text>
+            </View>
+            <View style={styles.bottomRow}>
+                <Text style={styles.price}>
+                    <FontAwesome6 name="dong-sign" size={scale(12)} color="#0F172A" />{" "}
+                    {trip.price}
+                </Text>
+                <Ionicons name="chevron-forward" size={scale(18)} color="#94A3B8" />
+            </View>
+        </TouchableOpacity>
+    );
+};
+
+
+
+export default memo(TripSumaryCard);
 
 const styles = StyleSheet.create({
     card: {
-        flexDirection: "row",
         backgroundColor: "#FFFFFF",
         borderRadius: scale(18),
-        padding: scale(12),
+        padding: scale(14),
         marginBottom: verticalScale(14),
         shadowColor: "#0F172A",
         shadowOpacity: 0.08,
         shadowRadius: scale(8),
         shadowOffset: { width: 0, height: verticalScale(3) },
         elevation: 2,
-    },
-    image: {
-        width: scale(92),
-        height: scale(92),
-        borderRadius: scale(14),
-        backgroundColor: "#E2E8F0",
-    },
-    content: {
-        flex: 1,
-        marginLeft: scale(12),
     },
     topRow: {
         flexDirection: "row",
@@ -100,13 +70,13 @@ const styles = StyleSheet.create({
     },
     title: {
         flex: 1,
-        fontSize: moderateScale(15),
+        fontSize: moderateScale(16),
         fontWeight: "700",
         color: "#0F172A",
     },
     badge: {
         paddingHorizontal: scale(8),
-        paddingVertical: verticalScale(3),
+        paddingVertical: verticalScale(4),
         borderRadius: scale(12),
     },
     badgeText: {
@@ -117,16 +87,16 @@ const styles = StyleSheet.create({
     infoRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginTop: verticalScale(6),
-        gap: scale(4),
+        marginTop: verticalScale(8),
+        gap: scale(5),
     },
     infoText: {
         flex: 1,
-        fontSize: moderateScale(12),
+        fontSize: moderateScale(13),
         color: "#64748B",
     },
     bottomRow: {
-        marginTop: verticalScale(8),
+        marginTop: verticalScale(10),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",

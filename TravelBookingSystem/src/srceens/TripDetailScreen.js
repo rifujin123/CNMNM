@@ -1,30 +1,54 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { scale } from "react-native-size-matters";
-import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import TripChips from "../components/TripChips";
+import TripTypeChips from "../components/TripTypeChip";
 
-const tabs = ["upcoming", "completed", "cancelled"]
+const tabs = ["upcoming", "completed", "cancelled"];
 
+const typeTabs = [
+    { label: "Tất cả", value: "all", icon: "checkmark" },
+    { label: "Khách sạn", value: "hotel", icon: "business-outline" },
+    { label: "Chuyến bay", value: "flight", icon: "airplane-outline" },
+    { label: "Địa điểm", value: "place", icon: "location-outline" },
+];
 
 const TripDetailScreen = () => {
     const navigation = useNavigation();
 
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [activeTypeIndex, setActiveTypeIndex] = useState(0);
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity
+                    onPress={() => navigation.goBack()}
+                    style={styles.backButton}
+                >
                     <Ionicons name="chevron-back" size={24} color="black" />
                 </TouchableOpacity>
+
                 <Text style={styles.title}>Đơn đặt chỗ của tôi</Text>
             </View>
-            <TripChips items={tabs} activeIndex={0} />
+
+            <TripChips
+                items={tabs}
+                activeIndex={activeIndex}
+                onChange={(index) => setActiveIndex(index)}
+            />
+
+            <TripTypeChips
+                items={typeTabs}
+                activeIndex={activeTypeIndex}
+                onChange={(index) => setActiveTypeIndex(index)}
+            />
         </SafeAreaView>
     );
-}
+};
 
 export default TripDetailScreen;
 
@@ -32,22 +56,26 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#fff",
-        paddingHorizontal: scale(20),
-        marginTop: StatusBar.currentHeight || 0,
     },
+
     header: {
+        height: scale(70),
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        padding: scale(16)
+        borderBottomWidth: 1,
+        borderBottomColor: "#E2E8F0",
+        paddingHorizontal: scale(20),
     },
+
     backButton: {
         position: "absolute",
-        left: 0,
+        left: scale(20),
     },
+
     title: {
         fontSize: 20,
-        fontWeight: "700",
+        fontWeight: "500",
         textAlign: "center",
-    }
+    },
 });
