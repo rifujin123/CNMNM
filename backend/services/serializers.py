@@ -36,9 +36,22 @@ class PackageSerializer(serializers.ModelSerializer):
         fields = ['id','name']
 
 class TourPackageSimpleReadSerializer(serializers.ModelSerializer):
+    price_display = serializers.SerializerMethodField()
+    total_price = serializers.SerializerMethodField()
+    total_price_display = serializers.SerializerMethodField()
+
+    def get_price_display(self, obj):
+        return f"{obj.price:,.0f}"
+
+    def get_total_price(self, obj):
+        return obj.price + obj.tour.base_price
+
+    def get_total_price_display(self, obj):
+        return f"{obj.price + obj.tour.base_price:,.0f}"
+
     class Meta:
         model = TourPackage
-        fields = ['id','name','price']
+        fields = ['id', 'name', 'price', 'price_display', 'total_price', 'total_price_display']
 
 class TourPackageDetailReadSerializer(TourPackageSimpleReadSerializer):
     packages = PackageSerializer(many=True)
@@ -69,13 +82,25 @@ class TravelTourSimpleReadSerializer(serializers.ModelSerializer):
 class TravelTourReadDetailSerializer(TravelTourSimpleReadSerializer):
     tour_package = TourPackageSimpleReadSerializer(many=True)
     base_price_display = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
 
     def get_base_price_display(self, obj):
         return f"{obj.base_price:,.0f}"
 
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
     class Meta:
         model = TravelTour
-        fields = TravelTourSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','empty_slot','tour_package','base_price_display']
+        fields = TravelTourSimpleReadSerializer.Meta.fields + [
+            'description',
+            'star_rating',
+            'base_price',
+            'empty_slot',
+            'tour_package',
+            'base_price_display',
+            'comment_count',
+        ]
 
 class TravelTourWriteSerializer(serializers.ModelSerializer):
     class Meta:

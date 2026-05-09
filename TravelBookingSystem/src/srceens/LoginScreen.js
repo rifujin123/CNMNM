@@ -1,4 +1,6 @@
 import {
+  Image,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -7,6 +9,7 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { s, vs } from "react-native-size-matters";
+import * as ImagePicker from "expo-image-picker";
 import LoginTabs from "../components/LoginTabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import LoginRoleSelector from "../components/LoginRoleSelector";
@@ -15,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 import { useAuth } from "../../context/AuthContext";
+import OAuthConfig from "../config/OAuthConfig";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -26,6 +30,12 @@ const LoginScreen = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [taxCode, setTaxCode] = useState("");
+  const [businessLicense, setBusinessLicense] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,6 +43,16 @@ const LoginScreen = () => {
   const AUTH_USER_KEY = "auth_user";
 
   const handleLoginSubmit = async () => {
+    if (!username.trim() || !password.trim()) {
+      setError("Vui lòng nhập username và password.");
+      return;
+    }
+
+    if (!OAuthConfig.clientId || !OAuthConfig.clientSecret) {
+      setError("OAuth configuration is missing. Please contact admin.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -41,9 +61,8 @@ const LoginScreen = () => {
         grant_type: "password",
         username: username.trim(),
         password: password,
-        client_id: "geyWx8lpJCJIzICzeHuap5VDMCAmpBYq95VTmxHz",
-        client_secret:
-          "ln5SkGgxG14NvWnOCEbIEkjpdo3zK0QopUN84ris80HaJV0b3u31huVqGv0Be95oVOkUxvchUQTCl2MN8v85FNPQ95nB7yoWm6CD6nq2yV1flp05OwLp92uJteaoA4B4",
+        client_id: OAuthConfig.clientId,
+        client_secret: OAuthConfig.clientSecret,
       }).toString();
 
       const tokenRes = await Apis.post(endpoints.login, formBody, {
@@ -75,8 +94,100 @@ const LoginScreen = () => {
     }
   };
 
+  const handleRegisterSubmit = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      if (!username.trim() || !password.trim() || !email.trim()) {
+        setError("Vui lòng nhập đầy đủ thông tin");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError("Mật khẩu không khớp");
+        return;
+      }
+
+      if (password.length < 8) {
+        setError("Mật khẩu phải có ít nhất 8 ký tự");
+        return;
+      }
+
+      if (isProviderRole && (!businessName.trim() || !taxCode.trim())) {
+        setError("Vui lòng nhập đầy đủ thông tin");
+        return;
+      }
+
+      let res;
+
+      if (isProviderRole) {
+        if (!businessLicense) {
+          setError("Provider cần upload business license trước khi đăng ký.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("username", username.trim());
+        formData.append("email", email.trim());
+        formData.append("password", password);
+        formData.append("is_provider", "true");
+        formData.append("is_customer", "false");
+        formData.append("provider_business_name", businessName.trim());
+        formData.append("provider_tax_code", taxCode.trim());
+        formData.append("business_license", businessLicense);
+
+        res = await Apis.post(endpoints.register, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        const payload = {
+          username: username.trim(),
+          email: email.trim(),
+          password: password,
+          is_provider: false,
+          is_customer: true,
+        };
+        res = await Apis.post(endpoints.register, payload);
+      }
+
+      setActiveTab("Login");
+      setSelectedRole("Customer");
+
+      setUsername("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setBusinessName("");
+      setTaxCode("");
+      setBusinessLicense(null);
+
+      setError("Đăng ký thành công. Vui lòng đăng nhập.");
+      console.log("Register success:", res?.data);
+    } catch (err) {
+      const data = err?.response?.data;
+      const message =
+        data?.detail ||
+        data?.email?.[0] ||
+        data?.username?.[0] ||
+        data?.password?.[0] ||
+        data?.provider_business_name?.[0] ||
+        data?.provider_tax_code?.[0] ||
+        data?.business_license?.[0] ||
+        "Đăng ký thất bại";
+      setError(message);
+      console.log("Register error:", data || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.headerRow}>
         <TouchableOpacity
           hitSlop={8}
@@ -124,17 +235,40 @@ const LoginScreen = () => {
       />
       {!isLoginTab && (
         <View>
-          <TextInput style={styles.input} placeholder="Confirm Password" />
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
           {isProviderRole && (
             <>
               <TextInput
                 style={styles.input}
                 placeholder="Business name (Provider)"
+                value={businessName}
+                onChangeText={setBusinessName}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Tax code (Provider)"
+                value={taxCode}
+                onChangeText={setTaxCode}
               />
+              <Text style={styles.providerHint}>
+                Chưa có UI chọn ảnh giấy phép. Tạm thời Provider register sẽ cần
+                gắn `businessLicense` bằng code.
+              </Text>
             </>
           )}
         </View>
@@ -169,15 +303,15 @@ const LoginScreen = () => {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleLoginSubmit}
+        onPress={isLoginTab ? handleLoginSubmit : handleRegisterSubmit}
         disabled={loading}
       >
         <Text style={styles.buttonText}>
-          {loading ? "Loading..." : isLoginTab ? "Login" : "Register"}
+          {isLoginTab ? "Login" : "Register"}
         </Text>
       </TouchableOpacity>
       <GoogleLoginCard />
-    </View>
+    </ScrollView>
   );
 };
 
@@ -186,9 +320,12 @@ export default LoginScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  contentContainer: {
     paddingTop: vs(50),
     paddingHorizontal: s(16),
-    backgroundColor: "#FFFFFF",
+    paddingBottom: vs(24),
   },
   headerRow: {
     flexDirection: "row",
@@ -246,5 +383,45 @@ const styles = StyleSheet.create({
     marginTop: vs(8),
     color: "#DC2626",
     fontSize: vs(11),
+  },
+  providerHint: {
+    marginTop: vs(8),
+    fontSize: vs(10),
+    color: "#64748B",
+  },
+  uploadButton: {
+    marginTop: vs(10),
+    borderWidth: s(1),
+    borderColor: "#93C5FD",
+    borderStyle: "dashed",
+    borderRadius: s(10),
+    paddingVertical: vs(10),
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+  },
+  uploadButtonText: {
+    color: "#1D4ED8",
+    fontSize: vs(11),
+    fontWeight: "600",
+  },
+  licensePreview: {
+    marginTop: vs(8),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(8),
+    backgroundColor: "#F8FAFC",
+    borderRadius: s(10),
+    padding: s(8),
+  },
+  licenseImage: {
+    width: s(44),
+    height: s(44),
+    borderRadius: s(8),
+    backgroundColor: "#E2E8F0",
+  },
+  licenseFileName: {
+    flex: 1,
+    color: "#334155",
+    fontSize: vs(10),
   },
 });

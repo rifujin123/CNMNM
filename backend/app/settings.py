@@ -10,22 +10,27 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+import cloudinary
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)3o#rkp(0+2s1%hprvn#1&*r#awm$x+x1y_*v_u57-5wlt&157'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# SECURITY WARNING: don't run with debug turned on in production!er() in ("", "true")
+# DEBUG = os.getenv("DJANGO_DEBUG", "").lower() in ("", "true")
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 
 
 # Application definition
@@ -47,24 +52,38 @@ INSTALLED_APPS = [
     'locations.apps.LocationsConfig',
     'drf_yasg',
     'corsheaders',
+    "cloudinary",
+    "cloudinary_storage",
 ]
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+    api_key=os.getenv("CLOUDINARY_API_KEY", ""),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET", ""),
+    secure=True,
+)
+
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 AUTH_USER_MODEL = 'accounts.User'
 
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', 
-    'django.middleware.common.CommonMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8081",
+    "http://localhost:19006",
+    "http://127.0.0.1:19006",
+]
+CORS_ALLOW_ALL_ORIGINS = False
 
 ROOT_URLCONF = 'app.urls'
 
@@ -92,9 +111,11 @@ WSGI_APPLICATION = 'app.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': "kmtravel",
-        'USER':'root',
-        'PASSWORD':'password',
+        'NAME': os.getenv("DB_NAME", "kmtravel"),
+        'USER': os.getenv("DB_USER", "root"),
+        'PASSWORD': os.getenv("DB_PASSWORD", ""),
+        'HOST': os.getenv("DB_HOST", "localhost"),
+        'PORT': os.getenv("DB_PORT", "3306"),
     }
 }
 
@@ -137,6 +158,18 @@ STATIC_URL = 'static/'
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+OAUTH2_PROVIDER = {
+    'SCOPES': {
+        'read': 'Read scope',
+        'write': 'Write scope',
+    },
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 3600,
+}
+
+# OAuth2 credentials
+OAUTH_CLIENT_ID = os.getenv("OAUTH_CLIENT_ID", "")
+OAUTH_CLIENT_SECRET = os.getenv("OAUTH_CLIENT_SECRET", "")
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

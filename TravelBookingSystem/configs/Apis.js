@@ -5,6 +5,7 @@ const BASE_URL = "http://192.168.6.20:8000";
 export const endpoints = {
   register: "/api/accounts/register/",
   login: "/o/token/",
+  logout: "/api/accounts/logout/",
   currentUser: "/api/accounts/me/",
   categories: "/api/services/categories/",
   tours: "/api/services/travel-tours/",
