@@ -20,8 +20,8 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "total_price",
             "booking_status",
             "payment_method",
-            "created_at",
-            "updated_at",
+            "created_date",
+            "updated_date",
         ]
 
     def get_user(self, obj):
@@ -29,9 +29,9 @@ class BookingReadSerializer(serializers.ModelSerializer):
 
         return {
             "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "full_name": user.get_full_name(),
+            "username": getattr(user, 'username', None),
+            "email": getattr(user, 'email', None),
+            "full_name": getattr(user, 'get_full_name', lambda: None)(),
             "phone": getattr(user, 'phone_number', None)
             }
     
@@ -146,10 +146,46 @@ class BookingCreateSerializer(serializers.ModelSerializer):
 
 
     def calculate_total_price(self,validated_data):
-        pass
+        service = validated_data.get('service')
+        room_type = validated_data.get('room_type')
+        seat_type = validated_data.get('seat_type')
+        quantity = validated_data.get('quantity', 1)
+
+        unit_price = service.base_price
+
+        if room_type:
+            unit_price = room_type.price
+        elif seat_type:
+            unit_price = seat_type.price + service.base_price
+
+        total_price = unit_price * quantity
+        return total_price
+    
 
     def create(self, validated_data):
-        pass
+        request = self.context.get('request')
+
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("Người dùng chưa đăng nhập")
+        
+        validated_data['user'] = request.user
+        validated_data['total_price'] = self.calculate_total_price(validated_data)
+
+        booking = Booking.objects.create(**validated_data)
+        return booking
+
+
 
     def update(self, instance, validated_data):
-        pass
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.total_price = self.calculate_total_price({
+            'service': instance.service,
+            'room_type': instance.room_type,
+            'seat_type': instance.seat_type,
+            'quantity': instance.quantity
+        })
+        instance.save()
+
+        return instance
