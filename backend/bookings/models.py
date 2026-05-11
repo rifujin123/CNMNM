@@ -9,6 +9,10 @@ class Booking(models.Model):
         PENDING   = 'pending'
         CONFIRMED = 'confirmed'
         CANCELLED = 'cancelled'
+        PAYMENT_FAILED = 'payment_failed'
+        EXPIRED   = 'expired'
+        COMPLETED = 'completed'
+        REFUNDED   = 'refunded'
     
     class PaymentStatus(models.TextChoices):
         UNPAID = 'unpaid'
@@ -16,10 +20,6 @@ class Booking(models.Model):
         FAILED = 'failed'
         REFUNDED = 'refunded'
 
-    class PaymentMethod(models.TextChoices):
-        CASH = 'cash'
-        MOMO = 'momo'
-        VNPAY = 'vnpay'
 
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='bookings')
@@ -32,7 +32,6 @@ class Booking(models.Model):
     booking_status = models.CharField(max_length=20, choices = BookingStatus.choices, default=BookingStatus.PENDING)
 
     payment_status = models.CharField(max_length=20, choices = PaymentStatus.choices, default=PaymentStatus.UNPAID)
-    payment_method = models.CharField(max_length=50, choices = PaymentMethod.choices, blank=True, null=True)
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
 
