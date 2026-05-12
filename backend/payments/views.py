@@ -1,6 +1,12 @@
-from rest_framework import viewsets, permissions
+from django.http import HttpResponse
+from django.urls import reverse
+from django.utils.html import escape
+from rest_framework import status, viewsets, permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import Payment
 from .serializers import PaymentReadSerializer, PaymentCreateSerializer
+from .payServices.payment_service import complete_mock_gateway_payment
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -8,7 +14,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
         'user', 
         'booking',
         'booking__service',
-        'booking__service__provider')
+        'booking__service__provider'
+    )
     
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ['get', 'post', 'head', 'options']
@@ -38,33 +45,13 @@ class PaymentViewSet(viewsets.ModelViewSet):
         return PaymentReadSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(
-            data=request.data
-        )
+        serializer = self.get_serializer(data=request.data )
+        serializer.is_valid(raise_exception=True)
 
-        serializer.is_valid(
-            raise_exception=True
-        )
+        payment = serializer.save(user=request.user)
 
-        booking_id = serializer.validated_data["booking_id"]
-        payment_method = serializer.validated_data["payment_method"]
+        read_serializer = PaymentReadSerializer(payment,context=self.get_serializer_context())
+        
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
-        booking = Booking.objects.get(
-            id=booking_id
-        )
 
-        payment = create_payment_for_booking(
-            booking=booking,
-            user=request.user,
-            payment_method=payment_method
-        )
-
-        read_serializer = PaymentReadSerializer(
-            payment,
-            context={"request": request}
-        )
-
-        return Response(
-            read_serializer.data,
-            status=status.HTTP_201_CREATED
-        )

@@ -39,6 +39,7 @@ urlpatterns = [
     path('api/services/', include('services.urls')),
     path('api/locations/', include('locations.urls')),
     path('api/bookings/', include('bookings.urls')),
+    path('api/payments/', include('payments.urls')),
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', 
