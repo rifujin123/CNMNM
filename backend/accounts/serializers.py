@@ -99,7 +99,31 @@ class UserReadSerializer(serializers.ModelSerializer):
 class MeUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'date_of_birth', 'avatar']
+        fields = ["first_name", "last_name", "date_of_birth", "avatar", "username", "email"]
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True, min_length=8)
+
+    def validate_old_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Old password is incorrect.")
+        return value
+
+    def validate(self, data):
+        if data["old_password"] == data["new_password"]:
+            raise serializers.ValidationError(
+                {"new_password": "New password cannot be same as old password."}
+            )
+        return data
+
+    def save(self):
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save()
+        return user
 
 
 class ProviderApprovalSerializer(serializers.Serializer):

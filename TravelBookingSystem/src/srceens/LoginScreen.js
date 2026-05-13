@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { s, vs } from "react-native-size-matters";
-import * as ImagePicker from "expo-image-picker";
 import LoginTabs from "../components/LoginTabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import LoginRoleSelector from "../components/LoginRoleSelector";
@@ -19,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 import { useAuth } from "../../context/AuthContext";
 import OAuthConfig from "../config/OAuthConfig";
+import { pickSingleImage } from "../utils/pickImage";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -42,9 +42,24 @@ const LoginScreen = () => {
   const AUTH_ACCESS_TOKEN_KEY = "auth_access_token";
   const AUTH_USER_KEY = "auth_user";
 
+  const pickBusinessLicense = async () => {
+    try {
+      const image = await pickSingleImage();
+      if (!image) return;
+
+      setBusinessLicense({
+        uri: image.uri,
+        name: image.fileName,
+        type: image.mimeType,
+      });
+    } catch (err) {
+      setError("Photo library permission required");
+    }
+  };
+
   const handleLoginSubmit = async () => {
     if (!username.trim() || !password.trim()) {
-      setError("Vui lòng nhập username và password.");
+      setError("Please enter username and password");
       return;
     }
 
@@ -71,7 +86,7 @@ const LoginScreen = () => {
 
       const accessToken = tokenRes?.data?.access_token;
       if (!accessToken) {
-        throw new Error("Không lấy được access_token");
+        throw new Error("Failed to get access_token");
       }
 
       const meRes = await authApis(accessToken).get(endpoints.currentUser);
@@ -86,7 +101,7 @@ const LoginScreen = () => {
       const message =
         err?.response?.data?.error_description ||
         err?.response?.data?.detail ||
-        "Đăng nhập thất bại";
+        "Login failed";
       setError(message);
       console.log("Login error:", err?.response?.data || err.message);
     } finally {
@@ -99,22 +114,22 @@ const LoginScreen = () => {
     setError("");
     try {
       if (!username.trim() || !password.trim() || !email.trim()) {
-        setError("Vui lòng nhập đầy đủ thông tin");
+        setError("Please fill in all required fields");
         return;
       }
 
       if (password !== confirmPassword) {
-        setError("Mật khẩu không khớp");
+        setError("Passwords do not match");
         return;
       }
 
       if (password.length < 8) {
-        setError("Mật khẩu phải có ít nhất 8 ký tự");
+        setError("Password must be at least 8 characters");
         return;
       }
 
       if (isProviderRole && (!businessName.trim() || !taxCode.trim())) {
-        setError("Vui lòng nhập đầy đủ thông tin");
+        setError("Please fill in all required fields");
         return;
       }
 
@@ -265,10 +280,30 @@ const LoginScreen = () => {
                 value={taxCode}
                 onChangeText={setTaxCode}
               />
-              <Text style={styles.providerHint}>
-                Chưa có UI chọn ảnh giấy phép. Tạm thời Provider register sẽ cần
-                gắn `businessLicense` bằng code.
-              </Text>
+
+              {/* Upload license button + preview */}
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={pickBusinessLicense}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="cloud-upload-outline" size={22} color="#0F172A" />
+                <Text style={styles.uploadButtonText}>
+                  {businessLicense ? "Change License" : "Upload Business License"}
+                </Text>
+              </TouchableOpacity>
+
+              {businessLicense && (
+                <View style={styles.licensePreview}>
+                  <Image
+                    source={{ uri: businessLicense.uri }}
+                    style={styles.licenseImage}
+                  />
+                  <Text style={styles.licenseFileName} numberOfLines={1}>
+                    {businessLicense.name}
+                  </Text>
+                </View>
+              )}
             </>
           )}
         </View>
@@ -384,12 +419,7 @@ const styles = StyleSheet.create({
     color: "#DC2626",
     fontSize: vs(11),
   },
-  providerHint: {
-    marginTop: vs(8),
-    fontSize: vs(10),
-    color: "#64748B",
-  },
-  uploadButton: {
+    uploadButton: {
     marginTop: vs(10),
     borderWidth: s(1),
     borderColor: "#93C5FD",

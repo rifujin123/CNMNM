@@ -1,17 +1,23 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ScrollView,
+} from "react-native";
 import React from "react";
-import UserAvatar from "../components/UserAvatar";
-import AvatarButton from "../components/AvatarButton";
-import { vs, s } from "react-native-size-matters";
-import Section from "../components/Section";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { vs, s } from "react-native-size-matters";
 import Octicons from "@expo/vector-icons/Octicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useAuth } from "../../context/AuthContext";
-import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+
+import AppHeader from "../components/AppHeader";
+import UserAvatar from "../components/UserAvatar";
+import { useAuth } from "../../context/AuthContext";
 import Apis, { endpoints } from "../../configs/Apis";
 
 const AccountScreen = () => {
@@ -20,9 +26,7 @@ const AccountScreen = () => {
 
   const handleLogout = async () => {
     try {
-      if (!token) {
-        return;
-      }
+      if (!token) return;
       await Apis.post(
         endpoints.logout,
         {},
@@ -40,66 +44,117 @@ const AccountScreen = () => {
       await AsyncStorage.removeItem("auth_access_token");
       await AsyncStorage.removeItem("auth_user");
       clearAuth();
-
       navigation.navigate("MainTabs", { screen: "HomeFeed" });
     }
   };
 
+  const items = [
+    {
+      key: "personal",
+      title: "Personal information",
+      subtitle: "Profile, phone, email",
+      icon: <Octicons name="person" size={18} color="#0F172A" />,
+      onPress: () => navigation.navigate("PersonalInformation"),
+    },
+    {
+      key: "payment",
+      title: "Payment methods",
+      subtitle: "Cards, billing",
+      icon: <MaterialIcons name="payment" size={18} color="#0F172A" />,
+      onPress: () => navigation.navigate("PaymentMethods"),
+    },
+    {
+      key: "security",
+      title: "Security",
+      subtitle: "Password, devices",
+      icon: <Feather name="shield" size={18} color="#0F172A" />,
+      onPress: () => navigation.navigate("Security"),
+    },
+    {
+      key: "notifications",
+      title: "Notifications",
+      subtitle: "Trips, promos",
+      icon: (
+        <Ionicons
+          name="notifications-outline"
+          size={18}
+          color="#0F172A"
+        />
+      ),
+      onPress: () => navigation.navigate("Notifications"),
+    },
+    {
+      key: "help",
+      title: "Help & support",
+      subtitle: "FAQ, contact",
+      icon: <Ionicons name="help-circle-outline" size={18} color="#0F172A" />,
+      onPress: () => navigation.navigate("HelpAndSupport"),
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <UserAvatar avatarUri={user?.avatar} />
-          <View style={styles.userTextContainer}>
-            <Text style={styles.userName}>
-              {user?.last_name} {user?.first_name}
-            </Text>
-            <TouchableOpacity onPress={() => {}}>
-              <Text style={styles.profileLink}>
-                Update personal information
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <AppHeader title="Account" />
+
+        <View style={styles.profileCard}>
+          <View style={styles.profileLeft}>
+            <UserAvatar avatarUri={user?.avatar} />
+            <View style={styles.profileText}>
+              <Text style={styles.name} numberOfLines={1}>
+                {(user?.last_name || "").trim()} {(user?.first_name || "").trim()}
               </Text>
-            </TouchableOpacity>
+              <Text style={styles.meta} numberOfLines={1}>
+                @{user?.username || "user"}
+              </Text>
+            </View>
           </View>
-        </View>
-      </View>
-      <View style={styles.content}>
-        <View style={styles.profileContainer}>
-          <Section
-            title="Personal Information"
-            icon={<Octicons name="person" size={24} color="black" />}
+
+          <TouchableOpacity
+            activeOpacity={0.85}
             onPress={() => navigation.navigate("PersonalInformation")}
-          />
-          <Section
-            title="Payment Methods"
-            icon={<MaterialIcons name="payment" size={24} color="black" />}
-            onPress={() => navigation.navigate("PaymentMethods")}
-          />
-          <Section
-            title="Security"
-            icon={<Feather name="settings" size={24} color="black" />}
-            onPress={() => navigation.navigate("Security")}
-          />
-          <Section
-            title="Notifications"
-            icon={
-              <Ionicons name="notifications-outline" size={24} color="black" />
-            }
-            onPress={() => navigation.navigate("Notifications")}
-          />
+            style={styles.editPill}
+          >
+            <Text style={styles.editText}>Edit</Text>
+            <Feather name="chevron-right" size={16} color="#0F172A" />
+          </TouchableOpacity>
         </View>
-        <View style={styles.profileContainer}>
-          <Section
-            title="Help & Support"
-            icon={<Ionicons name="help-outline" size={24} color="black" />}
-            onPress={() => navigation.navigate("HelpAndSupport")}
-          />
-          <Section
-            title="Logout"
-            icon={<MaterialIcons name="logout" size={24} color="black" />}
-            onPress={handleLogout}
-          />
+
+        <View style={styles.sectionShell}>
+          {items.map((it, idx) => (
+            <React.Fragment key={it.key}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={it.onPress}
+                style={styles.row}
+              >
+                <View style={styles.iconWrap}>{it.icon}</View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowTitle}>{it.title}</Text>
+                  <Text style={styles.rowSub}>{it.subtitle}</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color="#64748B" />
+              </TouchableOpacity>
+              {idx !== items.length - 1 ? <View style={styles.divider} /> : null}
+            </React.Fragment>
+          ))}
         </View>
-      </View>
+
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={handleLogout}
+          style={styles.logoutButton}
+        >
+          <MaterialIcons name="logout" size={18} color="#991B1B" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: vs(20) }} />
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -112,43 +167,124 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   content: {
-    paddingHorizontal: s(24),
-    paddingTop: vs(35),
+    paddingHorizontal: s(18),
   },
-  header: {
+  contentContainer: {
+    paddingBottom: vs(24),
+  },
+
+  profileCard: {
+    marginTop: vs(10),
+    padding: s(14),
+    borderRadius: s(18),
+    backgroundColor: "#FFFFFF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: s(14),
-    paddingTop: vs(10),
+    justifyContent: "space-between",
+    gap: s(10),
   },
-  userInfo: {
+  profileLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(12),
+    flex: 1,
+  },
+  profileText: {
+    flex: 1,
+    gap: vs(2),
+  },
+  name: {
+    fontSize: vs(16),
+    lineHeight: vs(20),
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  meta: {
+    fontSize: vs(12),
+    lineHeight: vs(16),
+    color: "#64748B",
+  },
+  editPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(6),
+    paddingHorizontal: s(10),
+    paddingVertical: vs(8),
+    borderRadius: s(999),
+    backgroundColor: "rgba(15,23,42,0.06)",
+  },
+  editText: {
+    fontSize: vs(12),
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+
+  sectionShell: {
+    marginTop: vs(12),
+    borderRadius: s(18),
+    backgroundColor: "#FFFFFF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: "hidden",
+  },
+  row: {
+    paddingHorizontal: s(14),
+    paddingVertical: vs(12),
     flexDirection: "row",
     alignItems: "center",
     gap: s(12),
   },
-  userTextContainer: {
+  iconWrap: {
+    width: s(36),
+    height: s(36),
+    borderRadius: s(12),
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
     justifyContent: "center",
-    gap: s(4),
   },
-  userName: {
-    fontSize: vs(16),
-    fontWeight: "600",
+  rowText: {
+    flex: 1,
+    gap: vs(2),
   },
-  profileLink: {
-    color: "#000",
-    textDecorationLine: "underline",
+  rowTitle: {
+    fontSize: vs(13),
+    lineHeight: vs(18),
+    fontWeight: "800",
+    color: "#0F172A",
   },
-  profileContainer: {
+  rowSub: {
+    fontSize: vs(12),
+    lineHeight: vs(16),
+    color: "#64748B",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    marginLeft: s(14 + 36 + 12),
+  },
+
+  logoutButton: {
+    marginTop: vs(14),
+    borderRadius: s(18),
+    paddingVertical: vs(12),
+    paddingHorizontal: s(14),
+    backgroundColor: "#FEF2F2",
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
-    marginTop: vs(8),
-    paddingVertical: vs(10),
-    borderRadius: s(15),
-    backgroundColor: "#ffffff",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
-    overflow: "hidden",
+    gap: s(10),
+  },
+  logoutText: {
+    fontSize: vs(13),
+    lineHeight: vs(18),
+    fontWeight: "900",
+    color: "#991B1B",
+    letterSpacing: 0.2,
   },
 });

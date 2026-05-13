@@ -44,7 +44,9 @@ const HomeScreen = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
       >
-        <AppHeader title={`Hello, ${user?.first_name ?? "Guest"}`} />
+        <AppHeader
+          title={`Hello, ${user?.first_name?.trim() || user?.username || "Guest"}`}
+        />
         <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
         <CategoryChips
