@@ -19,7 +19,7 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "quantity",
             "total_price",
             "booking_status",
-            "payment_method",
+            "payment_status",
             "created_date",
             "updated_date",
         ]

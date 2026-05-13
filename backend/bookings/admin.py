@@ -14,7 +14,6 @@ class BookingAdmin(admin.ModelAdmin):
         'total_price',
         'booking_status',
         'payment_status',
-        'payment_method',
         'created_date',
     ]
     list_display_links = ['id', 'user_email']
@@ -22,7 +21,6 @@ class BookingAdmin(admin.ModelAdmin):
     list_filter = [
         'booking_status',
         'payment_status',
-        'payment_method',
         'created_date',
         'updated_date',
     ]
@@ -64,7 +62,6 @@ class BookingAdmin(admin.ModelAdmin):
                 'fields': [
                     'booking_status',
                     'payment_status',
-                    'payment_method',
                 ]
             },
         ),

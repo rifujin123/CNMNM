@@ -17,20 +17,23 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY") or "django-insecure-dev-only-change-me"
 
-# SECURITY WARNING: don't run with debug turned on in production!er() in ("", "true")
-# DEBUG = os.getenv("DJANGO_DEBUG", "").lower() in ("", "true")
-DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = (os.getenv("DJANGO_DEBUG") or "True").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in (os.getenv("DJANGO_ALLOWED_HOSTS") or "localhost,127.0.0.1").split(",")
+    if h.strip()
+]
 
 
 # Application definition
