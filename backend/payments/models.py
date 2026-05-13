@@ -6,6 +6,7 @@ class Payment(models.Model):
     class PaymentMethod(models.TextChoices):
         MOMO = "MOMO", "MoMo"
         VNPAY = "VNPAY", "VNPay"
+        STATIC_QR = "STATIC_QR", "Static QR"
 
     class PaymentStatus(models.TextChoices):
         PENDING = "PENDING", "Pending"

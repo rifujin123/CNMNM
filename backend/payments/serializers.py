@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from bookings.models import Booking
 from .models import Payment
-from .payServices.payment_service import create_gateway_checkout
+from .payServices.payment_service import create_gateway_payment
 import uuid
+from django.db import transaction
 
 class PaymentReadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -75,11 +76,12 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         booking = validated_data.get('booking')
 
-        payment = Payment.objects.create(
-            user=request.user,
-            booking=booking,
-            payment_method=validated_data.get('payment_method'),
-            amount=booking.total_price,
-            transaction_id = f"PAY-{uuid.uuid4().hex}")
+        with transaction.atomic():
+            payment = Payment.objects.create(
+                user=request.user,
+                booking=booking,
+                payment_method=validated_data.get('payment_method'),
+                amount=booking.total_price,
+                transaction_id = f"PAY-{uuid.uuid4().hex}")
         
-        return create_gateway_checkout(payment, request)
+        return create_gateway_payment(payment, request)
