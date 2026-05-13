@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.decorators import action
 from django.db.models import Q
 from django.db.models import Count
-from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package, PromoBanner
-from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer, TransportWriteSerializer, TransportDetailReadSerializer, PromoBannerSerializer
+from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package, PromoBanner, Wishlist
+from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer, TransportWriteSerializer, TransportDetailReadSerializer, PromoBannerSerializer, WishlistSerializer
 from .perms import (
     IsApprovedProviderOrAdmin,
     ServiceOwnerOrAdmin,
@@ -210,10 +210,58 @@ class TransportViewSet(viewsets.ModelViewSet):
         if self.action in ['create','update','partial_update']:
             return TransportWriteSerializer
         return TransportDetailReadSerializer
-    
+
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         if self.action in ['create']:
             return [IsApprovedProviderOrAdmin()]
         return [ServiceOwnerOrAdmin()]
+
+
+class WishlistViewSet(viewsets.ModelViewSet):
+    serializer_class = WishlistSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Wishlist.objects.filter(user=self.request.user).select_related('travel_tour')
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def perform_create(self, serializer):
+        existing = Wishlist.objects.filter(
+            user=self.request.user,
+            travel_tour=serializer.validated_data.get('travel_tour')
+        ).first()
+        if existing:
+            return
+        serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        existing = Wishlist.objects.filter(
+            user=request.user,
+            travel_tour_id=request.data.get('tour_id')
+        ).first()
+        if existing:
+            serializer = self.get_serializer(existing)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return super().create(request, *args, **kwargs)
+
+    @action(detail=False, methods=['delete'], url_path='remove')
+    def remove_by_tour_id(self, request):
+        tour_id = request.query_params.get('tour_id')
+        if not tour_id:
+            return Response(
+                {"detail": "tour_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        wishlist = self.get_queryset().filter(travel_tour_id=tour_id).first()
+        if wishlist is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        wishlist.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

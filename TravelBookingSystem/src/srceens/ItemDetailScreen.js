@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Pressable,
   Modal,
+  StatusBar,
+  SafeAreaView,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import Animated, {
@@ -16,18 +18,31 @@ import Animated, {
 } from "react-native-reanimated";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { fetchPlaceDetail } from "../api/services";
+import { usePlaceDetail } from "../hooks/useTours";
 import Entypo from "@expo/vector-icons/Entypo";
-const { width } = Dimensions.get("window");
-const IMG_HEIGHT = 300;
+const { width, height } = Dimensions.get("window");
+const IMG_HEIGHT = height * 0.45;
 const FALLBACK_IMAGE_URI =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80";
+
+// Luxury tropical travel aesthetic
+const COLORS = {
+  primary: "#0D9488", // Deep teal
+  secondary: "#F59E0B", // Golden amber
+  accent: "#F97316", // Vibrant orange
+  dark: "#0F172A",
+  light: "#FEF3C7",
+  surface: "#FAFAF9",
+  text: "#1C1917",
+  muted: "#78716C",
+  overlay: "rgba(15, 23, 42, 0.75)",
+};
 
 const ItemDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const ItemId = route.params?.ItemId;
-  const [place, setPlace] = useState(null);
+  const { data: place, isLoading } = usePlaceDetail(ItemId);
   const [isDescriptionModalVisible, setDescriptionModalVisible] =
     useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState(null);
@@ -36,19 +51,10 @@ const ItemDetailScreen = () => {
   const scrollOffset = useScrollViewOffset(scrollRef);
 
   useEffect(() => {
-    if (!ItemId) return;
-    const loadPlaceDetail = async () => {
-      try {
-        const detail = await fetchPlaceDetail(ItemId);
-        setPlace(detail);
-        console.log(detail);
-      } catch (error) {
-        console.error("Failed to load place detail:", error);
-      }
-    };
-
-    loadPlaceDetail();
-  }, [ItemId]);
+    if (place?.tour_package?.length > 0 && !selectedPackageId) {
+      setSelectedPackageId(place.tour_package[0].id);
+    }
+  }, [place?.tour_package]);
 
   const imageAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -71,6 +77,15 @@ const ItemDetailScreen = () => {
     };
   });
 
+  const contentAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollOffset.value,
+      [-IMG_HEIGHT, 0, IMG_HEIGHT],
+      [40, 0, -20],
+    );
+    return { transform: [{ translateY }] };
+  });
+
   const imageUri =
     place?.image ||
     place?.image_url ||
@@ -82,121 +97,223 @@ const ItemDetailScreen = () => {
   const selectedPackage = place?.tour_package?.find(
     (pkg) => pkg.id === selectedPackageId,
   );
+  const packageCount = place?.tour_package?.length || 0;
+  const rating = Number(place?.star_rating || 0).toFixed(1);
+  const cityName = place?.city?.name || "Unknown location";
+  const selectedPrice =
+    selectedPackage?.total_price_display ||
+    selectedPackage?.price_display ||
+    place?.base_price_display ||
+    "N/A";
+
+  const formatPackageSubtitle = (pkg) => {
+    const parts = [];
+    if (pkg.duration) parts.push(pkg.duration);
+    if (pkg.max_people) parts.push(`${pkg.max_people} guests`);
+    return parts.join(" • ") || "Curated travel experience";
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <View style={styles.loadingBackground} />
+        <View style={styles.loadingOrb} />
+        <Text style={styles.loadingText}>Preparing your escape...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Animated.ScrollView ref={scrollRef} scrollEventThrottle={16}>
-        <View style={styles.imageContainer}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      {/* Parallax Hero Image */}
+      <Animated.ScrollView
+        ref={scrollRef}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.heroContainer}>
           <Animated.Image
-            style={[styles.image, imageAnimatedStyle]}
-            source={{
-              uri: imageUri,
-            }}
+            style={[styles.heroImage, imageAnimatedStyle]}
+            source={{ uri: imageUri }}
           />
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="chevron-back" size={32} color="white" />
-            </TouchableOpacity>
+          <View style={styles.heroOverlay} />
+
+          <TouchableOpacity
+            style={styles.floatingBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Hero Content */}
+          <View style={styles.heroContent}>
+            <Text style={styles.heroLocation}>
+              <Entypo name="location-pin" size={14} color={COLORS.light} />
+              {" "}{cityName}
+            </Text>
+            <Text style={styles.heroTitle}>{place?.name}</Text>
+            <View style={styles.heroMeta}>
+              <View style={styles.ratingPill}>
+                <Ionicons name="star" size={14} color={COLORS.secondary} />
+                <Text style={styles.ratingPillText}>{rating}</Text>
+              </View>
+              <View style={styles.reviewPill}>
+                <Text style={styles.reviewPillText}>{place?.comment_count || 0} reviews</Text>
+              </View>
+            </View>
           </View>
         </View>
-        <View style={styles.contentContainer}>
-          <Text style={styles.title}>{place?.name}</Text>
-          <View style={styles.ratingContainer}>
-            <View style={styles.badgeContainer}>
-              <Text style={styles.ratingText}>{place?.star_rating}/5</Text>
+
+        {/* Main Content */}
+        <Animated.View style={[styles.contentContainer, contentAnimatedStyle]}>
+          {/* About Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>About This Journey</Text>
+              {shouldShowSeeAll && (
+                <Pressable onPress={() => setDescriptionModalVisible(true)}>
+                  <Text style={styles.seeAllLink}>Read more</Text>
+                </Pressable>
+              )}
             </View>
-            <Pressable>
-              <Text style={styles.reviewLink}>
-                {place?.comment_count} reviews
-              </Text>
-            </Pressable>
+            <View style={styles.aboutCard}>
+              <Text style={styles.aboutText}>{description || "A curated travel experience awaits..."}</Text>
+            </View>
           </View>
-          <View style={styles.locationContainer}>
-            <Text>
-              <Entypo name="location" size={14} color="black" />{" "}
-            </Text>
-            <Text>{place?.city?.name}</Text>
-          </View>
-          <View style={styles.descriptionCard}>
-            <Text style={styles.descriptionText} numberOfLines={3}>
-              {description || "No description available."}
-            </Text>
-            {shouldShowSeeAll && (
-              <Pressable onPress={() => setDescriptionModalVisible(true)}>
-                <Text style={styles.seeAllLink}>See all</Text>
-              </Pressable>
-            )}
-          </View>
-          <View style={styles.tourPackageSection}>
-            <Text style={styles.sectionTitle}>Tour Packages</Text>
-            {place?.tour_package?.length > 0 ? (
-              place.tour_package.map((pkg) => (
+
+          {/* Tour Packages Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Choose Your Package</Text>
+              <View style={styles.packageCountBadge}>
+                <Text style={styles.packageCountText}>{packageCount} options</Text>
+              </View>
+            </View>
+            {packageCount > 0 ? (
+              place.tour_package.map((pkg, index) => (
                 <Pressable
                   key={pkg.id}
-                  style={[
+                  style={({ pressed }) => [
                     styles.packageCard,
                     selectedPackageId === pkg.id && styles.packageCardSelected,
+                    pressed && styles.packageCardPressed,
                   ]}
                   onPress={() => setSelectedPackageId(pkg.id)}
                 >
-                  <View style={styles.packageRadio}>
-                    <View
-                      style={[
-                        styles.radioOuter,
-                        selectedPackageId === pkg.id &&
-                          styles.radioOuterSelected,
-                      ]}
-                    >
-                      {selectedPackageId === pkg.id && (
-                        <View style={styles.radioInner} />
-                      )}
+                  <View style={styles.packageHeader}>
+                    <View style={styles.packageRadio}>
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          selectedPackageId === pkg.id && styles.radioOuterSelected,
+                        ]}
+                      >
+                        {selectedPackageId === pkg.id && (
+                          <View style={styles.radioInner} />
+                        )}
+                      </View>
+                    </View>
+                    <View style={styles.packageInfo}>
+                      <View>
+                        <Text style={styles.packageName}>{pkg.name}</Text>
+                        <Text style={styles.packageSubtitle}>
+                          {formatPackageSubtitle(pkg)}
+                        </Text>
+                      </View>
+                      <View style={styles.packagePriceContainer}>
+                        <Text style={[
+                          styles.packagePrice,
+                          selectedPackageId === pkg.id && styles.packagePriceSelected,
+                        ]}>
+                          {pkg.price_display}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                  <View style={styles.packageInfo}>
-                    <Text style={styles.packageName}>{pkg.name}</Text>
-                    <Text style={styles.packagePrice}>{pkg.price_display}</Text>
-                  </View>
+
+                  {/* Expandable details */}
+                  {selectedPackageId === pkg.id && (
+                    <View style={styles.packageDetails}>
+                      <View style={styles.packageDetailRow}>
+                        <Text style={styles.packageDetailLabel}>Type</Text>
+                        <Text style={styles.packageDetailValue}>{pkg.type || "Standard"}</Text>
+                      </View>
+                      {pkg.inclusions && (
+                        <View style={styles.packageInclusions}>
+                          <Text style={styles.packageDetailLabel}>Inclusions</Text>
+                          <Text style={styles.packageInclusionsText}>{pkg.inclusions}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                 </Pressable>
               ))
             ) : (
-              <Text style={styles.noPackagesText}>No packages available.</Text>
+              <View style={styles.noPackagesCard}>
+                <Ionicons name="compass-outline" size={40} color={COLORS.muted} />
+                <Text style={styles.noPackagesText}>Custom packages available</Text>
+                <Text style={styles.noPackagesSubtext}>Contact us for personalized options</Text>
+              </View>
             )}
           </View>
-        </View>
+
+          {/* Spacer for bottom bar */}
+          <View style={styles.bottomSpacer} />
+        </Animated.View>
       </Animated.ScrollView>
 
+      {/* Floating Bottom Bar */}
       <View style={styles.bottomContainer}>
-        <View style={styles.priceContainer}>
-          <Text style={styles.priceLabel}>Total Price</Text>
-          <Text style={styles.priceValue}>
-            {selectedPackage?.total_price_display ||
-              place?.base_price_display ||
-              "N/A"}
-          </Text>
+        <View style={styles.bottomContent}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceLabel}>Total from</Text>
+            <Text style={styles.priceValue}>{selectedPrice}</Text>
+            {selectedPackage && (
+              <Text style={styles.priceNote}>per person</Text>
+            )}
+          </View>
+          <Pressable
+            style={({ pressed }) => [
+              styles.purchaseButton,
+              pressed && styles.purchaseButtonPressed,
+            ]}
+          >
+            <Text style={styles.purchaseButtonText}>Book Now</Text>
+          </Pressable>
         </View>
-        <Pressable style={styles.purchaseButton}>
-          <Text style={styles.purchaseButtonText}>Purchase</Text>
-        </Pressable>
       </View>
 
+      {/* Description Modal */}
       <Modal
         visible={isDescriptionModalVisible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setDescriptionModalVisible(false)}
       >
         <View style={styles.modalBackdrop}>
+          <Pressable
+            style={styles.modalBackdropPress}
+            onPress={() => setDescriptionModalVisible(false)}
+          />
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Description</Text>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>About This Journey</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setDescriptionModalVisible(false)}
+              >
+                <Ionicons name="close" size={22} color={COLORS.muted} />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.modalDescription}>{description}</Text>
             <Pressable
-              style={styles.closeButton}
+              style={styles.modalActionButton}
               onPress={() => setDescriptionModalVisible(false)}
             >
-              <Text style={styles.closeButtonText}>Close</Text>
+              <Text style={styles.modalActionText}>Got it</Text>
             </Pressable>
           </View>
         </View>
@@ -210,116 +327,258 @@ export default ItemDetailScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.surface,
   },
-  image: {
-    width: width,
+
+  // Loading State
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.dark,
+  },
+  loadingOrb: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    position: "absolute",
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#fff",
+    marginTop: 100,
+  },
+
+  // Hero Section
+  heroContainer: {
+    position: "relative",
     height: IMG_HEIGHT,
   },
-  imageContainer: {
-    position: "relative",
+  heroImage: {
+    width: width,
+    height: IMG_HEIGHT + 50,
   },
-  header: {
+  heroOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+  },
+  floatingBackButton: {
     position: "absolute",
     top: 50,
     left: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "transparent",
-    zIndex: 10,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
+    zIndex: 30,
+    elevation: 30,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    height: 2000,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -20,
-    paddingTop: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  rating: {
-    fontWeight: "bold",
-    color: "#F59E0B",
-  },
-  ratingContainer: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 5,
   },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#CC66FF",
-    alignSelf: "flex-start",
+
+  // Hero Content
+  heroContent: {
+    position: "absolute",
+    bottom: 24,
+    left: 16,
+    right: 16,
   },
-  badgeContainer: {
-    backgroundColor: "#FFCCFF",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  reviewLink: {
-    color: "#000",
-    textDecorationLine: "underline",
-  },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 5,
-  },
-  descriptionCard: {
-    marginTop: 8,
-    borderRadius: 12,
-    backgroundColor: "#F8FAFC",
-    padding: 12,
-  },
-  descriptionText: {
+  heroLocation: {
     fontSize: 14,
-    lineHeight: 20,
-    color: "#334155",
+    color: COLORS.light,
+    marginBottom: 6,
   },
-  seeAllLink: {
-    marginTop: 8,
-    color: "#2563EB",
-    fontWeight: "600",
-    textDecorationLine: "underline",
-    alignSelf: "flex-start",
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#fff",
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
-  tourPackageSection: {
-    marginTop: 24,
+  heroMeta: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 14,
+  },
+  ratingPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    gap: 4,
+  },
+  ratingPillText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.dark,
+  },
+  reviewPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  reviewPillText: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.85)",
+  },
+
+  // Main Content
+  contentContainer: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -24,
+    paddingTop: 24,
+    paddingHorizontal: 16,
+  },
+
+  // Stats Row
+  statsRow: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: COLORS.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "#E7E5E4",
+  },
+  statValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginTop: 6,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.muted,
+    marginTop: 2,
+  },
+
+  // Sections
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#0F172A",
-    marginBottom: 12,
+    color: COLORS.text,
+    letterSpacing: -0.3,
   },
-  packageCard: {
+  seeAllLink: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+
+  // About Card
+  aboutCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+  },
+  aboutText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: COLORS.text,
+  },
+
+  // Amenities
+  amenitiesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 12,
+  },
+  amenityItem: {
+    width: (width - 44) / 2,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    gap: 10,
+  },
+  amenityIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: `${COLORS.primary}15`,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  amenityLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+
+  // Package Section
+  packageCountBadge: {
+    backgroundColor: `${COLORS.primary}15`,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 12,
+  },
+  packageCountText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+  packageCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 2,
     borderColor: "transparent",
-    padding: 16,
-    marginBottom: 10,
+    shadowColor: COLORS.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   packageCardSelected: {
-    borderColor: "#2563EB",
-    backgroundColor: "#EFF6FF",
+    borderColor: COLORS.primary,
+    backgroundColor: `${COLORS.primary}08`,
+  },
+  packageCardPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9,
+  },
+  packageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   packageRadio: {
     marginRight: 12,
@@ -329,18 +588,18 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: "#94A3B8",
-    alignItems: "center",
+    borderColor: "#D6D3D1",
     justifyContent: "center",
+    alignItems: "center",
   },
   radioOuterSelected: {
-    borderColor: "#2563EB",
+    borderColor: COLORS.primary,
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#2563EB",
+    backgroundColor: COLORS.primary,
   },
   packageInfo: {
     flex: 1,
@@ -349,99 +608,193 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   packageName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  packageSubtitle: {
+    fontSize: 12,
+    color: COLORS.muted,
+    marginTop: 2,
+  },
+  packagePriceContainer: {
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
   packagePrice: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#2563EB",
+    fontWeight: "800",
+    color: COLORS.text,
+  },
+  packagePriceSelected: {
+    color: COLORS.primary,
+  },
+
+  // Package Details
+  packageDetails: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#E7E5E4",
+  },
+  packageDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  packageDetailLabel: {
+    fontSize: 13,
+    color: COLORS.muted,
+  },
+  packageDetailValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+  packageInclusions: {
+    marginTop: 4,
+  },
+  packageInclusionsText: {
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+
+  // No Packages
+  noPackagesCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
   },
   noPackagesText: {
-    fontSize: 14,
-    color: "#94A3B8",
-    fontStyle: "italic",
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginTop: 12,
   },
+  noPackagesSubtext: {
+    fontSize: 13,
+    color: COLORS.muted,
+    marginTop: 4,
+  },
+
+  // Bottom Spacer
+  bottomSpacer: {
+    height: 100,
+  },
+
+  // Bottom Bar
   bottomContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#E7E5E4",
+    paddingBottom: 14,
+  },
+  bottomContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#fff",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 30,
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
+    paddingTop: 10,
   },
   priceContainer: {
     flex: 1,
   },
   priceLabel: {
     fontSize: 12,
-    color: "#64748B",
-    marginBottom: 2,
+    color: COLORS.muted,
   },
   priceValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#0F172A",
+    fontSize: 22,
+    fontWeight: "800",
+    color: COLORS.text,
+    letterSpacing: -0.5,
+  },
+  priceNote: {
+    fontSize: 11,
+    color: COLORS.muted,
   },
   purchaseButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
   },
-  purchaseButtonDisabled: {
-    backgroundColor: "#94A3B8",
+  purchaseButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   purchaseButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
+    color: "#fff",
   },
+
+  // Modal
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalBackdropPress: {
+    flex: 1,
   },
   modalCard: {
-    borderRadius: 12,
     backgroundColor: "#fff",
-    padding: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#D6D3D1",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#0F172A",
-    marginBottom: 10,
+    color: COLORS.text,
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalDescription: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: "#334155",
+    fontSize: 15,
+    lineHeight: 24,
+    color: COLORS.text,
   },
-  closeButton: {
-    marginTop: 16,
-    alignSelf: "flex-end",
-    backgroundColor: "#2563EB",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  modalActionButton: {
+    marginTop: 20,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
   },
-  closeButtonText: {
-    color: "#fff",
+  modalActionText: {
+    fontSize: 16,
     fontWeight: "600",
+    color: "#fff",
   },
 });

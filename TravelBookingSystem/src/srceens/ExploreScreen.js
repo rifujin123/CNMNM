@@ -7,9 +7,10 @@ import ItemSection from "../components/ItemSection";
 import CategoryChips from "../components/CategoryChips";
 import HotelCard from "../components/HotelCard";
 import TransportCard from "../components/TransportCard";
-import { useState, useEffect } from "react";
-import { fetchCategories, fetchPlaces } from "../api/services";
 import { useNavigation } from "@react-navigation/native";
+import usePullRefresh from "../../hooks/usePullRefresh";
+import useWishlist from "../hooks/useWishlist";
+import { useCategories, usePlaces } from "../hooks/useTours";
 
 const places = [
   { id: "1", name: "Bali Beach", meta: "4.8 ★  •  2.3 km", color: "#93C5FD" },
@@ -71,19 +72,14 @@ const transports = [
 ];
 
 const ExploreScreen = () => {
-  const [places, setPlaces] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const { data: places = [], refetch: refetchPlaces } = usePlaces();
+  const { data: categories = [], refetch: refetchCategories } = useCategories();
   const navigation = useNavigation();
+  const { isWishlisted, toggleWishlist } = useWishlist();
 
-  useEffect(() => {
-    const init = async () => {
-      const categories = await fetchCategories();
-      setCategories(categories);
-      const places = await fetchPlaces();
-      setPlaces(places);
-    };
-    init();
-  }, []);
+  const { refreshControl } = usePullRefresh(() =>
+    Promise.all([refetchCategories(), refetchPlaces()])
+  );
 
   const onPressItem = (item) => {
     navigation.navigate("ItemDetail", { ItemId: item?.id });
@@ -94,7 +90,7 @@ const ExploreScreen = () => {
   };
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
         <AppHeader title="Explore" />
         <SearchBar placeholder="Search cities, places, hotels" />
         <CategoryChips
@@ -105,18 +101,38 @@ const ExploreScreen = () => {
           title="Recommended For You"
           items={places}
           onPress={onPressItem}
+          isWishlisted={isWishlisted}
+          onWishlistToggle={toggleWishlist}
+          onSeeAllPress={() =>
+            navigation.navigate("SeeAll", {
+              title: "Recommended For You",
+              items: places,
+            })
+          }
         />
         <ItemSection
           title="Hotels"
           items={hotels}
           onPress={onPressItem}
           renderCard={(hotel) => <HotelCard hotel={hotel} />}
+          onSeeAllPress={() =>
+            navigation.navigate("SeeAll", {
+              title: "Hotels",
+              items: hotels,
+            })
+          }
         />
         <ItemSection
           title="Transport"
           items={transports}
           onPress={onPressItem}
           renderCard={(transport) => <TransportCard transport={transport} />}
+          onSeeAllPress={() =>
+            navigation.navigate("SeeAll", {
+              title: "Transport",
+              items: transports,
+            })
+          }
         />
       </ScrollView>
     </SafeAreaView>

@@ -7,9 +7,11 @@ export const endpoints = {
   login: "/o/token/",
   logout: "/api/accounts/logout/",
   currentUser: "/api/accounts/me/",
+  changePassword: "/api/accounts/me/change-password/",
   categories: "/api/services/categories/",
   tours: "/api/services/travel-tours/",
   providerPending: "/api/providers/pending/",
+  wishlist: "/api/services/wishlist/",
 };
 
 export const authApis = (token) =>

@@ -157,6 +157,18 @@ class Comment(models.Model):
     travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='comments')
     content = models.TextField()
 
+class Wishlist(models.Model):
+    user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='wishlists')
+    travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='wishlisted_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'travel_tour')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.travel_tour.name}"
+
 class Bus(Transport):
     pass
 

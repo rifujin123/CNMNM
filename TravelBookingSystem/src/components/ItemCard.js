@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableWithoutFeedback,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Image } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -23,13 +17,24 @@ const getPlaceImageUri = (item) => {
   return candidates.find((uri) => typeof uri === "string" && uri.trim());
 };
 
-function ItemCard({ item, onPress }) {
+function ItemCard({ item, onPress, isWishlist, onWishlistToggle, onRequireLogin }) {
   const imageUri = getPlaceImageUri(item) || FALLBACK_IMAGE_URI;
 
+  const handleWishlistPress = (e) => {
+    e?.stopPropagation?.();
+    if (!onWishlistToggle) {
+      onRequireLogin?.();
+      return;
+    }
+    onWishlistToggle(item);
+  };
+
   return (
-    <TouchableWithoutFeedback onPress={onPress}>
-      <View style={styles.card}>
+    <View style={styles.card}>
+      <Pressable onPress={onPress} style={styles.imageContainer}>
         <Image source={{ uri: imageUri }} style={styles.thumb} resizeMode="cover" />
+      </Pressable>
+      <Pressable onPress={onPress} style={styles.content}>
         <Text style={styles.name}>{item.name}</Text>
         <View style={styles.ratingLocationRow}>
           <Text style={styles.rating}>
@@ -46,8 +51,19 @@ function ItemCard({ item, onPress }) {
           From <FontAwesome6 name="dong-sign" size={13} color="black" />
           {item.base_price}
         </Text>
-      </View>
-    </TouchableWithoutFeedback>
+      </Pressable>
+      <Pressable
+        onPress={handleWishlistPress}
+        style={styles.wishlistButton}
+        hitSlop={8}
+      >
+        <Entypo
+          name={isWishlist ? "heart" : "heart-outlined"}
+          size={20}
+          color={isWishlist ? "#EF4444" : "#fff"}
+        />
+      </Pressable>
+    </View>
   );
 }
 
@@ -62,10 +78,28 @@ const styles = StyleSheet.create({
     padding: 12,
     marginRight: 12,
   },
+  imageContainer: {
+    position: "relative",
+  },
   thumb: {
     width: "100%",
     height: 96,
     borderRadius: 12,
+  },
+  wishlistButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  content: {
+    flex: 1,
   },
   name: {
     marginTop: 12,

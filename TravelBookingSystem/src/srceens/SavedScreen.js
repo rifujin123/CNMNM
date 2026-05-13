@@ -13,6 +13,7 @@ import CategoryChips from "../components/CategoryChips";
 import ItemCardSave from "../components/ItemCardSave";
 import AppHeader from "../components/AppHeader";
 import { scale } from "react-native-size-matters";
+import usePullRefresh from "../../hooks/usePullRefresh";
 
 const DATA = [
   {
@@ -52,6 +53,10 @@ const DATA = [
 const categories = ["All", "Tour", "Hotel", "Transport"];
 
 const SavedScreen = () => {
+  const { refreshControl } = usePullRefresh(async () => {
+    // TODO: fetch saved items from API when available
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader title="Saved" />
@@ -60,6 +65,7 @@ const SavedScreen = () => {
         <FlatList
           data={DATA}
           keyExtractor={(item) => item.id}
+          refreshControl={refreshControl}
           renderItem={({ item }) => (
             <ItemCardSave
               item={{
