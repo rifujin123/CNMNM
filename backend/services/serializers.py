@@ -15,6 +15,7 @@ from .models import (
     Transport,
     SeatType,
     PromoBanner,
+    Wishlist,
 ) 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -114,6 +115,18 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ['id','username','content']
+
+class WishlistSerializer(serializers.ModelSerializer):
+    tour_id = serializers.PrimaryKeyRelatedField(
+        source='travel_tour',
+        queryset=TravelTour.objects.all(),
+        write_only=True,
+    )
+    travel_tour = TravelTourSimpleReadSerializer(read_only=True)
+
+    class Meta:
+        model = Wishlist
+        fields = ['id', 'tour_id', 'travel_tour', 'created_at']
 
 class HotelSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:

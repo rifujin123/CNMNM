@@ -12,4 +12,7 @@ __pycache__/
 .env.local
 .env.production
 backend/.env
-TravelBookingSystem/src/config/OAuthConfig.js
+# Generated docs/reports (local)
+FRONTEND_BACKEND_INTEGRATION.md
+audit-report-tailwind.html
+use-case-flows.html

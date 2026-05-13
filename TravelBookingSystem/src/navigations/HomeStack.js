@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../srceens/HomeScreen";
 import CategoryListScreen from "../srceens/CategoryListScreen";
 import ItemDetailScreen from "../srceens/ItemDetailScreen";
+import SeeAllScreen from "../srceens/SeeAllScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,17 @@ export default function HomeStack() {
         options={({ route }) => ({
           headerShown: true,
           headerTitle: route.params?.category?.name ?? "Danh mục",
+          headerTintColor: "#0F172A",
+          headerStyle: { backgroundColor: "#F8FAFC" },
+          headerShadowVisible: false,
+        })}
+      />
+      <Stack.Screen
+        name="SeeAll"
+        component={SeeAllScreen}
+        options={({ route }) => ({
+          headerShown: true,
+          headerTitle: route.params?.title ?? "All Tours",
           headerTintColor: "#0F172A",
           headerStyle: { backgroundColor: "#F8FAFC" },
           headerShadowVisible: false,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { StyleSheet, ScrollView } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,40 +9,33 @@ import ItemSection from "../components/ItemSection";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import usePullRefresh from "../../hooks/usePullRefresh";
-import { fetchCategories, fetchPlaces } from "../api/services";
+import useWishlist from "../hooks/useWishlist";
+import { useCategories, usePlaces } from "../hooks/useTours";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
 
-  const [places, setPlaces] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const { data: categories = [], refetch: refetchCategories } = useCategories();
+  const { data: places = [], refetch: refetchPlaces } = usePlaces();
 
-  const { user } = useAuth();
+  const { token, user } = useAuth();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+
   const onPressItem = (item) => {
     navigation.navigate("ItemDetail", { ItemId: item?.id });
+  };
+
+  const onRequireLogin = () => {
+    navigation.navigate("AccountNotLoggedInScreen");
   };
 
   const handleCategoryPress = (category) => {
     navigation.navigate("CategoryList", { category });
   };
 
-  useEffect(() => {
-    const init = async () => {
-      const categories = await fetchCategories();
-      setCategories(categories);
-      const places = await fetchPlaces();
-      setPlaces(places);
-    };
-    init();
-  }, []);
-  const { refreshControl } = usePullRefresh(async () => {
-    const [categories, places] = await Promise.all([
-      fetchCategories(),
-      fetchPlaces(),
-    ]);
-    setCategories(categories);
-    setPlaces(places);
-  });
+  const { refreshControl } = usePullRefresh(() =>
+    Promise.all([refetchCategories(), refetchPlaces()])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -62,11 +55,29 @@ const HomeScreen = () => {
           title="Nearby Places"
           items={places}
           onPress={onPressItem}
+          isWishlisted={isWishlisted}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
+          onSeeAllPress={() =>
+            navigation.navigate("SeeAll", {
+              title: "Nearby Places",
+              items: places,
+            })
+          }
         />
         <ItemSection
           title="Recommended For You"
           items={places}
           onPress={onPressItem}
+          isWishlisted={isWishlisted}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
+          onSeeAllPress={() =>
+            navigation.navigate("SeeAll", {
+              title: "Recommended For You",
+              items: places,
+            })
+          }
         />
       </ScrollView>
     </SafeAreaView>

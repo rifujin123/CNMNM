@@ -9,6 +9,9 @@ export default function ItemSection({
   onPress,
   renderCard,
   slidingCard = false,
+  isWishlisted,
+  onWishlistToggle,
+  onRequireLogin,
 }) {
   return (
     <View style={styles.container}>
@@ -28,7 +31,13 @@ export default function ItemSection({
           renderCard ? (
             renderCard(item)
           ) : (
-            <ItemCard item={item} onPress={() => onPress?.(item)} />
+            <ItemCard
+              item={item}
+              onPress={() => onPress?.(item)}
+              isWishlist={isWishlisted?.(item?.id)}
+              onWishlistToggle={onWishlistToggle}
+              onRequireLogin={onRequireLogin}
+            />
           )
         }
         showsHorizontalScrollIndicator={false}

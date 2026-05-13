@@ -1,4 +1,7 @@
 from oauth2_provider.models import AccessToken,RefreshToken
+import os
+import time
+import cloudinary.utils
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -97,3 +100,31 @@ class ProviderVerificationView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class CloudinarySignView(APIView):
+    """Sign upload params for Cloudinary (server-side signature)."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        folder = request.data.get('folder') or os.getenv('CLOUDINARY_FOLDER', 'travel_app_uploads')
+        timestamp = int(time.time())
+
+        # Sign only params frontend actually sends to Cloudinary
+        params = {
+            'timestamp': timestamp,
+            'folder': folder,
+        }
+        signature = cloudinary.utils.api_sign_request(
+            params,
+            os.getenv('CLOUDINARY_API_SECRET', '')
+        )
+
+        return Response({
+            'timestamp': timestamp,
+            'signature': signature,
+            'apiKey': os.getenv('CLOUDINARY_API_KEY', ''),
+            'cloudName': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
+            'folder': folder,
+        }, status=status.HTTP_200_OK)

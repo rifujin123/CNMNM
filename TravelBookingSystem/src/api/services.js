@@ -1,4 +1,4 @@
-import Apis, { endpoints } from "../../configs/Apis";
+import Apis, { authApis, endpoints } from "../../configs/Apis";
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
@@ -22,4 +22,28 @@ export const fetchPlaceDetail = async (id) => {
   if (!id) return null;
   const res = await Apis.get(`${endpoints.tours}${id}/`);
   return res?.data ?? null;
+};
+
+export const addWishlist = async ({ token, tourId }) => {
+  if (!token || !tourId) throw new Error("Missing token or tourId");
+  const res = await authApis(token).post(endpoints.wishlist, {
+    tour_id: Number(tourId),
+  });
+  return res?.data ?? null;
+};
+
+export const removeWishlist = async ({ token, tourId }) => {
+  if (!token || !tourId) throw new Error("Missing token or tourId");
+  const res = await authApis(token).delete(`${endpoints.wishlist}remove/?tour_id=${tourId}`);
+  return res?.data ?? null;
+};
+
+export const fetchWishlist = async ({ token }) => {
+  if (!token) return [];
+  const res = await authApis(token).get(endpoints.wishlist);
+  const items = res?.data ?? [];
+  return items
+    .map((item) => item.travel_tour?.id ?? item.tour_id ?? item.tour?.id ?? item.tour ?? item.id)
+    .filter(Boolean)
+    .map(String);
 };
