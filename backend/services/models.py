@@ -169,14 +169,42 @@ class Wishlist(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.travel_tour.name}"
 
-class Bus(Transport):
-    pass
 
-class Train(Transport):
-    pass
+class PhysicalSeat(models.Model):
+    transport = models.ForeignKey('Transport',on_delete=models.CASCADE,related_name='physical_seats')
+    seat_type = models.ForeignKey('SeatType',on_delete=models.CASCADE,related_name='physical_seats')
+    seat_number = models.CharField(max_length=10)
 
-class Flight(Transport):
-    pass
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['transport', 'seat_number'],
+                name='uniq_seat_per_transport'
+            )
+        ]
 
-class booking():
-    pass
+    def __str__(self):
+        return f"{self.transport.name} - Seat {self.seat_number}"
+    
+
+class SeatStatus(models.Model):
+    class Status(models.TextChoices):
+        AVAILABLE = 'available', 'Available'
+        HELD = 'held', 'Held'
+        BOOKED = 'booked', 'Booked'
+
+    route = models.ForeignKey('Route',on_delete=models.CASCADE,related_name='seat_statuses')
+    physical_seat = models.ForeignKey('PhysicalSeat',on_delete=models.CASCADE,related_name='seat_statuses')
+    booking = models.ForeignKey('bookings.Booking',on_delete=models.SET_NULL,null=True,blank=True,related_name='seat_statuses')
+    status = models.CharField(max_length=20,choices=Status.choices,default=Status.AVAILABLE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['route', 'physical_seat'],
+                name='uniq_seat_status_per_route'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.route} - {self.physical_seat.seat_number} - {self.status}"
