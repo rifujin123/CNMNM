@@ -11,6 +11,7 @@ import { useNavigation } from "@react-navigation/native";
 import usePullRefresh from "../../hooks/usePullRefresh";
 import useWishlist from "../hooks/useWishlist";
 import { useCategories, usePlaces } from "../hooks/useTours";
+import { useAuth } from "../../context/AuthContext";
 
 const places = [
   { id: "1", name: "Bali Beach", meta: "4.8 ★  •  2.3 km", color: "#93C5FD" },
@@ -76,6 +77,11 @@ const ExploreScreen = () => {
   const { data: categories = [], refetch: refetchCategories } = useCategories();
   const navigation = useNavigation();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  
+  const { token, user } = useAuth();
+  const onRequireLogin = () => {
+    navigation.navigate("AccountNotLoggedInScreen");
+  }
 
   const { refreshControl } = usePullRefresh(() =>
     Promise.all([refetchCategories(), refetchPlaces()])
@@ -102,7 +108,8 @@ const ExploreScreen = () => {
           items={places}
           onPress={onPressItem}
           isWishlisted={isWishlisted}
-          onWishlistToggle={toggleWishlist}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
           onSeeAllPress={() =>
             navigation.navigate("SeeAll", {
               title: "Recommended For You",

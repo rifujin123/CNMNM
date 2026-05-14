@@ -22,8 +22,15 @@ function ItemCard({ item, onPress, isWishlist, onWishlistToggle, onRequireLogin 
 
   const handleWishlistPress = (e) => {
     e?.stopPropagation?.();
+    const tourId = item?.id;
+    if (!tourId){
+      return;
+    }
     if (!onWishlistToggle) {
-      onRequireLogin?.();
+      onRequireLogin?.({
+        type: "wishlist",
+        tourId,
+      });
       return;
     }
     onWishlistToggle(item);

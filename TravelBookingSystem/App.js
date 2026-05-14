@@ -32,7 +32,6 @@ export default function App() {
               name="AccountNotLoggedInScreen"
               component={AccountNotLoggedInScreen}
             />
-            <Stack.Screen name="TripDetail" component={TripDetailScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

@@ -1,31 +1,20 @@
 import React from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { scale, verticalScale, moderateScale } from "react-native-size-matters";
 import { Ionicons } from "@expo/vector-icons";
 
-function ItemCardSave({ item }) {
+function ItemCardSave({ item, onPress }) {
     return (
-        <View style={styles.card}>
-            <Image source={{ uri: item.image }} style={styles.image} />
+        <Pressable onPress={onPress} style={styles.card}>
+            <Image source={{uri: item.image}} style={styles.image} />
 
             <View style={styles.info}>
-                <Text style={styles.title}>
-                    {item.title}
-                </Text>
-                <Text style={styles.location}>
-                    {item.location}
-                </Text>
-
-                <View style={styles.rating}>
-                    <Ionicons name="star" size={scale(14)} color="#F59E0B" />
-                    <Text style={styles.ratingText}>{item.rating}</Text>
-                </View>
-
-                <Text style={styles.price}>
-                    Từ $ {item.price}
-                </Text>
+                <Text style={styles.title}>{item.name}</Text>
+                <Text style={styles.location}>{item.city?.name || "Không rõ địa điểm"}</Text>
+                <Text style={styles.ratingText}>{item.star_rating || "N/A"}</Text>
+                <Text style={styles.price}>{item.base_price_display || item.base_price}</Text>
             </View>
-        </View>
+        </Pressable>
     );
 }
 

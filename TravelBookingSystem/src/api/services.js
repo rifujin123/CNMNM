@@ -47,3 +47,10 @@ export const fetchWishlist = async ({ token }) => {
     .filter(Boolean)
     .map(String);
 };
+
+export const fetchWishListItems = async ({ token }) => {
+  if(!token) return [];
+  const res = await authApis(token).get(endpoints.wishlist);
+  const items = res?.data ?? [];
+  return items.map((item) => item.travel_tour).filter(Boolean);
+};

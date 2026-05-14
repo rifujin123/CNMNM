@@ -41,8 +41,8 @@ const COLORS = {
 const ItemDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const ItemId = route.params?.ItemId;
-  const { data: place, isLoading } = usePlaceDetail(ItemId);
+  const itemId = route.params?.ItemId ?? route.params?.itemId;
+  const { data: place, isLoading } = usePlaceDetail(itemId);
   const [isDescriptionModalVisible, setDescriptionModalVisible] =
     useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState(null);

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://192.168.6.20:8000";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export const endpoints = {
   register: "/api/accounts/register/",
