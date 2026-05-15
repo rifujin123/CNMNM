@@ -1,12 +1,13 @@
-from django.shortcuts import render
-from rest_framework import viewsets, permissions
-from .permissions import IsBookingOwner, IsBookingProvider, IsBookingOwnerProviderOrAdmin
+from rest_framework import viewsets, permissions, mixins, status
+from .permissions import IsBookingOwnerProviderOrAdmin,IsBookingCustomerOrAdmin,IsBookingOwnerOrAdmin,IsBookingProviderOwnerOrAdmin
 from .models import Booking
 from .serializers import BookingCreateSerializer, BookingReadSerializer
-
+from bookings.services import BookingService
+from rest_framework.response import Response
+from rest_framework.decorators import action
 
 # Create your views here.
-class BookingViewSet(viewsets.ModelViewSet):
+class BookingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = Booking.objects.select_related(
         'user',
         'service',
@@ -20,7 +21,6 @@ class BookingViewSet(viewsets.ModelViewSet):
     )
 
     serializer_class = BookingReadSerializer
-    permission_classes = [permissions.IsAuthenticated, IsBookingOwnerProviderOrAdmin]
 
     def get_queryset(self):
         user = self.request.user
@@ -41,11 +41,74 @@ class BookingViewSet(viewsets.ModelViewSet):
         return Booking.objects.none()
     
     def get_serializer_class(self):
-        if self.action in [
-            'create',
-            'update',
-            'partial_update'
-        ]:
+        if self.action == 'create':
             return BookingCreateSerializer
 
         return BookingReadSerializer
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        booking = serializer.save()
+
+        read_serializer = BookingReadSerializer(
+            booking,
+            context=self.get_serializer_context()
+        )
+
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = [permissions.IsAuthenticated, IsBookingCustomerOrAdmin]
+
+        elif self.action == 'cancel':
+            permission_classes = [permissions.IsAuthenticated, IsBookingOwnerOrAdmin]
+
+        elif self.action in ['confirm', 'complete']:
+            permission_classes = [permissions.IsAuthenticated, IsBookingProviderOwnerOrAdmin]
+
+        else:
+            permission_classes = [permissions.IsAuthenticated, IsBookingOwnerProviderOrAdmin]
+
+        return [permission() for permission in permission_classes]
+    
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        booking = self.get_object()
+
+        booking = BookingService.cancel_booking(booking)
+
+        serializer = BookingReadSerializer(
+            booking,
+            context=self.get_serializer_context()
+        )
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def confirm(self, request, pk=None):
+        booking = self.get_object()
+
+        booking = BookingService.confirm_booking(booking)
+
+        serializer = BookingReadSerializer(
+            booking,
+            context=self.get_serializer_context()
+        )
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        booking = self.get_object()
+
+        booking = BookingService.complete_booking(booking)
+
+        serializer = BookingReadSerializer(
+            booking,
+            context=self.get_serializer_context()
+        )
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

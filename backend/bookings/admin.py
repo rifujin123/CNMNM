@@ -1,6 +1,7 @@
-from django.contrib import admin
-
+from django.contrib import admin,messages
+from rest_framework.exceptions import ValidationError
 from .models import Booking
+from .services import BookingService
 
 
 @admin.register(Booking)
@@ -17,7 +18,7 @@ class BookingAdmin(admin.ModelAdmin):
         'created_date',
     ]
     list_display_links = ['id', 'user_email']
-    list_editable = ['booking_status', 'payment_status']
+    
     list_filter = [
         'booking_status',
         'payment_status',
@@ -31,7 +32,9 @@ class BookingAdmin(admin.ModelAdmin):
         'service__provider__username',
         'service__provider__email',
     ]
-    readonly_fields = ['created_date', 'updated_date']
+
+    readonly_fields = ['booking_status','payment_status','created_date', 'updated_date']
+
     raw_id_fields = ['user', 'service', 'room_type', 'seat_type']
     list_select_related = ['user', 'service', 'service__provider', 'room_type', 'seat_type']
     date_hierarchy = 'created_date'
@@ -76,6 +79,27 @@ class BookingAdmin(admin.ModelAdmin):
         ),
     ]
 
+    def _run_booking_service_action(self, request, queryset, service_method, success_message):
+        success_count = 0
+        errors = []
+
+        for booking in queryset.iterator():
+            try:
+                service_method(booking)
+                success_count += 1
+            except ValidationError as exc:
+                errors.append(f'Booking #{booking.pk}: {getattr(exc, "detail", exc)}')
+
+        if success_count:
+            self.message_user(request, f'{success_count} booking(s) {success_message}.', messages.SUCCESS)
+
+        for error in errors[:5]:
+            self.message_user(request, error, messages.ERROR)
+
+        if len(errors) > 5:
+            self.message_user(request, f'{len(errors) - 5} more booking(s) failed.', messages.ERROR)
+
+
     @admin.display(description='User email', ordering='user__email')
     def user_email(self, obj):
         return obj.user.email
@@ -86,20 +110,20 @@ class BookingAdmin(admin.ModelAdmin):
 
     @admin.action(description='Mark selected bookings as confirmed')
     def mark_as_confirmed(self, request, queryset):
-        updated = queryset.update(booking_status=Booking.BookingStatus.CONFIRMED)
-        self.message_user(request, f'{updated} booking(s) marked as confirmed.')
+        self._run_booking_service_action(request,queryset,
+                                         BookingService.confirm_booking, 'marked as confirmed')
 
     @admin.action(description='Mark selected bookings as cancelled')
     def mark_as_cancelled(self, request, queryset):
-        updated = queryset.update(booking_status=Booking.BookingStatus.CANCELLED)
-        self.message_user(request, f'{updated} booking(s) marked as cancelled.')
+        self._run_booking_service_action(request,queryset,
+                                         BookingService.cancel_booking, 'marked as cancelled')
 
     @admin.action(description='Mark selected bookings as paid')
     def mark_as_paid(self, request, queryset):
-        updated = queryset.update(payment_status=Booking.PaymentStatus.PAID)
-        self.message_user(request, f'{updated} booking(s) marked as paid.')
+        self._run_booking_service_action(request,queryset,
+                                         BookingService.confirm_booking, 'marked as paid')
 
     @admin.action(description='Mark selected bookings as refunded')
     def mark_as_refunded(self, request, queryset):
-        updated = queryset.update(payment_status=Booking.PaymentStatus.REFUNDED)
-        self.message_user(request, f'{updated} booking(s) marked as refunded.')
+        self._run_booking_service_action(request,queryset,
+                                         BookingService.refund_booking, 'marked as refunded')

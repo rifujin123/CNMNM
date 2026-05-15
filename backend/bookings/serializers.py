@@ -1,12 +1,17 @@
 from bookings.models import Booking
 from rest_framework import serializers
-
+from services.models import BaseService, RoomType, SeatType, TourPackage, Route, Room
+from bookings.services import BookingService
 
 class BookingReadSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     service = serializers.SerializerMethodField()
     room_type = serializers.SerializerMethodField()
     seat_type = serializers.SerializerMethodField()
+    tour_package = serializers.SerializerMethodField()
+    route = serializers.SerializerMethodField()
+    rooms = serializers.SerializerMethodField()
+    seats = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -14,6 +19,10 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "service",
+            "tour_package",
+            "route",
+            "rooms",
+            "seats",
             "room_type",
             "seat_type",
             "quantity",
@@ -41,17 +50,21 @@ class BookingReadSerializer(serializers.ModelSerializer):
         service = obj.service
 
         service_type = "service"
+        start_date = None
+        end_date = None
 
-        if hasattr(service, 'TravelTour'):
+        if hasattr(service, 'traveltour'):
             service_type = "tour"
-
-            start_date = service.TravelTour.time_start
-            end_date = getattr(service.TravelTour, 'time_end', None)
+            tour = service.traveltour
+            start_date = tour.time_start
+            end_date = getattr(tour, 'time_end', None)
 
         elif hasattr(service, 'Hotel'):
             service_type = "hotel"
+
         elif hasattr(service, 'Transport'):
             service_type = "transport"
+
         elif service.category:
             service_type = service.category.name
 
@@ -92,100 +105,86 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "price": obj.seat_type.price
         }
 
+    def get_tour_package(self, obj):
+        if not obj.tour_package:
+            return None
+
+        return {
+            "id": obj.tour_package.id,
+            "name": obj.tour_package.name,
+            "price": obj.tour_package.price
+        }
+
+    def get_route(self, obj):
+        if not obj.route:
+            return None
+
+        return {
+            "id": obj.route.id,
+            "from_city": obj.route.from_city.name if obj.route.from_city else None,
+            "to_city": obj.route.to_city.name if obj.route.to_city else None,
+            "departure_time": obj.route.departure_time,
+            "arrival_time": obj.route.arrival_time,
+        }
+
+    def get_rooms(self, obj):
+        return [
+            {
+            "id": room.id,
+            "room_number": room.room_number,
+            "hotel": {
+                "id": room.hotel.id,
+                "name": room.hotel.name
+            },
+            "room_type": {
+                "id": room.room_type.id,
+                "name": room.room_type.name
+            }
+        }
+            for room in obj.rooms.all()
+        ]
+
+    def get_seats(self, obj):
+        return [
+            {
+                "id": seat_status.id,
+                "status": seat_status.status,
+                "seat_number": seat_status.physical_seat.seat_number,
+                "seat_type": {
+                    "id": seat_status.physical_seat.seat_type.id,
+                    "name": seat_status.physical_seat.seat_type.name,
+                    "price": seat_status.physical_seat.seat_type.price,
+            } if seat_status.physical_seat.seat_type else None,
+        }
+            for seat_status in obj.seat_statuses.all()
+        ]
+
 
 class BookingCreateSerializer(serializers.ModelSerializer):
-    service = serializers.PrimaryKeyRelatedField(queryset=Booking.objects.all())
-    room_type = serializers.PrimaryKeyRelatedField(queryset=Booking.objects.all(), required=False, allow_null=True)
-    seat_type = serializers.PrimaryKeyRelatedField(queryset=Booking.objects.all(), required=False, allow_null=True)
+    service = serializers.PrimaryKeyRelatedField(queryset=BaseService.objects.all())
+    room_type = serializers.PrimaryKeyRelatedField(queryset=RoomType.objects.all(), required=False, allow_null=True)
+    seat_type = serializers.PrimaryKeyRelatedField(queryset=SeatType.objects.all(), required=False, allow_null=True)
+    tour_package = serializers.PrimaryKeyRelatedField(queryset=TourPackage.objects.all(), required=False, allow_null=True)
+    route = serializers.PrimaryKeyRelatedField(queryset=Route.objects.all(), required=False, allow_null=True)
+    rooms = serializers.PrimaryKeyRelatedField(queryset=Room.objects.all(), many=True, required=False)
     quantity = serializers.IntegerField(min_value=1, default=1)
 
     class Meta:
         model = Booking
         fields =[
             "service",
+            "tour_package",
+            "route",
+            "rooms",
             "room_type",
             "seat_type",
             "quantity"
         ]
 
-    def validate(self, attrs):
-        service = attrs.get('service')
-        room_type = attrs.get('room_type')
-        seat_type = attrs.get('seat_type')
-
-        if not service.is_active:
-            raise serializers.ValidationError(
-                {"service": "Dịch vụ hiện không hoạt động"}
-            )
-        if room_type and seat_type:
-            raise serializers.ValidationError(
-                "Chỉ được chọn một trong hai: room_type hoặc seat_type"
-            )
-        if room_type:
-            hotel = getattr(service, 'Hotel', None)
-            if hotel is None:
-                raise serializers.ValidationError(
-                    {"room_type": "Chỉ booking Khách Sạn mới được chọn room_type"}
-                )
-            if room_type.hotel_id != hotel.id:
-                raise serializers.ValidationError(
-                    {"room_type": "room_type không thuộc về Khách Sạn này"}
-                )
-        if seat_type:
-            transport = getattr(service, 'Transport', None)
-            if transport is None:
-                raise serializers.ValidationError(
-                    {"seat_type": "Chỉ booking Phương Tiện mới được chọn seat_type"}
-                )
-            if seat_type.transport_id != transport.id:
-                raise serializers.ValidationError(
-                    {"seat_type": "seat_type không thuộc về Phương Tiện này"}
-                )
-            
-        return attrs
-
-
-    def calculate_total_price(self,validated_data):
-        service = validated_data.get('service')
-        room_type = validated_data.get('room_type')
-        seat_type = validated_data.get('seat_type')
-        quantity = validated_data.get('quantity', 1)
-
-        unit_price = service.base_price
-
-        if room_type:
-            unit_price = room_type.price
-        elif seat_type:
-            unit_price = seat_type.price + service.base_price
-
-        total_price = unit_price * quantity
-        return total_price
-    
-
     def create(self, validated_data):
         request = self.context.get('request')
 
         if not request or not request.user.is_authenticated:
-            raise serializers.ValidationError("Người dùng chưa đăng nhập")
+            raise serializers.ValidationError("User must be authenticated to create a booking.")
         
-        validated_data['user'] = request.user
-        validated_data['total_price'] = self.calculate_total_price(validated_data)
-
-        booking = Booking.objects.create(**validated_data)
-        return booking
-
-
-
-    def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        
-        instance.total_price = self.calculate_total_price({
-            'service': instance.service,
-            'room_type': instance.room_type,
-            'seat_type': instance.seat_type,
-            'quantity': instance.quantity
-        })
-        instance.save()
-
-        return instance
+        return BookingService.create_booking(request.user, validated_data)

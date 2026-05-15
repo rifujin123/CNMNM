@@ -3,6 +3,7 @@ from payments.models import Payment
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from bookings.services import BookingService
 
 class StaticQrPaymentService:
     def create_payment(self, payment, request):
@@ -21,7 +22,10 @@ class StaticQrPaymentService:
 
     def complete_payment(self, transaction_id, provider_transaction_id = None, result="success"):
         with transaction.atomic():
-            payment = ( Payment.objects.select_for_update().get(transaction_id=transaction_id) )
+            payment = (Payment.objects
+                       .select_for_update()
+                       .select_related('booking')
+                       .get(transaction_id=transaction_id))
 
             if payment.payment_status in [
                 Payment.PaymentStatus.SUCCESS,
@@ -38,8 +42,13 @@ class StaticQrPaymentService:
 
             if normalized_result == "success":
                 self.mark_success(payment, provider_transaction_id)
-            elif normalized_result == "cancelled":
+
+            elif normalized_result in ["cancelled", "canceled", "cancel"]:
                 self.mark_cancelled(payment)
+
+            elif normalized_result == "expired":
+                self.mark_expired(payment)
+
             else:
                 self.mark_failed(payment)
 
@@ -64,14 +73,7 @@ class StaticQrPaymentService:
             update_fields.append("provider_transaction_id")
         payment.save(update_fields=update_fields)
 
-        booking = payment.booking
-        booking.payment_status = Booking.PaymentStatus.PAID
-        booking.booking_status = Booking.BookingStatus.CONFIRMED
-        booking.save(
-            update_fields=[
-                "payment_status", 
-                "booking_status", 
-                "updated_date"])
+        BookingService.confirm_booking(payment.booking)
         
         
     
@@ -84,14 +86,7 @@ class StaticQrPaymentService:
         
         payment.save(update_fields=["payment_status", "metadata", "updated_at"])
         
-        booking = payment.booking
-        booking.payment_status = Booking.PaymentStatus.FAILED
-        booking.booking_status = Booking.BookingStatus.PAYMENT_FAILED
-        booking.save(
-            update_fields=[
-                "payment_status", 
-                "booking_status", 
-                "updated_date"])
+        BookingService.fail_booking(payment.booking)
 
     def mark_cancelled(self, payment):
         payment.payment_status = Payment.PaymentStatus.CANCELLED
@@ -100,6 +95,20 @@ class StaticQrPaymentService:
             "gateway": "STATIC_QR",
             "gateway_status": "cancelled",}
         payment.save(update_fields=["payment_status", "metadata", "updated_at"])
+
+        BookingService.cancel_booking(payment.booking)
+
+    def mark_expired(self, payment):
+        payment.payment_status = Payment.PaymentStatus.EXPIRED
+        payment.metadata = {
+            **(payment.metadata or {}),
+            "gateway": "STATIC_QR",
+            "gateway_status": "expired",
+        }
+
+        payment.save(update_fields=["payment_status", "metadata", "updated_at"])
+
+        BookingService.expire_booking(payment.booking)
 
 
 def create_gateway_payment(payment, request):

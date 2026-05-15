@@ -14,9 +14,12 @@ from .models import (
     Route,
     Transport,
     SeatType,
+    SeatStatus,
     PromoBanner,
     Wishlist,
-) 
+)
+from django.db.models import Count
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -133,15 +136,41 @@ class HotelSimpleReadSerializer(serializers.ModelSerializer):
         model = Hotel
         fields = ['id','name','city']
 
+class RoomTypeOptionReadSerializer(serializers.ModelSerializer):
+    available_rooms = serializers.SerializerMethodField()
+
+    def get_available_rooms(self, obj):
+        return obj.rooms.filter(is_available = True).count()
+    
+    class Meta:
+        model = RoomType
+        fields = [
+            'id',
+            'name',
+            'price',
+            'available_rooms'
+        ]        
+
 class HotelDetailReadSerializer(HotelSimpleReadSerializer):
+    room_types = RoomTypeOptionReadSerializer(many=True, read_only=True)
+
     class Meta:
         model = Hotel
-        fields = HotelSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','address_detail','total_rooms']
+        fields = HotelSimpleReadSerializer.Meta.fields + [
+            'description',
+            'star_rating',
+            'base_price',
+            'address_detail',
+            'total_rooms',
+            'room_types',
+        ]
+
 
 class HotelWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hotel
         fields = ['name','description','address_detail']
+
 
 class RoomTypeSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -165,8 +194,58 @@ class TransportSimpleReadSerializer(serializers.ModelSerializer):
         model = Transport
         fields = ['id', 'name', 'city']
 
+class RouteReadSerializer(serializers.ModelSerializer):
+    from_city = CityReadSerializer()
+    to_city = CityReadSerializer()
+
+    class Meta:
+        model = Route
+        fields = ['id', 'from_city', 'to_city', 'departure_time', 'arrival_time']
+
 
 class TransportDetailReadSerializer(TransportSimpleReadSerializer):
+    routes = RouteReadSerializer(many=True, read_only=True)
+    seat_types = serializers.SerializerMethodField()
+    availability = serializers.SerializerMethodField()
+
+    def get_seat_types(self, obj):
+        seat_types = SeatType.objects.filter(
+            physical_seats__transport=obj
+        ).distinct()
+        return SeatTypeReadSerializer(seat_types, many=True).data
+
+    def get_availability(self, obj):
+        seat_types = list(
+            SeatType.objects.filter(physical_seats__transport=obj).distinct()
+        )
+        route_ids = list(obj.routes.values_list('id', flat=True))
+
+        rows = (
+            SeatStatus.objects
+            .filter(
+                route__transport=obj,
+                status=SeatStatus.Status.AVAILABLE,
+                booking__isnull=True,
+            )
+            .values('route_id', 'physical_seat__seat_type_id')
+            .annotate(available_seats=Count('id'))
+        )
+
+        count_map = {
+            (row['route_id'], row['physical_seat__seat_type_id']): row['available_seats']
+            for row in rows
+        }
+
+        return [
+            {
+                'route': route_id,
+                'seat_type': seat_type.id,
+                'available_seats': count_map.get((route_id, seat_type.id), 0),
+            }
+            for route_id in route_ids
+            for seat_type in seat_types
+        ]
+
     class Meta:
         model = Transport
         fields = TransportSimpleReadSerializer.Meta.fields + [
@@ -177,6 +256,9 @@ class TransportDetailReadSerializer(TransportSimpleReadSerializer):
             'license_plate',
             'vehicle_type',
             'total_seats',
+            'routes',
+            'seat_types',
+            'availability',
         ]
 
 
@@ -212,3 +294,8 @@ class PromoBannerSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['created_at', 'updated_at']
+
+class SeatTypeReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SeatType
+        fields = ['id', 'name', 'price']

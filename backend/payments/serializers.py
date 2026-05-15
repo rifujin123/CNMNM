@@ -59,6 +59,11 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         if booking.booking_status == Booking.BookingStatus.REFUNDED:
             raise serializers.ValidationError("Booking này đã được hoàn tiền, không thể thanh toán.")
         
+        if booking.booking_status == Booking.BookingStatus.COMPLETED:
+            raise serializers.ValidationError("Booking này đã hoàn thành, không thể thanh toán.")
+        if booking.booking_status == Booking.BookingStatus.PAYMENT_FAILED:
+            raise serializers.ValidationError("Booking này không thể thanh toán.")
+        
         existing_pending_payment = Payment.objects.filter(
             booking=booking, 
             payment_status__in=[

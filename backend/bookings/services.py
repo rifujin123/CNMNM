@@ -1,7 +1,7 @@
 from django.db import transaction
 from bookings.models import Booking
-from services.models import BaseService,TravelTour,Hotel,Transport,TourPackage,Room,RoomType,Route,SeatType,SeatStatus
-from rest_framework import ValidationError
+from services.models import TravelTour,Room,SeatStatus
+from rest_framework.exceptions import ValidationError
 
 class BookingService:
     @classmethod
@@ -20,6 +20,10 @@ class BookingService:
     @classmethod
     def validate_booking_options(cls, data):
         service = data.get('service')
+
+        if not service:
+            raise ValidationError({'service': 'Booking cần chọn dịch vụ.'})
+
         service_type, concrete_service = cls.get_service_type(service)
 
         if not service.is_active:
@@ -105,15 +109,16 @@ class BookingService:
         with transaction.atomic():
             service_type, concrete_service = cls.validate_booking_options(data)
             total_price = cls.calculate_total_price(data)
-
-            rooms = data.pop('rooms', [])
+            
+            booking_data = dict(data)
+            rooms = booking_data.pop('rooms', [])
 
             booking = Booking.objects.create(
                 user=user,
                 total_price=total_price,
                 booking_status=Booking.BookingStatus.PENDING,
                 payment_status=Booking.PaymentStatus.UNPAID,
-                **data
+                **booking_data
             )
 
             if service_type == 'tour':
@@ -180,10 +185,14 @@ class BookingService:
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
 
+            if booking.booking_status == Booking.BookingStatus.COMPLETED:
+                raise ValidationError('Không thể hủy booking đã hoàn thành.')
+
             if booking.booking_status in [
                 Booking.BookingStatus.CANCELLED,
                 Booking.BookingStatus.REFUNDED,
                 Booking.BookingStatus.EXPIRED,
+                Booking.BookingStatus.PAYMENT_FAILED,
             ]:
                 return booking
 
@@ -205,4 +214,114 @@ class BookingService:
             booking.booking_status = Booking.BookingStatus.COMPLETED
             booking.save(update_fields=['booking_status', 'updated_date'])
 
+            return booking
+
+    @classmethod
+    def hold_tour_inventory(cls, tour, quantity):
+        tour = TravelTour.objects.select_for_update().get(pk=tour.pk)
+
+        if tour.empty_slot < quantity:
+            raise ValidationError('Không đủ chỗ trống cho tour này.')
+
+        tour.empty_slot -= quantity
+        tour.save(update_fields=['empty_slot'])
+
+    @classmethod
+    def hold_hotel_inventory(cls, booking, rooms):
+        room_ids = [room.id for room in rooms]
+        
+        locked_rooms = list(Room.objects.select_for_update().filter(id__in=room_ids))
+
+        if len(locked_rooms) != len(room_ids):
+            raise ValidationError({'rooms': 'Có phòng không tồn tại.'})
+        
+        for room in locked_rooms:
+            if not room.is_available:
+                raise ValidationError({'rooms': f'Phòng {room.room_number} không còn trống.'})
+            
+        Room.objects.filter(id__in=room_ids).update(is_available=False)
+        booking.rooms.set(locked_rooms)
+
+    @classmethod
+    def hold_transport_inventory(cls, booking):
+        seats = list(SeatStatus.objects.select_for_update()
+                     .filter(route=booking.route,
+                             physical_seat__seat_type=booking.seat_type,
+                             status=SeatStatus.Status.AVAILABLE,
+                             booking__isnull=True)
+                             .order_by('physical_seat__seat_number')[:booking.quantity])
+        
+        if len(seats) < booking.quantity:
+            raise ValidationError('Không đủ ghế trống cho lựa chọn này.')
+        
+        SeatStatus.objects.filter(id__in=[seat.id for seat in seats]).update(
+            status=SeatStatus.Status.HELD,
+            booking=booking
+        )
+
+    @classmethod
+    def fail_booking(cls, booking):
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
+            if booking.booking_status == Booking.BookingStatus.PAYMENT_FAILED:
+                return booking
+
+            if booking.booking_status in [
+                Booking.BookingStatus.CANCELLED,
+                Booking.BookingStatus.REFUNDED,
+                Booking.BookingStatus.EXPIRED,
+                Booking.BookingStatus.COMPLETED,
+            ]:
+                return booking
+            
+            cls.restore_inventory(booking)
+
+            booking.booking_status = Booking.BookingStatus.PAYMENT_FAILED
+            booking.payment_status = Booking.PaymentStatus.FAILED
+            booking.save(update_fields=['booking_status', 'payment_status', 'updated_date'])
+            return booking
+        
+    @classmethod
+    def refund_booking(cls, booking):
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
+            if booking.booking_status == Booking.BookingStatus.PAYMENT_FAILED:
+                return booking
+            
+            if booking.booking_status in [
+                Booking.BookingStatus.CANCELLED,
+                Booking.BookingStatus.EXPIRED,
+                Booking.BookingStatus.REFUNDED,
+                Booking.BookingStatus.COMPLETED,
+            ]:
+                return booking
+            
+            cls.restore_inventory(booking)
+
+            booking.booking_status = Booking.BookingStatus.REFUNDED
+            booking.payment_status = Booking.PaymentStatus.REFUNDED
+            booking.save(update_fields=['booking_status', 'payment_status', 'updated_date'])
+            return booking
+        
+    @classmethod
+    def expire_booking(cls, booking):
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
+            if booking.booking_status == Booking.BookingStatus.EXPIRED:
+                return booking
+            
+            if booking.booking_status in [
+                Booking.BookingStatus.CANCELLED,
+                Booking.BookingStatus.REFUNDED,
+                Booking.BookingStatus.COMPLETED,
+            ]:
+                return booking
+            
+            cls.restore_inventory(booking)
+
+            booking.booking_status = Booking.BookingStatus.EXPIRED
+            booking.save(update_fields=['booking_status', 'updated_date'])
             return booking
