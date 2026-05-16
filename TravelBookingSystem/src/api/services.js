@@ -5,8 +5,16 @@ export const fetchCategories = async () => {
   return res?.data ?? [];
 };
 
-export const fetchPlaces = async () => {
-  const res = await Apis.get(endpoints.tours);
+export const fetchPlaces = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.category) queryParams.append('category', params.category);
+  if (params.q) queryParams.append('q', params.q);
+
+  const url = queryParams.toString()
+    ? `${endpoints.tours}?${queryParams}`
+    : endpoints.tours;
+
+  const res = await Apis.get(url);
   const items = res?.data ?? [];
   return items.map((item, index) => ({
     id: String(item.id),
@@ -14,7 +22,8 @@ export const fetchPlaces = async () => {
     star_rating: item.star_rating,
     base_price: item.base_price_display,
     city: item.city,
-    color: index % 2 === 0 ? "#93C5FD" : "#86EFAC",
+    category: item.category,
+    type: 'tour',
   }));
 };
 
@@ -97,7 +106,51 @@ export const createPayment = async ({
   const res = await authApis(token).post(endpoints.payments, {
     booking: bookingId,
     payment_method: method,
-  });
+  });}
 
   return res?.data ?? null;
+export const fetchHotels = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.category) queryParams.append('category', params.category);
+  if (params.q) queryParams.append('q', params.q);
+
+  const url = queryParams.toString()
+    ? `${endpoints.hotels}?${queryParams}`
+    : endpoints.hotels;
+
+  const res = await Apis.get(url);
+  const items = res?.data ?? [];
+  return items.map((item) => ({
+    id: String(item.id),
+    name: item.name,
+    star_rating: item.star_rating,
+    base_price: item.base_price,
+    base_price_display: item.base_price ? `From ${item.base_price}` : "N/A",
+    city: item.city,
+    category: item.category,
+    type: 'hotel',
+  }));
+};
+
+export const fetchTransports = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.category) queryParams.append('category', params.category);
+  if (params.q) queryParams.append('q', params.q);
+
+  const url = queryParams.toString()
+    ? `${endpoints.transports}?${queryParams}`
+    : endpoints.transports;
+
+  const res = await Apis.get(url);
+  const items = res?.data ?? [];
+  return items.map((item) => ({
+    id: String(item.id),
+    name: item.name,
+    star_rating: item.star_rating,
+    base_price: item.base_price,
+    base_price_display: item.base_price ? `From ${item.base_price}` : "N/A",
+    city: item.city,
+    category: item.category,
+    type: 'transport',
+  }));
 };

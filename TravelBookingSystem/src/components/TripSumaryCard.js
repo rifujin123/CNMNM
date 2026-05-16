@@ -6,9 +6,9 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Entypo from "@expo/vector-icons/Entypo";
 
 const getStatusLabel = (status) => {
-    if (status === "upcomming") return "Sắp tới";
-    if (status === "completed") return "Hoàn tất";
-    if (status === "cancelled") return "Đã hủy";
+    if (status === "upcoming") return "Upcoming";
+    if (status === "completed") return "Completed";
+    if (status === "cancelled") return "Cancelled";
     return status;
 };
 

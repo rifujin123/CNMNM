@@ -31,8 +31,7 @@ const TripDetailScreen = () => {
                 >
                     <Ionicons name="chevron-back" size={24} color="black" />
                 </TouchableOpacity>
-
-                <Text style={styles.title}>Đơn đặt chỗ của tôi</Text>
+                <Text style={styles.title}>My Bookings</Text>
             </View>
 
             <TripChips

@@ -10,7 +10,7 @@ import TripSumaryCard from "../components/TripSumaryCard";
 const tripSummaries = [
   {
     id: "1",
-    title: "TP. Hồ Chí Minh",
+    title: "Ho Chi Minh City",
     image: "https://cdn.pixabay.com/photo/2017/11/11/19/59/city-2940500_1280.jpg",
   },
 ];
@@ -27,7 +27,7 @@ const TripsScreen = () => {
       <AppHeader title="Trip" />
 
       <View style={styles.content}>
-        <Button title="Mọi đơn đặt chỗ" onPress={() => navigation.navigate("TripDetail")} />
+        <Button title="All Bookings" onPress={() => navigation.navigate("TripDetail")} />
 
 
         {hasTrips ? (tripSummaries.map((item) => (
@@ -38,9 +38,9 @@ const TripsScreen = () => {
           />
         ))) : (
           <View style={styles.textNoTrip}>
-            <Text style={styles.textNoTripTitle}>Chưa Có Đơn, Chưa Có Chuyến Đi!</Text>
-            <Text style={styles.textNoTripContent}>Khi quý khách tạo bất kỳ đơn nào, chúng tôi sẽ tạo chuyến đi tại đây để quý khách có thể lên kế hoạch và quản lý hành trình của mình.</Text>
-            <Button title="Đi Khám Phá" onPress={() => navigation.navigate("MainTabs", { screen: "HomeFeed", params: { screen: "Home" }, })} />
+            <Text style={styles.textNoTripTitle}>No Bookings, No Trips Yet!</Text>
+            <Text style={styles.textNoTripContent}>When you create any booking, we will create a trip here so you can plan and manage your journey.</Text>
+            <Button title="Explore Now" onPress={() => navigation.navigate("MainTabs", { screen: "HomeFeed", params: { screen: "Home" }, })} />
           </View>
         )}
       </View>

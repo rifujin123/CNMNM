@@ -10,6 +10,8 @@ export const endpoints = {
   changePassword: "/api/accounts/me/change-password/",
   categories: "/api/services/categories/",
   tours: "/api/services/travel-tours/",
+  hotels: "/api/services/hotels/",
+  transports: "/api/services/transports/",
   providerPending: "/api/providers/pending/",
   wishlist: "/api/services/wishlist/",
 

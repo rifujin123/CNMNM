@@ -14,7 +14,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import LoginRoleSelector from "../components/LoginRoleSelector";
 import GoogleLoginCard from "../components/GoogleLoginCard";
 import { useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 import { useAuth } from "../../context/AuthContext";
 import OAuthConfig from "../config/OAuthConfig";
@@ -39,8 +38,6 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const AUTH_ACCESS_TOKEN_KEY = "auth_access_token";
-  const AUTH_USER_KEY = "auth_user";
 
   const pickBusinessLicense = async () => {
     try {
@@ -92,11 +89,14 @@ const LoginScreen = () => {
       const meRes = await authApis(accessToken).get(endpoints.currentUser);
       const me = meRes?.data;
 
-      await AsyncStorage.setItem(AUTH_ACCESS_TOKEN_KEY, accessToken);
-      await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(me ?? {}));
-      setAuthData({ accessToken, userInfo: me });
+      await setAuthData({ accessToken, userInfo: me });
 
-      navigation.navigate("MainTabs");
+      // Navigate based on role
+      const isProvider = me?.is_provider;
+      navigation.reset({
+        index: 0,
+        routes: [{ name: isProvider ? "ProviderTabs" : "MainTabs" }],
+      });
     } catch (err) {
       const message =
         err?.response?.data?.error_description ||
@@ -137,7 +137,7 @@ const LoginScreen = () => {
 
       if (isProviderRole) {
         if (!businessLicense) {
-          setError("Provider cần upload business license trước khi đăng ký.");
+          setError("Provider must upload business license before registering.");
           return;
         }
 
@@ -176,7 +176,7 @@ const LoginScreen = () => {
       setTaxCode("");
       setBusinessLicense(null);
 
-      setError("Đăng ký thành công. Vui lòng đăng nhập.");
+      setError("Registration successful. Please login.");
       console.log("Register success:", res?.data);
     } catch (err) {
       const data = err?.response?.data;
@@ -188,7 +188,7 @@ const LoginScreen = () => {
         data?.provider_business_name?.[0] ||
         data?.provider_tax_code?.[0] ||
         data?.business_license?.[0] ||
-        "Đăng ký thất bại";
+        "Registration failed";
       setError(message);
       console.log("Register error:", data || err.message);
     } finally {

@@ -1,4 +1,15 @@
-import {StyleSheet,Text,View,Dimensions,TouchableOpacity,Pressable,Modal,StatusBar,SafeAreaView,Alert
+import {
+  StyleSheet,
+  Text,
+  View,
+  Dimensions,
+  TouchableOpacity,
+  Pressable,
+  Modal,
+  StatusBar,
+  SafeAreaView,
+  ActivityIndicator,
+  Alert
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import Animated, {
@@ -183,9 +194,7 @@ const ItemDetailScreen = () => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <View style={styles.loadingBackground} />
-        <View style={styles.loadingOrb} />
-        <Text style={styles.loadingText}>Preparing your escape...</Text>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -408,27 +417,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  loadingBackground: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: COLORS.dark,
-  },
-  loadingOrb: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    position: "absolute",
-  },
-  loadingText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#fff",
-    marginTop: 100,
+    backgroundColor: COLORS.surface,
   },
 
   // Hero Section
