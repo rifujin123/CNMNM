@@ -1,12 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import AccountScreen from "../srceens/AccountScreen";
-import PersonalInformationScreen from "../srceens/PersonalInformationScreen";
-import PaymentMethodsScreen from "../srceens/PaymentMethodsScreen";
-import SecurityScreen from "../srceens/SecurityScreen";
-import NotificationsScreen from "../srceens/NotificationsScreen";
-import HelpAndSupportScreen from "../srceens/HelpAndSupportScreen";
+import AccountScreen from "../screens/AccountScreen";
+import PersonalInformationScreen from "../screens/PersonalInformationScreen";
+import PaymentMethodsScreen from "../screens/PaymentMethodsScreen";
+import SecurityScreen from "../screens/SecurityScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
+import HelpAndSupportScreen from "../screens/HelpAndSupportScreen";
 
 const Stack = createNativeStackNavigator();
 

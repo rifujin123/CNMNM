@@ -22,7 +22,7 @@ function ItemCardSave({ item }) {
                 </View>
 
                 <Text style={styles.price}>
-                    Từ $ {item.price}
+                    From $ {item.price}
                 </Text>
             </View>
         </View>

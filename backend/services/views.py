@@ -191,6 +191,41 @@ class TravelTourViewSet(viewsets.ModelViewSet):
 class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.annotate(popularity=Count('bookings'))
 
+    def get_queryset(self):
+        queryset = Hotel.objects.annotate(popularity=Count('bookings'))
+        params = self.request.query_params
+
+        category_id = params.get('category')
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+
+        search_query = params.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query)
+                | Q(description__icontains=search_query)
+                | Q(city__name__icontains=search_query)
+                | Q(category__name__icontains=search_query)
+            )
+
+        allowed_ordering = {
+            'newest': '-created_at',
+            'oldest': 'created_at',
+            'price_asc': 'base_price',
+            'price_desc': '-base_price',
+            'rating_asc': 'star_rating',
+            'rating_desc': '-star_rating',
+            'popularity_desc': '-popularity',
+            'popularity_asc': 'popularity',
+        }
+        ordering = params.get('ordering')
+        if ordering in allowed_ordering:
+            queryset = queryset.order_by(allowed_ordering[ordering])
+        else:
+            queryset = queryset.order_by('-created_at')
+
+        return queryset
+
     def get_serializer_class(self):
         if self.action in ['create','update','partial_update']:
             return HotelWriteSerializer
@@ -205,6 +240,41 @@ class HotelViewSet(viewsets.ModelViewSet):
 
 class TransportViewSet(viewsets.ModelViewSet):
     queryset = Transport.objects.annotate(popularity=Count('bookings'))
+
+    def get_queryset(self):
+        queryset = Transport.objects.annotate(popularity=Count('bookings'))
+        params = self.request.query_params
+
+        category_id = params.get('category')
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+
+        search_query = params.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query)
+                | Q(description__icontains=search_query)
+                | Q(city__name__icontains=search_query)
+                | Q(category__name__icontains=search_query)
+            )
+
+        allowed_ordering = {
+            'newest': '-created_at',
+            'oldest': 'created_at',
+            'price_asc': 'base_price',
+            'price_desc': '-base_price',
+            'rating_asc': 'star_rating',
+            'rating_desc': '-star_rating',
+            'popularity_desc': '-popularity',
+            'popularity_asc': 'popularity',
+        }
+        ordering = params.get('ordering')
+        if ordering in allowed_ordering:
+            queryset = queryset.order_by(allowed_ordering[ordering])
+        else:
+            queryset = queryset.order_by('-created_at')
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action in ['create','update','partial_update']:

@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const BASE_URL = "http://192.168.6.20:8000";
+// // const BASE_URL = "http://192.168.1.51:8000";
 
 export const endpoints = {
   register: "/api/accounts/register/",
@@ -10,6 +11,8 @@ export const endpoints = {
   changePassword: "/api/accounts/me/change-password/",
   categories: "/api/services/categories/",
   tours: "/api/services/travel-tours/",
+  hotels: "/api/services/hotels/",
+  transports: "/api/services/transports/",
   providerPending: "/api/providers/pending/",
   wishlist: "/api/services/wishlist/",
 };

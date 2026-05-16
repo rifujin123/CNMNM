@@ -45,9 +45,9 @@ const TripDetailCard = ({ trip, onPress }) => {
 };
 
 const getStatusLabel = (status) => {
-    if (status === "upcoming") return "Sắp tới";
-    if (status === "completed") return "Hoàn tất";
-    if (status === "cancelled") return "Đã hủy";
+    if (status === "upcoming") return "Upcoming";
+    if (status === "completed") return "Completed";
+    if (status === "cancelled") return "Cancelled";
     return status;
 };
 

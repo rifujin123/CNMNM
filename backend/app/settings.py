@@ -82,6 +82,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:19006",
     "http://127.0.0.1:19006",
+    "http://192.168.6.20:8081",
+    "http://192.168.6.20:19006",
+    "http://192.168.1.51:8081",
+    "http://192.168.1.51:19006",
 ]
 CORS_ALLOW_ALL_ORIGINS = False
 
