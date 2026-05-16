@@ -1,865 +1,484 @@
+import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
   StyleSheet,
   Text,
-  View,
-  Dimensions,
   TouchableOpacity,
-  Pressable,
-  Modal,
-  StatusBar,
-  SafeAreaView,
-  ActivityIndicator,
-  Alert
+  View,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import Animated, {
-  interpolate,
-  useAnimatedRef,
-  useAnimatedStyle,
-  useScrollViewOffset,
-} from "react-native-reanimated";
+import { scale } from "react-native-size-matters";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { usePlaceDetail } from "../hooks/useTours";
-import Entypo from "@expo/vector-icons/Entypo";
-import { useAuth } from "../../context/AuthContext";
-import { useCreateBooking, useCreatePayment } from "../hooks/useBookings";
+import TripChips from "../components/TripChips";
+import TripTypeChips from "../components/TripTypeChip";
+import TripSumaryCard from "../components/TripSumaryCard";
+import {
+  useBookings,
+  useCancelBooking,
+  useCreatePayment,
+} from "../hooks/useBookings";
+import { usePayments } from "../hooks/usePayments";
 
-const { width, height } = Dimensions.get("window");
-const IMG_HEIGHT = height * 0.45;
-const FALLBACK_IMAGE_URI =
-  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80";
+const tabs = ["upcoming", "completed", "cancelled"];
 
-// Luxury tropical travel aesthetic
-const COLORS = {
-  primary: "#0D9488", // Deep teal
-  secondary: "#F59E0B", // Golden amber
-  accent: "#F97316", // Vibrant orange
-  dark: "#0F172A",
-  light: "#FEF3C7",
-  surface: "#FAFAF9",
-  text: "#1C1917",
-  muted: "#78716C",
-  overlay: "rgba(15, 23, 42, 0.75)",
+const typeTabs = [
+  { label: "All", value: "all", icon: "apps-outline" },
+  { label: "Tour", value: "tour", icon: "location-outline" },
+  { label: "Hotel", value: "hotel", icon: "business-outline" },
+  { label: "Transport", value: "transport", icon: "bus-outline" },
+];
+
+const STATUS_GROUPS = {
+  upcoming: ["pending", "confirmed"],
+  completed: ["completed"],
+  cancelled: ["cancelled", "expired", "payment_failed", "refunded"],
 };
 
-const ItemDetailScreen = () => {
+const formatDate = (value) => {
+  if (!value) return "No date";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const formatMoney = (value) => {
+  const number = Number(value || 0);
+
+  if (Number.isNaN(number)) {
+    return String(value || "0");
+  }
+
+  return `${number.toLocaleString("vi-VN")} VND`;
+};
+
+const getTripGroupStatus = (bookingStatus) => {
+  if (["pending", "confirmed"].includes(bookingStatus)) return "upcoming";
+  if (bookingStatus === "completed") return "completed";
+  return "cancelled";
+};
+
+const mapBookingToTrip = (booking) => {
+  const service = booking?.service ?? {};
+
+  return {
+    id: String(booking.id),
+    title: service.name || "Untitled booking",
+    date: formatDate(service.start_date || booking.created_date),
+    price: Number(booking.total_price || 0).toLocaleString("vi-VN"),
+    status: getTripGroupStatus(booking.booking_status),
+    bookingStatus: booking.booking_status,
+    paymentStatus: booking.payment_status,
+    serviceType: service.service_type,
+  };
+};
+
+const getLatestPaymentForBooking = (payments, bookingId) => {
+  return payments.find(
+    (payment) => String(payment.booking) === String(bookingId),
+  );
+};
+
+const DetailRow = ({ label, value }) => (
+  <View style={styles.detailRow}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={styles.detailValue}>{value || "N/A"}</Text>
+  </View>
+);
+
+const TripDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const {isLoggedIn} = useAuth();
-  const createBookingMutation = useCreateBooking();
+  const bookingId = route.params?.bookingId;
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeTypeIndex, setActiveTypeIndex] = useState(0);
+
+  const {
+    data: bookings = [],
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useBookings();
+
+  const {
+    data: payments = [],
+    refetch: refetchPayments,
+  } = usePayments();
+
+  const cancelBookingMutation = useCancelBooking();
   const createPaymentMutation = useCreatePayment();
 
-  const itemId = route.params?.ItemId ?? route.params?.itemId;
-  const { data: place, isLoading } = usePlaceDetail(itemId);
-  const [isDescriptionModalVisible, setDescriptionModalVisible] =
-    useState(false);
-  const [selectedPackageId, setSelectedPackageId] = useState(null);
+  const selectedTab = tabs[activeIndex];
+  const selectedType = typeTabs[activeTypeIndex]?.value || "all";
 
-  const scrollRef = useAnimatedRef();
-  const scrollOffset = useScrollViewOffset(scrollRef);
+  const selectedBooking = useMemo(() => {
+    if (!bookingId) return null;
 
-  useEffect(() => {
-    if (place?.tour_package?.length > 0 && !selectedPackageId) {
-      setSelectedPackageId(place.tour_package[0].id);
-    }
-  }, [place?.tour_package]);
+    return bookings.find(
+      (booking) => String(booking.id) === String(bookingId),
+    );
+  }, [bookings, bookingId]);
 
-  const imageAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
+  const filteredBookings = useMemo(() => {
+    const allowedStatuses = STATUS_GROUPS[selectedTab] ?? [];
+
+    return bookings.filter((booking) => {
+      const statusMatches = allowedStatuses.includes(booking.booking_status);
+      const serviceType = booking?.service?.service_type;
+      const typeMatches = selectedType === "all" || serviceType === selectedType;
+
+      return statusMatches && typeMatches;
+    });
+  }, [bookings, selectedTab, selectedType]);
+
+  const openBookingDetail = (id) => {
+    navigation.navigate("TripDetail", { bookingId: id });
+  };
+
+  const handleCancelBooking = (booking) => {
+    Alert.alert(
+      "Cancel booking",
+      "Are you sure you want to cancel this booking?",
+      [
+        { text: "No", style: "cancel" },
         {
-          translateY: interpolate(
-            scrollOffset.value,
-            [-IMG_HEIGHT, 0, IMG_HEIGHT],
-            [-IMG_HEIGHT / 2, 0, IMG_HEIGHT * 0.75],
-          ),
-        },
-        {
-          scale: interpolate(
-            scrollOffset.value,
-            [-IMG_HEIGHT, 0, IMG_HEIGHT],
-            [2, 1, 1],
-          ),
+          text: "Cancel Booking",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelBookingMutation.mutateAsync({
+                bookingId: booking.id,
+              });
+              await refetch();
+              Alert.alert("Booking cancelled", "Your booking has been cancelled.");
+            } catch (err) {
+              const message =
+                err?.response?.data?.detail ||
+                err?.message ||
+                "Cannot cancel this booking.";
+              Alert.alert("Cancel failed", message);
+            }
+          },
         },
       ],
-    };
-  });
-
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollOffset.value,
-      [-IMG_HEIGHT, 0, IMG_HEIGHT],
-      [40, 0, -20],
     );
-    return { transform: [{ translateY }] };
-  });
-
-  const imageUri =
-    place?.image ||
-    place?.image_url ||
-    place?.thumbnail ||
-    place?.thumbnail_url ||
-    FALLBACK_IMAGE_URI;
-  const description = place?.description ?? "";
-  const shouldShowSeeAll = description.length > 120;
-  const selectedPackage = place?.tour_package?.find(
-    (pkg) => pkg.id === selectedPackageId,
-  );
-  const packageCount = place?.tour_package?.length || 0;
-  const rating = Number(place?.star_rating || 0).toFixed(1);
-  const cityName = place?.city?.name || "Unknown location";
-  const selectedPrice =
-    selectedPackage?.total_price_display ||
-    selectedPackage?.price_display ||
-    place?.base_price_display ||
-    "N/A";
-
-  const isBookingSubmitting = createBookingMutation.isPending || createPaymentMutation.isPending;
-  
-  const formatPackageSubtitle = (pkg) => {
-    const parts = [];
-    if (pkg.duration) parts.push(pkg.duration);
-    if (pkg.max_people) parts.push(`${pkg.max_people} guests`);
-    return parts.join(" • ") || "Curated travel experience";
   };
 
-  const getErrorMessage = (err) => {
-    const data = err?.response?.data;
-
-    if (typeof data === "string") return data;
-    if (data?.detail) return data.detail;
-
-    if (data && typeof data === "object") {
-      const firstKey = Object.keys(data)[0];
-      const firstValue = data[firstKey];
-
-      if (Array.isArray(firstValue)) return firstValue[0];
-      if (typeof firstValue === "string") return firstValue;
-    }
-
-    return err?.message || "Booking failed. Please try again.";
-  };
-
-  const handleBookNow = async () => {
-    if (!isLoggedIn) {
-      navigation.getParent()?.getParent()?.navigate("Login");
-      return;
-    }
-
-    if (!place?.id) {
-      Alert.alert("Booking unavailable", "Service data is not ready.");
-      return;
-    }
-
-    if (!selectedPackageId) {
-      Alert.alert("Choose a package", "Please choose a package before booking.");
-      return;
-    }
-
+  const handlePayNow = async (booking) => {
     try {
-      const booking = await createBookingMutation.mutateAsync({
-        payload: {
-          service: Number(place.id),
-          tour_package: Number(selectedPackageId),
-          quantity: 1,
-        },
-      });
+      let payment = getLatestPaymentForBooking(payments, booking.id);
 
-      const payment = await createPaymentMutation.mutateAsync({
-        bookingId: booking.id,
-        method: "STATIC_QR",
-      });
-
-      Alert.alert(
-        "Booking created",
-        "Your booking is waiting for payment confirmation.",
-      );
-
-      navigation.getParent()?.navigate("TripTab", {
-        screen: "TripsHome",
-        params: {
+      if (!payment) {
+        payment = await createPaymentMutation.mutateAsync({
           bookingId: booking.id,
-          paymentId: payment.id,
-        },
+          method: "STATIC_QR",
+        });
+        await refetchPayments();
+      }
+
+      navigation.navigate("BookingPayment", {
+        bookingId: booking.id,
+        paymentId: payment.id,
+        payment,
       });
     } catch (err) {
-      Alert.alert("Booking failed", getErrorMessage(err));
+      const message =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Cannot open payment for this booking.";
+      Alert.alert("Payment unavailable", message);
     }
   };
 
+  const renderListItem = ({ item }) => {
+    const trip = mapBookingToTrip(item);
 
-
-  if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
+      <TripSumaryCard
+        trip={trip}
+        onPress={() => openBookingDetail(item.id)}
+      />
     );
-  }
+  };
+
+  const renderDetail = () => {
+    if (!selectedBooking) {
+      return (
+        <View style={styles.centerState}>
+          <Text style={styles.stateTitle}>Booking not found</Text>
+          <Text style={styles.stateText}>
+            This booking may have been refreshed or removed.
+          </Text>
+
+          <Pressable style={styles.primaryButton} onPress={() => navigation.navigate("TripDetail")}>
+            <Text style={styles.primaryButtonText}>View All Bookings</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    const service = selectedBooking.service ?? {};
+    const tourPackage = selectedBooking.tour_package;
+    const canCancel = selectedBooking.booking_status === "pending";
+    const canPay = selectedBooking.payment_status === "unpaid";
+
+    return (
+      <FlatList
+        data={[selectedBooking]}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={styles.detailContent}
+        renderItem={() => (
+          <>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailTitle}>{service.name || "Untitled booking"}</Text>
+              <Text style={styles.detailSubTitle}>{service.city || "Unknown location"}</Text>
+
+              <View style={styles.divider} />
+
+              <DetailRow label="Service type" value={service.service_type} />
+              <DetailRow label="Package" value={tourPackage?.name} />
+              <DetailRow label="Quantity" value={String(selectedBooking.quantity)} />
+              <DetailRow label="Total price" value={formatMoney(selectedBooking.total_price)} />
+              <DetailRow label="Booking status" value={selectedBooking.booking_status} />
+              <DetailRow label="Payment status" value={selectedBooking.payment_status} />
+              <DetailRow label="Created date" value={formatDate(selectedBooking.created_date)} />
+            </View>
+
+            {canPay ? (
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  createPaymentMutation.isPending && styles.disabledButton,
+                ]}
+                disabled={createPaymentMutation.isPending}
+                onPress={() => handlePayNow(selectedBooking)}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {createPaymentMutation.isPending ? "Opening Payment..." : "Pay Now"}
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {canCancel ? (
+              <Pressable
+                style={[
+                  styles.dangerButton,
+                  cancelBookingMutation.isPending && styles.disabledButton,
+                ]}
+                disabled={cancelBookingMutation.isPending}
+                onPress={() => handleCancelBooking(selectedBooking)}
+              >
+                <Text style={styles.dangerButtonText}>
+                  {cancelBookingMutation.isPending ? "Cancelling..." : "Cancel Booking"}
+                </Text>
+              </Pressable>
+            ) : null}
+          </>
+        )}
+      />
+    );
+  };
+
+  const renderList = () => (
+    <>
+      <TripChips
+        items={tabs}
+        activeIndex={activeIndex}
+        onChange={(index) => setActiveIndex(index)}
+      />
+
+      <TripTypeChips
+        items={typeTabs}
+        activeIndex={activeTypeIndex}
+        onChange={(index) => setActiveTypeIndex(index)}
+      />
+
+      <FlatList
+        data={filteredBookings}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderListItem}
+        refreshing={isRefetching}
+        onRefresh={refetch}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <View style={styles.centerState}>
+            <Text style={styles.stateTitle}>No bookings here</Text>
+            <Text style={styles.stateText}>
+              Try another status or service type.
+            </Text>
+          </View>
+        }
+      />
+    </>
+  );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={24} color="black" />
+        </TouchableOpacity>
 
-      {/* Parallax Hero Image */}
-      <Animated.ScrollView
-        ref={scrollRef}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.heroContainer}>
-          <Animated.Image
-            style={[styles.heroImage, imageAnimatedStyle]}
-            source={{ uri: imageUri }}
-          />
-          <View style={styles.heroOverlay} />
-
-          <TouchableOpacity
-            style={styles.floatingBackButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
-
-          {/* Hero Content */}
-          <View style={styles.heroContent}>
-            <Text style={styles.heroLocation}>
-              <Entypo name="location-pin" size={14} color={COLORS.light} />
-              {" "}{cityName}
-            </Text>
-            <Text style={styles.heroTitle}>{place?.name}</Text>
-            <View style={styles.heroMeta}>
-              <View style={styles.ratingPill}>
-                <Ionicons name="star" size={14} color={COLORS.secondary} />
-                <Text style={styles.ratingPillText}>{rating}</Text>
-              </View>
-              <View style={styles.reviewPill}>
-                <Text style={styles.reviewPillText}>{place?.comment_count || 0} reviews</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Main Content */}
-        <Animated.View style={[styles.contentContainer, contentAnimatedStyle]}>
-          {/* About Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>About This Journey</Text>
-              {shouldShowSeeAll && (
-                <Pressable onPress={() => setDescriptionModalVisible(true)}>
-                  <Text style={styles.seeAllLink}>Read more</Text>
-                </Pressable>
-              )}
-            </View>
-            <View style={styles.aboutCard}>
-              <Text style={styles.aboutText}>{description || "A curated travel experience awaits..."}</Text>
-            </View>
-          </View>
-
-          {/* Tour Packages Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Choose Your Package</Text>
-              <View style={styles.packageCountBadge}>
-                <Text style={styles.packageCountText}>{packageCount} options</Text>
-              </View>
-            </View>
-            {packageCount > 0 ? (
-              place.tour_package.map((pkg, index) => (
-                <Pressable
-                  key={pkg.id}
-                  style={({ pressed }) => [
-                    styles.packageCard,
-                    selectedPackageId === pkg.id && styles.packageCardSelected,
-                    pressed && styles.packageCardPressed,
-                  ]}
-                  onPress={() => setSelectedPackageId(pkg.id)}
-                >
-                  <View style={styles.packageHeader}>
-                    <View style={styles.packageRadio}>
-                      <View
-                        style={[
-                          styles.radioOuter,
-                          selectedPackageId === pkg.id && styles.radioOuterSelected,
-                        ]}
-                      >
-                        {selectedPackageId === pkg.id && (
-                          <View style={styles.radioInner} />
-                        )}
-                      </View>
-                    </View>
-                    <View style={styles.packageInfo}>
-                      <View>
-                        <Text style={styles.packageName}>{pkg.name}</Text>
-                        <Text style={styles.packageSubtitle}>
-                          {formatPackageSubtitle(pkg)}
-                        </Text>
-                      </View>
-                      <View style={styles.packagePriceContainer}>
-                        <Text style={[
-                          styles.packagePrice,
-                          selectedPackageId === pkg.id && styles.packagePriceSelected,
-                        ]}>
-                          {pkg.price_display}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Expandable details */}
-                  {selectedPackageId === pkg.id && (
-                    <View style={styles.packageDetails}>
-                      <View style={styles.packageDetailRow}>
-                        <Text style={styles.packageDetailLabel}>Type</Text>
-                        <Text style={styles.packageDetailValue}>{pkg.type || "Standard"}</Text>
-                      </View>
-                      {pkg.inclusions && (
-                        <View style={styles.packageInclusions}>
-                          <Text style={styles.packageDetailLabel}>Inclusions</Text>
-                          <Text style={styles.packageInclusionsText}>{pkg.inclusions}</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                </Pressable>
-              ))
-            ) : (
-              <View style={styles.noPackagesCard}>
-                <Ionicons name="compass-outline" size={40} color={COLORS.muted} />
-                <Text style={styles.noPackagesText}>Custom packages available</Text>
-                <Text style={styles.noPackagesSubtext}>Contact us for personalized options</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Spacer for bottom bar */}
-          <View style={styles.bottomSpacer} />
-        </Animated.View>
-      </Animated.ScrollView>
-
-      {/* Floating Bottom Bar */}
-      <View style={styles.bottomContainer}>
-        <View style={styles.bottomContent}>
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>Total from</Text>
-            <Text style={styles.priceValue}>{selectedPrice}</Text>
-            {selectedPackage && (
-              <Text style={styles.priceNote}>per person</Text>
-            )}
-          </View>
-
-          <Pressable
-            disabled={isBookingSubmitting || !selectedPackageId}
-            onPress={handleBookNow}
-            style={({ pressed }) => [
-              styles.purchaseButton,
-              pressed && styles.purchaseButtonPressed,
-              (isBookingSubmitting || !selectedPackageId) && styles.purchaseButtonDisabled,
-            ]}>
-            <Text style={styles.purchaseButtonText}>
-              {isBookingSubmitting ? "Booking..." : "Book Now"}
-            </Text>
-          </Pressable>
-
-        </View>
+        <Text style={styles.title}>
+          {bookingId ? "Booking Detail" : "My Bookings"}
+        </Text>
       </View>
 
-      {/* Description Modal */}
-      <Modal
-        visible={isDescriptionModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setDescriptionModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <Pressable
-            style={styles.modalBackdropPress}
-            onPress={() => setDescriptionModalVisible(false)}
-          />
-          <View style={styles.modalCard}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>About This Journey</Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setDescriptionModalVisible(false)}
-              >
-                <Ionicons name="close" size={22} color={COLORS.muted} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalDescription}>{description}</Text>
-            <Pressable
-              style={styles.modalActionButton}
-              onPress={() => setDescriptionModalVisible(false)}
-            >
-              <Text style={styles.modalActionText}>Got it</Text>
-            </Pressable>
-          </View>
+      {isLoading ? (
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color="#2563EB" />
+          <Text style={styles.stateText}>Loading bookings...</Text>
         </View>
-      </Modal>
-    </View>
+      ) : isError ? (
+        <View style={styles.centerState}>
+          <Text style={styles.stateTitle}>Cannot load bookings</Text>
+          <Text style={styles.stateText}>Please try again.</Text>
+
+          <Pressable style={styles.primaryButton} onPress={refetch}>
+            <Text style={styles.primaryButtonText}>Try Again</Text>
+          </Pressable>
+        </View>
+      ) : bookingId ? (
+        renderDetail()
+      ) : (
+        renderList()
+      )}
+    </SafeAreaView>
   );
 };
 
-export default ItemDetailScreen;
+export default TripDetailScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: "#fff",
   },
-
-  // Loading State
-  loadingContainer: {
-    flex: 1,
+  header: {
+    height: scale(70),
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    paddingHorizontal: scale(20),
   },
-
-  // Hero Section
-  heroContainer: {
-    position: "relative",
-    height: IMG_HEIGHT,
-  },
-  heroImage: {
-    width: width,
-    height: IMG_HEIGHT + 50,
-  },
-  heroOverlay: {
+  backButton: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    left: scale(20),
   },
-  floatingBackButton: {
-    position: "absolute",
-    top: 50,
-    left: 16,
-    zIndex: 30,
-    elevation: 30,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // Hero Content
-  heroContent: {
-    position: "absolute",
-    bottom: 24,
-    left: 16,
-    right: 16,
-  },
-  heroLocation: {
-    fontSize: 14,
-    color: COLORS.light,
-    marginBottom: 6,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#fff",
-    marginBottom: 12,
-    letterSpacing: -0.5,
-  },
-  heroMeta: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 14,
-  },
-  ratingPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.95)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    gap: 4,
-  },
-  ratingPillText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.dark,
-  },
-  reviewPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  reviewPillText: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.85)",
-  },
-
-  // Main Content
-  contentContainer: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -24,
-    paddingTop: 24,
-    paddingHorizontal: 16,
-  },
-
-  // Stats Row
-  statsRow: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: COLORS.dark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: "#E7E5E4",
-  },
-  statValue: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginTop: 6,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.muted,
-    marginTop: 2,
-  },
-
-  // Sections
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-    letterSpacing: -0.3,
-  },
-  seeAllLink: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.primary,
-  },
-
-  // About Card
-  aboutCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-  },
-  aboutText: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: COLORS.text,
-  },
-
-  // Amenities
-  amenitiesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginTop: 12,
-  },
-  amenityItem: {
-    width: (width - 44) / 2,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  amenityIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: `${COLORS.primary}15`,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  amenityLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: COLORS.text,
-  },
-
-  // Package Section
-  packageCountBadge: {
-    backgroundColor: `${COLORS.primary}15`,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  packageCountText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.primary,
-  },
-  packageCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: "transparent",
-    shadowColor: COLORS.dark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  packageCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: `${COLORS.primary}08`,
-  },
-  packageCardPressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.9,
-  },
-  packageHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  packageRadio: {
-    marginRight: 12,
-  },
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: "#D6D3D1",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  radioOuterSelected: {
-    borderColor: COLORS.primary,
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.primary,
-  },
-  packageInfo: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  packageName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  packageSubtitle: {
-    fontSize: 12,
-    color: COLORS.muted,
-    marginTop: 2,
-  },
-  packagePriceContainer: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  packagePrice: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.text,
-  },
-  packagePriceSelected: {
-    color: COLORS.primary,
-  },
-
-  // Package Details
-  packageDetails: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#E7E5E4",
-  },
-  packageDetailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  packageDetailLabel: {
-    fontSize: 13,
-    color: COLORS.muted,
-  },
-  packageDetailValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: COLORS.text,
-  },
-  packageInclusions: {
-    marginTop: 4,
-  },
-  packageInclusionsText: {
-    fontSize: 13,
-    color: COLORS.text,
-    lineHeight: 20,
-  },
-
-  // No Packages
-  noPackagesCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 32,
-    alignItems: "center",
-  },
-  noPackagesText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.text,
-    marginTop: 12,
-  },
-  noPackagesSubtext: {
-    fontSize: 13,
-    color: COLORS.muted,
-    marginTop: 4,
-  },
-
-  // Bottom Spacer
-  bottomSpacer: {
-    height: 100,
-  },
-
-  // Bottom Bar
-  bottomContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#E7E5E4",
-    paddingBottom: 14,
-  },
-  bottomContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-  },
-  priceContainer: {
-    flex: 1,
-  },
-  priceLabel: {
-    fontSize: 12,
-    color: COLORS.muted,
-  },
-  priceValue: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: COLORS.text,
-    letterSpacing: -0.5,
-  },
-  priceNote: {
-    fontSize: 11,
-    color: COLORS.muted,
-  },
-  purchaseButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  purchaseButtonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
-  },
-  purchaseButtonDisabled: {
-  opacity: 0.6,
-  },
-  purchaseButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#fff",
-  },
-
-  // Modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalBackdropPress: {
-    flex: 1,
-  },
-  modalCard: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 40,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#D6D3D1",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  modalTitle: {
+  title: {
     fontSize: 20,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  listContent: {
+    padding: scale(16),
+    paddingBottom: scale(40),
+  },
+  detailContent: {
+    padding: scale(16),
+    paddingBottom: scale(40),
+  },
+  detailCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: scale(16),
+    padding: scale(16),
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: scale(16),
+  },
+  detailTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  detailSubTitle: {
+    marginTop: scale(4),
+    fontSize: 14,
+    color: "#64748B",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    marginVertical: scale(14),
+  },
+  detailRow: {
+    paddingVertical: scale(8),
+  },
+  detailLabel: {
+    fontSize: 12,
     fontWeight: "700",
-    color: COLORS.text,
+    color: "#64748B",
+    marginBottom: scale(4),
   },
-  modalCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surface,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalDescription: {
+  detailValue: {
     fontSize: 15,
-    lineHeight: 24,
-    color: COLORS.text,
-  },
-  modalActionButton: {
-    marginTop: 20,
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  modalActionText: {
-    fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+    color: "#0F172A",
+  },
+  primaryButton: {
+    height: scale(48),
+    borderRadius: scale(14),
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: scale(10),
+  },
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  dangerButton: {
+    height: scale(48),
+    borderRadius: scale(14),
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dangerButtonText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#991B1B",
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  centerState: {
+    padding: scale(24),
+    alignItems: "center",
+    justifyContent: "center",
+    gap: scale(10),
+  },
+  stateTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+    textAlign: "center",
+  },
+  stateText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#64748B",
+    textAlign: "center",
   },
 });

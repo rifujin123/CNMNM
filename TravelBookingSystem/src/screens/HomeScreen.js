@@ -22,7 +22,7 @@ const HomeScreen = () => {
   const { isWishlisted, toggleWishlist } = useWishlist();
 
   const onPressItem = (item) => {
-    navigation.navigate("ItemDetail", { ItemId: item?.id });
+    navigation.navigate("ItemDetail", { ItemId: item?.id, serviceType: item?.type});
   };
 
   const onRequireLogin = () => {

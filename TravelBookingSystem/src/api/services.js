@@ -106,9 +106,32 @@ export const createPayment = async ({
   const res = await authApis(token).post(endpoints.payments, {
     booking: bookingId,
     payment_method: method,
-  });}
+  });
 
   return res?.data ?? null;
+};
+
+export const fetchPayments = async ({ token, filters = {} }) => {
+  if (!token) return [];
+
+  const res = await authApis(token).get(endpoints.payments, {
+    params: filters,
+  });
+
+  const data = res?.data ?? [];
+  return Array.isArray(data) ? data : data.results ?? [];
+};
+
+export const fetchPaymentDetail = async ({ token, paymentId }) => {
+  if (!token) return null;
+  if (!paymentId) return null;
+
+  const res = await authApis(token).get(`${endpoints.payments}${paymentId}/`);
+  return res?.data ?? null;
+};
+
+
+  
 export const fetchHotels = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);

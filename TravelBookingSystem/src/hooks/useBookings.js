@@ -52,6 +52,7 @@ export function useCreatePayment() {
       createPayment({ token, bookingId, method }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
     },
   });
 }
