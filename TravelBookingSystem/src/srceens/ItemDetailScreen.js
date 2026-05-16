@@ -1,13 +1,4 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Dimensions,
-  TouchableOpacity,
-  Pressable,
-  Modal,
-  StatusBar,
-  SafeAreaView,
+import {StyleSheet,Text,View,Dimensions,TouchableOpacity,Pressable,Modal,StatusBar,SafeAreaView,Alert
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import Animated, {
@@ -20,6 +11,9 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { usePlaceDetail } from "../hooks/useTours";
 import Entypo from "@expo/vector-icons/Entypo";
+import { useAuth } from "../../context/AuthContext";
+import { useCreateBooking, useCreatePayment } from "../hooks/useBookings";
+
 const { width, height } = Dimensions.get("window");
 const IMG_HEIGHT = height * 0.45;
 const FALLBACK_IMAGE_URI =
@@ -41,6 +35,11 @@ const COLORS = {
 const ItemDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+
+  const {isLoggedIn} = useAuth();
+  const createBookingMutation = useCreateBooking();
+  const createPaymentMutation = useCreatePayment();
+
   const itemId = route.params?.ItemId ?? route.params?.itemId;
   const { data: place, isLoading } = usePlaceDetail(itemId);
   const [isDescriptionModalVisible, setDescriptionModalVisible] =
@@ -106,12 +105,80 @@ const ItemDetailScreen = () => {
     place?.base_price_display ||
     "N/A";
 
+  const isBookingSubmitting = createBookingMutation.isPending || createPaymentMutation.isPending;
+  
   const formatPackageSubtitle = (pkg) => {
     const parts = [];
     if (pkg.duration) parts.push(pkg.duration);
     if (pkg.max_people) parts.push(`${pkg.max_people} guests`);
     return parts.join(" • ") || "Curated travel experience";
   };
+
+  const getErrorMessage = (err) => {
+    const data = err?.response?.data;
+
+    if (typeof data === "string") return data;
+    if (data?.detail) return data.detail;
+
+    if (data && typeof data === "object") {
+      const firstKey = Object.keys(data)[0];
+      const firstValue = data[firstKey];
+
+      if (Array.isArray(firstValue)) return firstValue[0];
+      if (typeof firstValue === "string") return firstValue;
+    }
+
+    return err?.message || "Booking failed. Please try again.";
+  };
+
+  const handleBookNow = async () => {
+    if (!isLoggedIn) {
+      navigation.getParent()?.getParent()?.navigate("Login");
+      return;
+    }
+
+    if (!place?.id) {
+      Alert.alert("Booking unavailable", "Service data is not ready.");
+      return;
+    }
+
+    if (!selectedPackageId) {
+      Alert.alert("Choose a package", "Please choose a package before booking.");
+      return;
+    }
+
+    try {
+      const booking = await createBookingMutation.mutateAsync({
+        payload: {
+          service: Number(place.id),
+          tour_package: Number(selectedPackageId),
+          quantity: 1,
+        },
+      });
+
+      const payment = await createPaymentMutation.mutateAsync({
+        bookingId: booking.id,
+        method: "STATIC_QR",
+      });
+
+      Alert.alert(
+        "Booking created",
+        "Your booking is waiting for payment confirmation.",
+      );
+
+      navigation.getParent()?.navigate("TripTab", {
+        screen: "TripsHome",
+        params: {
+          bookingId: booking.id,
+          paymentId: payment.id,
+        },
+      });
+    } catch (err) {
+      Alert.alert("Booking failed", getErrorMessage(err));
+    }
+  };
+
+
 
   if (isLoading) {
     return (
@@ -274,14 +341,20 @@ const ItemDetailScreen = () => {
               <Text style={styles.priceNote}>per person</Text>
             )}
           </View>
+
           <Pressable
+            disabled={isBookingSubmitting || !selectedPackageId}
+            onPress={handleBookNow}
             style={({ pressed }) => [
               styles.purchaseButton,
               pressed && styles.purchaseButtonPressed,
-            ]}
-          >
-            <Text style={styles.purchaseButtonText}>Book Now</Text>
+              (isBookingSubmitting || !selectedPackageId) && styles.purchaseButtonDisabled,
+            ]}>
+            <Text style={styles.purchaseButtonText}>
+              {isBookingSubmitting ? "Booking..." : "Book Now"}
+            </Text>
           </Pressable>
+
         </View>
       </View>
 
@@ -730,6 +803,9 @@ const styles = StyleSheet.create({
   purchaseButtonPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.98 }],
+  },
+  purchaseButtonDisabled: {
+  opacity: 0.6,
   },
   purchaseButtonText: {
     fontSize: 15,

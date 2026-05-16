@@ -12,6 +12,9 @@ export const endpoints = {
   tours: "/api/services/travel-tours/",
   providerPending: "/api/providers/pending/",
   wishlist: "/api/services/wishlist/",
+
+  bookings: "/api/bookings/",
+  payments: "/api/payments/",
 };
 
 export const authApis = (token) =>

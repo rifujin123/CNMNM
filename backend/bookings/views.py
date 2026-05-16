@@ -13,11 +13,21 @@ class BookingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Cr
         'service',
         'room_type',
         'seat_type',
+        'tour_package',
+        'route',
+        'route__from_city',
+        'route__to_city',
         'service__city',
         'service__category',
-        'service__provider'
+        'service__provider',
     ).prefetch_related(
-        'service__images'
+        'service__images',
+        'rooms',
+        'rooms__hotel',
+        'rooms__room_type',
+        'seat_statuses',
+        'seat_statuses__physical_seat',
+        'seat_statuses__physical_seat__seat_type',
     )
 
     serializer_class = BookingReadSerializer
@@ -66,7 +76,7 @@ class BookingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Cr
         elif self.action == 'cancel':
             permission_classes = [permissions.IsAuthenticated, IsBookingOwnerOrAdmin]
 
-        elif self.action in ['confirm', 'complete']:
+        elif self.action == 'complete':
             permission_classes = [permissions.IsAuthenticated, IsBookingProviderOwnerOrAdmin]
 
         else:
@@ -87,18 +97,18 @@ class BookingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Cr
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    @action(detail=True, methods=['post'])
-    def confirm(self, request, pk=None):
-        booking = self.get_object()
+    # @action(detail=True, methods=['post'])
+    # def confirm(self, request, pk=None):
+    #     booking = self.get_object()
 
-        booking = BookingService.confirm_booking(booking)
+    #     booking = BookingService.confirm_booking(booking)
 
-        serializer = BookingReadSerializer(
-            booking,
-            context=self.get_serializer_context()
-        )
+    #     serializer = BookingReadSerializer(
+    #         booking,
+    #         context=self.get_serializer_context()
+    #     )
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):

@@ -49,24 +49,16 @@ class BookingReadSerializer(serializers.ModelSerializer):
     def get_service(self, obj):
         service = obj.service
 
-        service_type = "service"
+        service_type, concrete_service = BookingService.get_service_type(service)
         start_date = None
         end_date = None
 
-        if hasattr(service, 'traveltour'):
-            service_type = "tour"
-            tour = service.traveltour
-            start_date = tour.time_start
-            end_date = getattr(tour, 'time_end', None)
+        if service_type == "tour":
+            start_date = concrete_service.time_start
+            end_date = getattr(concrete_service, "time_end", None)
 
-        elif hasattr(service, 'Hotel'):
-            service_type = "hotel"
-
-        elif hasattr(service, 'Transport'):
-            service_type = "transport"
-
-        elif service.category:
-            service_type = service.category.name
+        elif service_type not in ["hotel", "transport"]:
+            service_type = service.category.name if service.category else "service"
 
         first_image = service.images.first()
         image_url = first_image.image.url if first_image else None

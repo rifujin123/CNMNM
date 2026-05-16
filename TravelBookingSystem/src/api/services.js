@@ -54,3 +54,50 @@ export const fetchWishListItems = async ({ token }) => {
   const items = res?.data ?? [];
   return items.map((item) => item.travel_tour).filter(Boolean);
 };
+
+
+export const fetchBookings = async ({ token, filters = {} }) => {
+  if (!token) return [];
+
+  const res = await authApis(token).get(endpoints.bookings, {
+    params: filters,
+  });
+
+  const data = res?.data ?? [];
+  return Array.isArray(data) ? data : data.results ?? [];
+};
+
+export const createBooking = async ({ token, payload }) => {
+  if (!token) throw new Error("Missing token");
+  if (!payload?.service) throw new Error("Missing service");
+
+  const res = await authApis(token).post(endpoints.bookings, payload);
+  return res?.data ?? null;
+};
+
+export const cancelBooking = async ({ token, bookingId }) => {
+  if (!token) throw new Error("Missing token");
+  if (!bookingId) throw new Error("Missing bookingId");
+
+  const res = await authApis(token).post(
+    `${endpoints.bookings}${bookingId}/cancel/`,
+  );
+
+  return res?.data ?? null;
+};
+
+export const createPayment = async ({
+  token,
+  bookingId,
+  method = "STATIC_QR",
+}) => {
+  if (!token) throw new Error("Missing token");
+  if (!bookingId) throw new Error("Missing bookingId");
+
+  const res = await authApis(token).post(endpoints.payments, {
+    booking: bookingId,
+    payment_method: method,
+  });
+
+  return res?.data ?? null;
+};

@@ -158,8 +158,31 @@ class BookingService:
                 booking=None,
             )
 
+    # @classmethod
+    # def confirm_booking(cls, booking):
+    #     with transaction.atomic():
+    #         booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
+    #         if booking.booking_status == Booking.BookingStatus.CONFIRMED:
+    #             return booking
+
+    #         if booking.booking_status != Booking.BookingStatus.PENDING:
+    #             raise ValidationError('Chỉ booking pending mới được confirm.')
+
+    #         booking.booking_status = Booking.BookingStatus.CONFIRMED
+    #         booking.payment_status = Booking.PaymentStatus.PAID
+    #         booking.save(update_fields=['booking_status', 'payment_status', 'updated_date'])
+
+    #         SeatStatus.objects.filter(
+    #             booking=booking,
+    #             status=SeatStatus.Status.HELD,
+    #         ).update(status=SeatStatus.Status.BOOKED)
+
+    #         return booking
+
     @classmethod
     def confirm_booking(cls, booking):
+        # Only call after payment success. Do not expose this directly through booking API.
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
 
