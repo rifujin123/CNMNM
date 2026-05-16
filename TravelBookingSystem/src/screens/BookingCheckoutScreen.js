@@ -123,7 +123,7 @@ export default function BookingCheckoutScreen() {
         method: "STATIC_QR",
       });
 
-      navigation.navigate("BookingPayment", {
+      navigation.replace("BookingPayment", {
         bookingId: createdBooking.id,
         paymentId: payment.id,
         payment,

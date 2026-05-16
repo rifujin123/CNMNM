@@ -3,6 +3,8 @@ import HomeScreen from "../screens/HomeScreen";
 import CategoryListScreen from "../screens/CategoryListScreen";
 import ItemDetailScreen from "../screens/ItemDetailScreen";
 import SeeAllScreen from "../screens/SeeAllScreen";
+import BookingCheckoutScreen from "../screens/BookingCheckoutScreen";
+import BookingPaymentScreen from "../screens/BookingPaymentScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +35,8 @@ export default function HomeStack() {
         })}
       />
       <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+      <Stack.Screen name="BookingCheckout" component={BookingCheckoutScreen} />
+      <Stack.Screen name="BookingPayment" component={BookingPaymentScreen} />
     </Stack.Navigator>
   );
 }

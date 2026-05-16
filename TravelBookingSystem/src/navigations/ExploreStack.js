@@ -3,6 +3,8 @@ import ExploreScreen from "../screens/ExploreScreen";
 import ItemDetailScreen from "../screens/ItemDetailScreen";
 import CategoryListScreen from "../screens/CategoryListScreen";
 import SeeAllScreen from "../screens/SeeAllScreen";
+import BookingCheckoutScreen from "../screens/BookingCheckoutScreen";
+import BookingPaymentScreen from "../screens/BookingPaymentScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +35,9 @@ export default function ExploreStack() {
           headerShadowVisible: false,
         })}
       />
+
+      <Stack.Screen name="BookingCheckout" component={BookingCheckoutScreen} />
+      <Stack.Screen name="BookingPayment" component={BookingPaymentScreen} />
     </Stack.Navigator>
   );
 }

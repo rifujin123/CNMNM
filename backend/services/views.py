@@ -294,11 +294,11 @@ class WishlistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Wishlist.objects.none()
         return Wishlist.objects.filter(user=self.request.user).select_related('travel_tour')
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):

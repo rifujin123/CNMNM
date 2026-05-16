@@ -1,12 +1,13 @@
-import React, { use } from "react";
+import React,{ useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  Button,
+  FlatList,
+  Pressable,
+  StatusBar,
   StyleSheet,
   Text,
   View,
-  FlatList,
-  Image,
-  StatusBar,
-  Button
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,7 +36,16 @@ const SavedScreen = () => {
          type:"tour",});
   }
 
-  const {token} = useAuth();
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const { token } = useAuth();
+
+  const filteredItems = useMemo(() => {
+    if (activeCategory === "All") return savedItems;
+    if (activeCategory === "Tour") return savedItems;
+    return [];
+  }, [activeCategory, savedItems]);
+
   const {
     data: savedItems = [],
     isLoading,
@@ -53,7 +63,7 @@ const SavedScreen = () => {
       <AppHeader title="Saved" />
       <View style={styles.centerState}>
         <ActivityIndicator size="large" color="#111827" />
-        <Text style={styles.stateText}>Đang tải danh sách đã lưu...</Text>
+        <Text style={styles.stateText}>Äang táº£i danh sÃ¡ch Ä‘Ã£ lÆ°u...</Text>
       </View>
     </SafeAreaView>
     );
@@ -64,9 +74,9 @@ const SavedScreen = () => {
     <SafeAreaView style={styles.container}>
       <AppHeader title="Saved" />
       <View style={styles.centerState}>
-        <Text style={styles.stateTitle}>Không thể tải wishlist.</Text>
+        <Text style={styles.stateTitle}>KhÃ´ng thá»ƒ táº£i wishlist.</Text>
         <Pressable style={styles.primaryButton} onPress={refetch}>
-          <Text style={styles.primaryButtonText}>Thử lại</Text>
+          <Text style={styles.primaryButtonText}>Thá»­ láº¡i</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -78,8 +88,8 @@ const SavedScreen = () => {
     <SafeAreaView style={styles.container}>
       <AppHeader title="Saved" />
       <View style={styles.centerState}>
-        <Text style={styles.stateTitle}>Bạn chưa có địa điểm đã lưu.</Text>
-        <Button title="Đi Khám Phá" onPress={() => navigation.navigate("MainTabs", { screen: "HomeFeed", params: { screen: "Home" }, })} />
+        <Text style={styles.stateTitle}>Báº¡n chÆ°a cÃ³ Ä‘á»‹a Ä‘iá»ƒm Ä‘Ã£ lÆ°u.</Text>
+        <Button title="Äi KhÃ¡m PhÃ¡" onPress={() => navigation.navigate("MainTabs", { screen: "HomeFeed", params: { screen: "Home" }, })} />
       </View>
     </SafeAreaView>
     );
@@ -89,16 +99,19 @@ const SavedScreen = () => {
     <SafeAreaView style={styles.container}>
       <AppHeader title="Saved" />
       <View style={styles.content} >
-        <CategoryChips items={categories} />
+        <CategoryChips
+              items={categories}
+              onChipPress={(category) => setActiveCategory(String(category))}
+            />
 
-        <FlatList
-          data={savedItems}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ItemCardSave item={item} onPress={() => onPressItem(item)} />
-          )}
-          refreshControl={refreshControl}
-        />
+            <FlatList
+              data={filteredItems}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <ItemCardSave item={item} onPress={() => onPressItem(item)} />
+              )}
+              refreshControl={refreshControl}
+            />
       </View>
     </SafeAreaView>
   );

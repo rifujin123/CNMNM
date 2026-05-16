@@ -87,17 +87,28 @@ export default function BookingPaymentScreen() {
   const badge = getPaymentBadge(payment?.payment_status);
 
   const goToTrips = () => {
-    navigation.navigate("TripsHome", {
-      bookingId,
-      paymentId,
+    const tabs = navigation.getParent();
+
+    navigation.popToTop();
+
+    tabs?.navigate("TripTab", {
+        screen: "TripsHome",
+        params: {
+        bookingId,
+        paymentId,
+        },
     });
-  };
+};
 
   const goHome = () => {
-    navigation.getParent()?.navigate("HomeFeed", {
-      screen: "Home",
+    const tabs = navigation.getParent();
+
+    navigation.popToTop();
+
+    tabs?.navigate("HomeFeed", {
+        screen: "Home",
     });
-  };
+};
 
   if (isLoading && !payment) {
     return (
