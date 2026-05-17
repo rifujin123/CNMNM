@@ -123,10 +123,12 @@ def create_gateway_payment(payment, request):
         return StaticQrPaymentService().create_payment(payment, request)
 
     if payment.payment_method == Payment.PaymentMethod.MOMO:
-        raise ValidationError("MoMo chưa implement")
+        from .momo_service import MoMoPaymentService
+        return MoMoPaymentService.create_payment(payment, request)
 
     if payment.payment_method == Payment.PaymentMethod.VNPAY:
-        raise ValidationError("VNPay chưa implement")
+        from .vnpay_service import VnPayPaymentService
+        return VnPayPaymentService.create_payment(payment, request)
 
     raise ValidationError("Phương thức thanh toán không hợp lệ")
 
@@ -136,26 +138,66 @@ def complete_static_qr_payment(transaction_id, provider_transaction_id = None, r
         provider_transaction_id = provider_transaction_id, 
         result = result)
 
-def expire_payment(payment):
-    with transaction.atomic():
-        payment = (
-            Payment.objects
-            .select_for_update()
-            .select_related("booking")
-            .get(pk=payment.pk)
-        )
 
-        if payment.payment_status in Payment.terminal_statuses():
+class PaymentLifecycleService:
+    @classmethod
+    def cancel_payment(cls, payment):
+        with transaction.atomic():
+            payment = (
+                Payment.objects
+                .select_for_update()
+                .select_related("booking")
+                .get(pk=payment.pk)
+            )
+
+            if payment.payment_status in Payment.terminal_statuses():
+                return payment
+
+            payment.payment_status = Payment.PaymentStatus.CANCELLED
+            payment.metadata = {
+                **(payment.metadata or {}),
+                "gateway_status": "cancelled_by_customer",
+                "cancelled_at": timezone.now().isoformat(),
+            }
+            payment.save(
+                update_fields=[
+                    "payment_status",
+                    "metadata",
+                    "updated_at",
+                ]
+            )
+
+            BookingService.cancel_booking(payment.booking)
+
             return payment
+        
+    @classmethod
+    def expire_payment(cls, payment):
+        with transaction.atomic():
+            payment = (
+                Payment.objects
+                .select_for_update()
+                .select_related("booking")
+                .get(pk=payment.pk)
+            )
 
-        payment.payment_status = Payment.PaymentStatus.EXPIRED
-        payment.metadata = {
-            **(payment.metadata or {}),
-            "gateway_status": "expired",
-            "expired_at": timezone.now().isoformat(),
-        }
-        payment.save(update_fields=["payment_status", "metadata", "updated_at"])
+            if payment.payment_status in Payment.terminal_statuses():
+                return payment
 
-        BookingService.expire_booking(payment.booking)
+            payment.payment_status = Payment.PaymentStatus.EXPIRED
+            payment.metadata = {
+                **(payment.metadata or {}),
+                "gateway_status": "expired",
+                "expired_at": timezone.now().isoformat(),
+            }
+            payment.save(
+                update_fields=[
+                    "payment_status",
+                    "metadata",
+                    "updated_at",
+                ]
+            )
 
-        return payment
+            BookingService.expire_booking(payment.booking)
+
+            return payment

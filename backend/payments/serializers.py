@@ -67,6 +67,7 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         
         if booking.booking_status == Booking.BookingStatus.COMPLETED:
             raise serializers.ValidationError("Booking này đã hoàn thành, không thể thanh toán.")
+        
         if booking.booking_status == Booking.BookingStatus.PAYMENT_FAILED:
             raise serializers.ValidationError("Booking này không thể thanh toán.")
         
@@ -95,8 +96,7 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
                 ),
                 transaction_id = f"PAY{uuid.uuid4().hex}",
                 )
-        
-        return create_gateway_payment(payment, request)
+            return create_gateway_payment(payment, request)
 
     def to_representation(self, instance):
         return PaymentReadSerializer(
