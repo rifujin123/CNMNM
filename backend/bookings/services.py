@@ -208,6 +208,11 @@ class BookingService:
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
 
+            if booking.payment_status == Booking.PaymentStatus.PAID:
+                raise ValidationError(
+                    "Booking đã thanh toán, cần xử lý hoàn tiền thay vì hủy trực tiếp."
+                )
+
             if booking.booking_status == Booking.BookingStatus.COMPLETED:
                 raise ValidationError('Không thể hủy booking đã hoàn thành.')
 
@@ -286,6 +291,9 @@ class BookingService:
     def fail_booking(cls, booking):
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
+            
+            if booking.payment_status == Booking.PaymentStatus.PAID:
+                return booking
 
             if booking.booking_status == Booking.BookingStatus.PAYMENT_FAILED:
                 return booking
@@ -332,6 +340,9 @@ class BookingService:
     def expire_booking(cls, booking):
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
+            if booking.payment_status == Booking.PaymentStatus.PAID:
+                return booking
 
             if booking.booking_status == Booking.BookingStatus.EXPIRED:
                 return booking

@@ -117,7 +117,7 @@ const findPaymentForBooking = (payments, bookingId) => {
 
   return (
     bookingPayments.find((payment) =>
-      ["PENDING", "PROCESSING"].includes(String(payment.payment_status).toUpperCase()),
+      ["PENDING", "PROCESSING", "REVIEW"].includes(String(payment.payment_status).toUpperCase()),
     ) || bookingPayments[0]
   );
 };

@@ -2,8 +2,10 @@ from rest_framework import status, viewsets, permissions, mixins
 from rest_framework.response import Response
 from .models import Payment
 from .serializers import PaymentReadSerializer, PaymentCreateSerializer
-from .payServices.payment_service import complete_static_qr_payment
+from .payServices.payment_service import complete_static_qr_payment, expire_payment
 from rest_framework.decorators import action
+from django.utils import timezone
+
 
 
 class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.RetrieveModelMixin,viewsets.GenericViewSet):
@@ -50,6 +52,38 @@ class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.Retri
         
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
     
+    def _expire_payment_if_needed(self, payment):
+        if (
+            payment.expires_at
+            and payment.expires_at <= timezone.now()
+            and payment.payment_status in Payment.active_statuses()
+        ):
+            return expire_payment(payment)
+
+        return payment
+    
+    def retrieve(self, request, *args, **kwargs):
+        payment = self.get_object()
+        payment = self._expire_payment_if_needed(payment)
+
+        serializer = self.get_serializer(payment)
+        return Response(serializer.data)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        for payment in queryset:
+            self._expire_payment_if_needed(payment)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
     @action(detail=True, methods=["post"], url_name="confirm-static-qr")
     def confirm_static_qr_payment(self, request, pk=None):
         payment = self.get_object()
@@ -70,6 +104,11 @@ class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.Retri
         
         provider_transaction_id = request.data.get("provider_transaction_id")
         result = request.data.get("result", "success")
+
+        if payment.payment_method != Payment.PaymentMethod.STATIC_QR:
+            return Response(
+                {"detail": "Chỉ thanh toán Static QR mới cần xác nhận thủ công."},
+                status=status.HTTP_400_BAD_REQUEST,)
 
         payment = complete_static_qr_payment(
             transaction_id=payment.transaction_id, 

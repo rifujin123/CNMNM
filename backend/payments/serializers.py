@@ -5,6 +5,11 @@ from .payServices.payment_service import create_gateway_payment
 import uuid
 from django.db import transaction
 
+# import to Set expires_at
+from datetime import timedelta
+from django.conf import settings
+from django.utils import timezone
+
 class PaymentReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
@@ -19,11 +24,12 @@ class PaymentReadSerializer(serializers.ModelSerializer):
             "transaction_id",
             "payment_url",
             "provider_transaction_id",
-            "paid_at",
-            "refund_amount",
             "metadata",
+            "paid_at",
+            "expires_at",
+            "refund_amount",
             "created_at",
-            "updated_at"
+            "updated_at",
         ]
         read_only_fields = fields
 
@@ -64,15 +70,12 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         if booking.booking_status == Booking.BookingStatus.PAYMENT_FAILED:
             raise serializers.ValidationError("Booking này không thể thanh toán.")
         
-        existing_pending_payment = Payment.objects.filter(
-            booking=booking, 
-            payment_status__in=[
-                Payment.PaymentStatus.PENDING, 
-                Payment.PaymentStatus.PROCESSING
-                ]
-            ).exists()
+        existing_active_payment = Payment.objects.filter(
+            booking=booking,
+            payment_status__in=Payment.active_statuses(),
+        ).exists()
         
-        if existing_pending_payment:
+        if existing_active_payment:
             raise serializers.ValidationError("Đã có một thanh toán đang chờ xử lý cho booking này.")
 
         return booking
@@ -87,6 +90,10 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
                 booking=booking,
                 payment_method=validated_data.get('payment_method'),
                 amount=booking.total_price,
-                transaction_id = f"PAY-{uuid.uuid4().hex}")
+                expires_at = timezone.now() + timedelta(
+                    minutes=getattr(settings, "PAYMENT_EXPIRE_MINUTES", 15)
+                ),
+                transaction_id = f"PAY{uuid.uuid4().hex}",
+                )
         
         return create_gateway_payment(payment, request)

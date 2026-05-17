@@ -26,6 +26,13 @@ class StaticQrPaymentService:
                        .select_for_update()
                        .select_related('booking')
                        .get(transaction_id=transaction_id))
+            
+            if (
+            payment.expires_at
+            and payment.expires_at <= timezone.now()
+            and payment.payment_status in Payment.active_statuses()):
+                self.mark_expired(payment)
+                return payment
 
             if payment.payment_status in [
                 Payment.PaymentStatus.SUCCESS,
@@ -128,3 +135,27 @@ def complete_static_qr_payment(transaction_id, provider_transaction_id = None, r
         transaction_id  = transaction_id, 
         provider_transaction_id = provider_transaction_id, 
         result = result)
+
+def expire_payment(payment):
+    with transaction.atomic():
+        payment = (
+            Payment.objects
+            .select_for_update()
+            .select_related("booking")
+            .get(pk=payment.pk)
+        )
+
+        if payment.payment_status in Payment.terminal_statuses():
+            return payment
+
+        payment.payment_status = Payment.PaymentStatus.EXPIRED
+        payment.metadata = {
+            **(payment.metadata or {}),
+            "gateway_status": "expired",
+            "expired_at": timezone.now().isoformat(),
+        }
+        payment.save(update_fields=["payment_status", "metadata", "updated_at"])
+
+        BookingService.expire_booking(payment.booking)
+
+        return payment

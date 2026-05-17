@@ -63,18 +63,15 @@ export default function BookingPaymentScreen() {
     payment: initialPayment,
   } = route.params ?? {};
 
-  const shouldFetchPayment = !initialPayment && Boolean(paymentId);
-
   const {
-    data: fetchedPayment,
+    data: payment,
     isLoading,
     isError,
     refetch,
   } = usePayment(paymentId, {
-    enabled: shouldFetchPayment,
+    enabled: Boolean(paymentId),
+    initialData: initialPayment,
   });
-
-  const payment = initialPayment || fetchedPayment;
 
   const transferContent = useMemo(() => {
     return (

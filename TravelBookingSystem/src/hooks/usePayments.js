@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
 import { fetchPaymentDetail, fetchPayments } from "../api/services";
 
+const ACTIVE_PAYMENT_STATUSES = ["PENDING", "PROCESSING", "REVIEW"];
+
 export const paymentKeys = {
   all: ["payments"],
   list: (filters = {}) => [...paymentKeys.all, "list", filters],
@@ -27,7 +29,11 @@ export function usePayment(paymentId, options = {}) {
     queryKey: paymentKeys.detail(paymentId),
     queryFn: () => fetchPaymentDetail({ token, paymentId }),
     enabled: Boolean(token) && Boolean(paymentId),
-    staleTime: 1000 * 60,
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const status = query.state.data?.payment_status;
+      return ACTIVE_PAYMENT_STATUSES.includes(status) ? 5000 : false;
+    },
     ...options,
   });
 }
