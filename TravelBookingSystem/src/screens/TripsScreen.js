@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import {
   ActivityIndicator,
-  Button,
   FlatList,
   Pressable,
   StatusBar,
@@ -88,10 +87,6 @@ const TripsScreen = () => {
     navigation.getParent()?.getParent()?.navigate("Login");
   };
 
-  const openAllBookings = () => {
-    navigation.navigate("TripDetail");
-  };
-
   const openBookingDetail = (bookingId) => {
     navigation.navigate("TripDetail", { bookingId });
   };
@@ -154,8 +149,6 @@ const TripsScreen = () => {
       <AppHeader title="Trip" />
 
       <View style={styles.content}>
-        <Button title="All Bookings" onPress={openAllBookings} />
-
         <FlatList
           data={tripSummaries}
           keyExtractor={(item) => item.id}
@@ -175,7 +168,9 @@ const TripsScreen = () => {
                 When you create any booking, we will create a trip here so you can plan and manage your journey.
               </Text>
 
-              <Button title="Explore Now" onPress={goToHome} />
+              <Pressable style={styles.primaryButton} onPress={goToHome}>
+                <Text style={styles.primaryButtonText}>Explore Now</Text>
+              </Pressable>
             </View>
           }
         />
