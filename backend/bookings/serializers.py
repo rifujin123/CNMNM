@@ -180,3 +180,9 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("User must be authenticated to create a booking.")
         
         return BookingService.create_booking(request.user, validated_data)
+
+    def to_representation(self, instance):
+        return BookingReadSerializer(
+            instance,
+            context=self.context,
+        ).data

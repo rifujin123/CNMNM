@@ -56,19 +56,6 @@ class BookingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Cr
 
         return BookingReadSerializer
     
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        booking = serializer.save()
-
-        read_serializer = BookingReadSerializer(
-            booking,
-            context=self.get_serializer_context()
-        )
-
-        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
-    
     def get_permissions(self):
         if self.action == 'create':
             permission_classes = [permissions.IsAuthenticated, IsBookingCustomerOrAdmin]

@@ -42,16 +42,6 @@ class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.Retri
 
         return PaymentReadSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data )
-        serializer.is_valid(raise_exception=True)
-
-        payment = serializer.save(user=request.user)
-
-        read_serializer = PaymentReadSerializer(payment,context=self.get_serializer_context())
-        
-        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
-    
     def _expire_payment_if_needed(self, payment):
         if (
             payment.expires_at
@@ -117,5 +107,4 @@ class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.Retri
         serializer = PaymentReadSerializer(payment, context=self.get_serializer_context())
         
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 

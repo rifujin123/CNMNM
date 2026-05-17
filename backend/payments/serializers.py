@@ -97,3 +97,9 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
                 )
         
         return create_gateway_payment(payment, request)
+
+    def to_representation(self, instance):
+        return PaymentReadSerializer(
+            instance,
+            context=self.context,
+        ).data
