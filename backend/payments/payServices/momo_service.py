@@ -11,6 +11,8 @@ from payments.models import Payment
 from .payment_service import PaymentLifecycleService
 
 class MoMoPaymentService:
+    CANCELLED_RESULT_CODES = {"1003", "1006"}
+    EXPIRED_RESULT_CODES = {"1005"}
 
     @classmethod
     def create_payment(cls, payment, request):
@@ -89,9 +91,21 @@ class MoMoPaymentService:
         if not cls._verify_ipn_signature(data):
             raise ValidationError("Invalid MoMo signature")
 
-        payment = Payment.objects.select_related("booking").get(
-            transaction_id=data.get("orderId")
+        if data.get("partnerCode") != settings.MOMO_PARTNER_CODE:
+            raise ValidationError("Invalid MoMo partnerCode")
+
+        payment = (
+            Payment.objects
+            .select_related("booking")
+            .filter(
+                transaction_id=data.get("orderId"),
+                payment_method=Payment.PaymentMethod.MOMO,
+            )
+            .first()
         )
+
+        if not payment:
+            raise ValidationError("MoMo payment not found")
 
         if str(int(payment.amount)) != str(data.get("amount")):
             raise ValidationError("Invalid MoMo amount")
@@ -103,6 +117,20 @@ class MoMoPaymentService:
             return PaymentLifecycleService.mark_success(
                 payment,
                 provider_transaction_id=provider_transaction_id,
+                gateway="MOMO",
+                raw_payload=data,
+            )
+
+        if result_code in cls.CANCELLED_RESULT_CODES:
+            return PaymentLifecycleService.cancel_payment(
+                payment,
+                gateway="MOMO",
+                raw_payload=data,
+            )
+
+        if result_code in cls.EXPIRED_RESULT_CODES:
+            return PaymentLifecycleService.expire_payment(
+                payment,
                 gateway="MOMO",
                 raw_payload=data,
             )

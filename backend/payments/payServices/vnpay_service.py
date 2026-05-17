@@ -84,8 +84,15 @@ class VnPayPaymentService:
                 "Message": "Invalid signature",
             }
 
+        if data.get("vnp_TmnCode") != settings.VNPAY_TMN_CODE:
+            return {
+                "RspCode": "02",
+                "Message": "Invalid merchant",
+            }
+
         payment = Payment.objects.filter(
-            transaction_id=data.get("vnp_TxnRef")
+            transaction_id=data.get("vnp_TxnRef"),
+            payment_method=Payment.PaymentMethod.VNPAY,
         ).first()
 
         if not payment:
@@ -112,12 +119,20 @@ class VnPayPaymentService:
             )
 
         elif response_code == "24":
-            PaymentLifecycleService.cancel_payment(payment)
+            PaymentLifecycleService.cancel_payment(
+                payment,
+                gateway="VNPAY",
+                raw_payload=data,
+            )
 
         elif response_code == "11":
-            PaymentLifecycleService.expire_payment(payment)
+            PaymentLifecycleService.expire_payment(
+                payment,
+                gateway="VNPAY",
+                raw_payload=data,
+            )
 
-        elif response_code == "07":
+        elif response_code == "07" or transaction_status == "07":
             PaymentLifecycleService.mark_review(
                 payment,
                 gateway="VNPAY",
