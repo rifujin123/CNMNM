@@ -115,19 +115,17 @@ class PaymentCreateAPITests(APITestCase):
 
         self.assertEqual(duplicate_response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_momo_and_vnpay_payment_creation_are_disabled(self):
-        for method in ["MOMO", "VNPAY"]:
-            response = self.client.post(
-                "/api/payments/",
-                {
-                    "booking": self.booking.id,
-                    "payment_method": method,
-                },
-                format="json",
-            )
+    def test_non_static_payment_method_is_rejected(self):
+        response = self.client.post(
+            "/api/payments/",
+            {
+                "booking": self.booking.id,
+                "payment_method": "CARD",
+            },
+            format="json",
+        )
 
-            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Payment.objects.count(), 0)
 
     def test_provider_cannot_confirm_platform_static_qr_payment(self):
@@ -162,10 +160,3 @@ class PaymentCreateAPITests(APITestCase):
         self.booking.refresh_from_db()
         self.assertEqual(self.booking.booking_status, Booking.BookingStatus.CONFIRMED)
         self.assertEqual(self.booking.payment_status, Booking.PaymentStatus.PAID)
-
-    def test_gateway_callbacks_are_disabled(self):
-        momo_response = self.client.post("/api/payments/momo/ipn/", {}, format="json")
-        vnpay_response = self.client.get("/api/payments/vnpay/ipn/")
-
-        self.assertEqual(momo_response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(vnpay_response.status_code, status.HTTP_400_BAD_REQUEST)

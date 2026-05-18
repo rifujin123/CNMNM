@@ -19,28 +19,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env", override=True)
 
-
-# Public_Backend_URL
-PUBLIC_BACKEND_URL = os.getenv("PUBLIC_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
-
-APP_DEEP_LINK_SCHEME = os.getenv("APP_DEEP_LINK_SCHEME", "travelbooking")
-
 PAYMENT_EXPIRE_MINUTES = int(os.getenv("PAYMENT_EXPIRE_MINUTES", "15")) # Payment Expire
-
-# MoMo
-MOMO_ENDPOINT = os.getenv("MOMO_ENDPOINT","https://test-payment.momo.vn/v2/gateway/api/create",)
-MOMO_PARTNER_CODE = os.getenv("MOMO_PARTNER_CODE", "")
-MOMO_ACCESS_KEY = os.getenv("MOMO_ACCESS_KEY", "")
-MOMO_SECRET_KEY = os.getenv("MOMO_SECRET_KEY", "")
-MOMO_REDIRECT_URL = os.getenv("MOMO_REDIRECT_URL",f"{PUBLIC_BACKEND_URL}/api/payments/momo/return/",)
-MOMO_IPN_URL = os.getenv("MOMO_IPN_URL",f"{PUBLIC_BACKEND_URL}/api/payments/momo/ipn/",)
-
-# VnPay
-VNPAY_PAYMENT_URL = os.getenv("VNPAY_PAYMENT_URL","https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",)
-VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "")
-VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "")
-VNPAY_RETURN_URL = os.getenv("VNPAY_RETURN_URL",f"{PUBLIC_BACKEND_URL}/api/payments/vnpay/return/",)
-VNPAY_IPN_URL = os.getenv("VNPAY_IPN_URL",f"{PUBLIC_BACKEND_URL}/api/payments/vnpay/ipn/",)
 
 
 # Quick-start development settings - unsuitable for production
