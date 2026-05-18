@@ -135,8 +135,9 @@ export default function BookingCheckoutScreen() {
       const gatewayLinks = payment?.metadata?.gateway_links || {};
       const paymentUrl =
         gatewayLinks.deeplink ||
-        payment.payment_url ||
-        gatewayLinks.payUrl;
+        payment?.payment_url ||
+        gatewayLinks.payUrl ||
+        gatewayLinks.qrCodeUrl;
 
       navigation.replace("BookingPayment", {
         bookingId: createdBooking.id,
@@ -144,17 +145,24 @@ export default function BookingCheckoutScreen() {
         payment,
       });
 
-      if (paymentMethod !== "STATIC_QR" && paymentUrl) {
-      try {
-        await Linking.openURL(paymentUrl);
-      } catch (linkErr) {
+      if (paymentMethod !== "STATIC_QR" && !paymentUrl) {
         Alert.alert(
-          "Cannot open payment app",
-          "Please use the open payment button on the next screen.",
+          "Payment link unavailable",
+          "Please refresh the payment screen and try opening the gateway again.",
         );
+        return;
       }
-    }
 
+      if (paymentMethod !== "STATIC_QR") {
+        try {
+          await Linking.openURL(paymentUrl);
+        } catch (linkErr) {
+          Alert.alert(
+            "Cannot open payment app",
+            "Please use the open payment button on the next screen.",
+          );
+        }
+      }
     } catch (err) {
       const message = getErrorMessage(err);
 
@@ -256,10 +264,8 @@ export default function BookingCheckoutScreen() {
           ) : null}
         </View>
 
-
-          <View style={styles.section}>
-  <Text style={styles.label}>Payment method</Text>
-
+        <View style={styles.section}>
+          <Text style={styles.label}>Payment method</Text>
           <View style={styles.paymentMethodList}>
             {PAYMENT_METHODS.map((method) => {
               const selected = paymentMethod === method.value;
@@ -297,8 +303,6 @@ export default function BookingCheckoutScreen() {
             })}
           </View>
         </View>
-
-        
 
         <View style={styles.totalBox}>
           <View style={styles.totalRow}>
@@ -540,30 +544,30 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   paymentMethodList: {
-  gap: 10,
-},
-paymentMethodItem: {
-  minHeight: 50,
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: COLORS.border,
-  backgroundColor: COLORS.white,
-  paddingHorizontal: 14,
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 10,
-},
-paymentMethodItemActive: {
-  borderColor: COLORS.primary,
-  backgroundColor: "#ECFDF5",
-},
-paymentMethodText: {
-  flex: 1,
-  fontSize: 14,
-  fontWeight: "700",
-  color: COLORS.dark,
-},
-paymentMethodTextActive: {
-  color: COLORS.primary,
-},
+    gap: 10,
+  },
+  paymentMethodItem: {
+    minHeight: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  paymentMethodItemActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: "#ECFDF5",
+  },
+  paymentMethodText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.dark,
+  },
+  paymentMethodTextActive: {
+    color: COLORS.primary,
+  },
 });

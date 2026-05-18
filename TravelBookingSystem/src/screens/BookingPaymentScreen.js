@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { usePayment, useCancelPayment } from "../hooks/usePayments";
+import { useCancelPayment, usePayment } from "../hooks/usePayments";
 
 const COLORS = {
   primary: "#0D9488",
@@ -26,9 +26,46 @@ const COLORS = {
   danger: "#DC2626",
 };
 
+const ACTIVE_STATUSES = ["PENDING", "PROCESSING", "REVIEW"];
+const FAILED_STATUSES = ["FAILED", "CANCELLED", "EXPIRED"];
+
 const formatMoney = (value, currency = "VND") => {
   const number = Number(value || 0);
   return `${number.toLocaleString("vi-VN")} ${currency}`;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const getGatewayUrl = (payment) => {
+  const links = payment?.metadata?.gateway_links || {};
+
+  return (
+    links.deeplink ||
+    payment?.payment_url ||
+    links.payUrl ||
+    links.qrCodeUrl ||
+    null
+  );
+};
+
+const getMethodLabel = (method) => {
+  if (method === "MOMO") return "MoMo";
+  if (method === "VNPAY") return "VNPay";
+  if (method === "STATIC_QR") return "Static QR";
+  return method || "Payment";
 };
 
 const getPaymentBadge = (status) => {
@@ -40,7 +77,15 @@ const getPaymentBadge = (status) => {
     };
   }
 
-  if (status === "FAILED" || status === "CANCELLED" || status === "EXPIRED") {
+  if (status === "REVIEW") {
+    return {
+      label: "Review",
+      backgroundColor: "#FEF3C7",
+      color: COLORS.warning,
+    };
+  }
+
+  if (FAILED_STATUSES.includes(status)) {
     return {
       label: status,
       backgroundColor: "#FEE2E2",
@@ -55,6 +100,58 @@ const getPaymentBadge = (status) => {
   };
 };
 
+const getStatusContent = (payment) => {
+  const method = payment?.payment_method;
+  const status = payment?.payment_status;
+
+  if (status === "SUCCESS") {
+    return {
+      icon: "checkmark-circle-outline",
+      title: "Payment successful",
+      text: "Your booking has been paid and confirmed.",
+      color: COLORS.success,
+      backgroundColor: "#DCFCE7",
+    };
+  }
+
+  if (status === "REVIEW") {
+    return {
+      icon: "alert-circle-outline",
+      title: "Payment under review",
+      text: "This payment needs admin review before your booking can be confirmed.",
+      color: COLORS.warning,
+      backgroundColor: "#FEF3C7",
+    };
+  }
+
+  if (FAILED_STATUSES.includes(status)) {
+    return {
+      icon: "close-circle-outline",
+      title: "Payment not completed",
+      text: "This payment was not completed. Please create a new booking if you still want this service.",
+      color: COLORS.danger,
+      backgroundColor: "#FEE2E2",
+    };
+  }
+
+  if (method === "STATIC_QR") {
+    return {
+      icon: "qr-code-outline",
+      title: "Static QR Payment",
+      text: "Transfer with the content below. Provider or admin will confirm after checking the transaction.",
+      color: COLORS.primary,
+      backgroundColor: "#CCFBF1",
+    };
+  }
+
+  return {
+    icon: method === "VNPAY" ? "card-outline" : "wallet-outline",
+    title: `${getMethodLabel(method)} Payment`,
+    text: "Complete payment in the gateway. This screen will update automatically after confirmation.",
+    color: COLORS.primary,
+    backgroundColor: "#CCFBF1",
+  };
+};
 
 export default function BookingPaymentScreen() {
   const navigation = useNavigation();
@@ -66,25 +163,36 @@ export default function BookingPaymentScreen() {
     payment: initialPayment,
   } = route.params ?? {};
 
+  const resolvedPaymentId = paymentId || initialPayment?.id;
+
   const {
     data: payment,
     isLoading,
     isError,
     refetch,
-  } = usePayment(paymentId, {
-    enabled: Boolean(paymentId),
+  } = usePayment(resolvedPaymentId, {
+    enabled: Boolean(resolvedPaymentId),
     initialData: initialPayment,
   });
 
+  const cancelPaymentMutation = useCancelPayment();
+
   const transferContent = useMemo(() => {
-    return (
-      payment?.metadata?.transfer_content ||
-      payment?.transaction_id ||
-      "N/A"
-    );
+    return payment?.metadata?.transfer_content || payment?.transaction_id || "N/A";
   }, [payment]);
 
-  const badge = getPaymentBadge(payment?.payment_status);
+  const gatewayUrl = useMemo(() => getGatewayUrl(payment), [payment]);
+
+  const status = payment?.payment_status || "PROCESSING";
+  const method = payment?.payment_method || "STATIC_QR";
+  const isStaticQr = method === "STATIC_QR";
+  const isGatewayPayment = method === "MOMO" || method === "VNPAY";
+  const isActive = ACTIVE_STATUSES.includes(status);
+  const isFailed = FAILED_STATUSES.includes(status);
+  const canOpenGateway = isGatewayPayment && gatewayUrl && ["PENDING", "PROCESSING"].includes(status);
+  const canCancelStaticQr = isStaticQr && ["PENDING", "PROCESSING"].includes(status);
+  const badge = getPaymentBadge(status);
+  const statusContent = getStatusContent(payment);
 
   const goToTrips = () => {
     const tabs = navigation.getParent();
@@ -92,13 +200,27 @@ export default function BookingPaymentScreen() {
     navigation.popToTop();
 
     tabs?.navigate("TripTab", {
-        screen: "TripsHome",
-        params: {
+      screen: "TripsHome",
+      params: {
         bookingId,
-        paymentId,
-        },
+        paymentId: resolvedPaymentId,
+      },
     });
-};
+  };
+
+  const goToTripDetail = () => {
+    const tabs = navigation.getParent();
+
+    navigation.popToTop();
+
+    tabs?.navigate("TripTab", {
+      screen: "TripDetail",
+      params: {
+        bookingId,
+        paymentId: resolvedPaymentId,
+      },
+    });
+  };
 
   const goHome = () => {
     const tabs = navigation.getParent();
@@ -106,10 +228,47 @@ export default function BookingPaymentScreen() {
     navigation.popToTop();
 
     tabs?.navigate("HomeFeed", {
-        screen: "Home",
+      screen: "Home",
     });
-};
+  };
 
+  const openGateway = async () => {
+    if (!gatewayUrl) {
+      Alert.alert("Payment link unavailable", "Please refresh and try again.");
+      return;
+    }
+
+    try {
+      await Linking.openURL(gatewayUrl);
+    } catch (err) {
+      Alert.alert("Cannot open payment gateway", "Please try again later.");
+    }
+  };
+
+  const handleCancelPayment = () => {
+    Alert.alert(
+      "Cancel payment",
+      "This will cancel the current Static QR payment and release the booking inventory.",
+      [
+        { text: "Keep Payment", style: "cancel" },
+        {
+          text: "Cancel Payment",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelPaymentMutation.mutateAsync({
+                paymentId: resolvedPaymentId,
+              });
+              await refetch();
+            } catch (err) {
+              const detail = err?.response?.data?.detail || err?.message;
+              Alert.alert("Cannot cancel payment", detail || "Please try again.");
+            }
+          },
+        },
+      ],
+    );
+  };
 
   if (isLoading && !payment) {
     return (
@@ -165,14 +324,21 @@ export default function BookingPaymentScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.statusCard}>
-          <View style={styles.statusIcon}>
-            <Ionicons name="qr-code-outline" size={34} color={COLORS.primary} />
+          <View
+            style={[
+              styles.statusIcon,
+              { backgroundColor: statusContent.backgroundColor },
+            ]}
+          >
+            <Ionicons
+              name={statusContent.icon}
+              size={34}
+              color={statusContent.color}
+            />
           </View>
 
-          <Text style={styles.statusTitle}>Static QR Payment</Text>
-          <Text style={styles.statusText}>
-            Transfer with the content below. Your booking will be confirmed after the provider verifies the payment.
-          </Text>
+          <Text style={styles.statusTitle}>{statusContent.title}</Text>
+          <Text style={styles.statusText}>{statusContent.text}</Text>
 
           <View style={[styles.badge, { backgroundColor: badge.backgroundColor }]}>
             <Text style={[styles.badgeText, { color: badge.color }]}>
@@ -187,28 +353,77 @@ export default function BookingPaymentScreen() {
             value={formatMoney(payment?.amount, payment?.currency)}
             strong
           />
-          <InfoRow label="Currency" value={payment?.currency || "VND"} />
+          <InfoRow label="Payment Method" value={getMethodLabel(method)} />
+          <InfoRow label="Payment Status" value={status} />
           <InfoRow label="Transaction ID" value={payment?.transaction_id || "N/A"} />
-          <InfoRow label="Transfer Content" value={transferContent} strong />
-          <InfoRow label="Payment Method" value={payment?.payment_method || "STATIC_QR"} />
-          <InfoRow label="Payment Status" value={payment?.payment_status || "PROCESSING"} />
+
+          {isStaticQr ? (
+            <InfoRow label="Transfer Content" value={transferContent} strong />
+          ) : null}
+
+          {payment?.provider_transaction_id ? (
+            <InfoRow
+              label="Gateway Transaction"
+              value={payment.provider_transaction_id}
+            />
+          ) : null}
+
+          <InfoRow label="Expires At" value={formatDateTime(payment?.expires_at)} />
+
+          {canOpenGateway ? (
+            <Pressable style={styles.inlineButton} onPress={openGateway}>
+              <Ionicons name="open-outline" size={18} color={COLORS.white} />
+              <Text style={styles.inlineButtonText}>Open Payment Gateway</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.noteBox}>
           <Ionicons name="information-circle-outline" size={20} color={COLORS.primary} />
           <Text style={styles.noteText}>
-            Do not close your booking manually. Static QR payments are confirmed by provider or admin only.
+            {isStaticQr
+              ? "Static QR payments are confirmed by provider or admin only."
+              : "MoMo and VNPay payments are confirmed automatically from gateway IPN."}
           </Text>
         </View>
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        <Pressable style={styles.primaryButton} onPress={goToTrips}>
-          <Text style={styles.primaryButtonText}>View My Trips</Text>
-        </Pressable>
+        {status === "SUCCESS" ? (
+          <Pressable style={styles.primaryButton} onPress={goToTripDetail}>
+            <Text style={styles.primaryButtonText}>View Trip Detail</Text>
+          </Pressable>
+        ) : null}
 
-        <Pressable style={styles.secondaryButton} onPress={goHome}>
-          <Text style={styles.secondaryButtonText}>Back Home</Text>
+        {isFailed ? (
+          <Pressable style={styles.primaryButton} onPress={goHome}>
+            <Text style={styles.primaryButtonText}>Book Again</Text>
+          </Pressable>
+        ) : null}
+
+        {isActive ? (
+          <Pressable style={styles.primaryButton} onPress={refetch}>
+            <Text style={styles.primaryButtonText}>Refresh Status</Text>
+          </Pressable>
+        ) : null}
+
+        {canCancelStaticQr ? (
+          <Pressable
+            style={[
+              styles.dangerButton,
+              cancelPaymentMutation.isPending && styles.disabledButton,
+            ]}
+            disabled={cancelPaymentMutation.isPending}
+            onPress={handleCancelPayment}
+          >
+            <Text style={styles.dangerButtonText}>
+              {cancelPaymentMutation.isPending ? "Cancelling..." : "Cancel Payment"}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        <Pressable style={styles.secondaryButton} onPress={goToTrips}>
+          <Text style={styles.secondaryButtonText}>View My Trips</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -257,7 +472,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 150,
+    paddingBottom: 190,
   },
   statusCard: {
     backgroundColor: COLORS.white,
@@ -272,7 +487,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#CCFBF1",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -281,6 +495,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     color: COLORS.dark,
+    textAlign: "center",
   },
   statusText: {
     marginTop: 8,
@@ -325,6 +540,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900",
     color: COLORS.primary,
+  },
+  inlineButton: {
+    marginTop: 16,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  inlineButtonText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: COLORS.white,
   },
   noteBox: {
     marginTop: 12,
@@ -377,6 +607,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     color: COLORS.dark,
+  },
+  dangerButton: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dangerButtonText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#B91C1C",
+  },
+  disabledButton: {
+    opacity: 0.55,
   },
   centerState: {
     flex: 1,
