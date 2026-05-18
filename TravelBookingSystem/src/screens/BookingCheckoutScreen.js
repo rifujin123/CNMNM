@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -22,6 +23,12 @@ const COLORS = {
   white: "#FFFFFF",
   danger: "#DC2626",
 };
+
+const PAYMENT_METHODS = [
+  { label: "MoMo", value: "MOMO", icon: "wallet-outline" },
+  { label: "VNPay", value: "VNPAY", icon: "card-outline" },
+  { label: "Static QR", value: "STATIC_QR", icon: "qr-code-outline" },
+];
 
 const toNumber = (value) => {
   if (typeof value === "number") return value;
@@ -58,6 +65,8 @@ const getErrorMessage = (err) => {
 export default function BookingCheckoutScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+
+  const [paymentMethod, setPaymentMethod] = useState("MOMO");
 
   const {
     service,
@@ -120,14 +129,32 @@ export default function BookingCheckoutScreen() {
 
       const payment = await createPaymentMutation.mutateAsync({
         bookingId: createdBooking.id,
-        method: "STATIC_QR",
+        method: paymentMethod,
       });
+
+      const gatewayLinks = payment?.metadata?.gateway_links || {};
+      const paymentUrl =
+        gatewayLinks.deeplink ||
+        payment.payment_url ||
+        gatewayLinks.payUrl;
 
       navigation.replace("BookingPayment", {
         bookingId: createdBooking.id,
         paymentId: payment.id,
         payment,
       });
+
+      if (paymentMethod !== "STATIC_QR" && paymentUrl) {
+      try {
+        await Linking.openURL(paymentUrl);
+      } catch (linkErr) {
+        Alert.alert(
+          "Cannot open payment app",
+          "Please use the open payment button on the next screen.",
+        );
+      }
+    }
+
     } catch (err) {
       const message = getErrorMessage(err);
 
@@ -228,6 +255,50 @@ export default function BookingCheckoutScreen() {
             <Text style={styles.helperText}>{maxQuantity} slots available</Text>
           ) : null}
         </View>
+
+
+          <View style={styles.section}>
+  <Text style={styles.label}>Payment method</Text>
+
+          <View style={styles.paymentMethodList}>
+            {PAYMENT_METHODS.map((method) => {
+              const selected = paymentMethod === method.value;
+
+              return (
+                <Pressable
+                  key={method.value}
+                  disabled={isSubmitting}
+                  onPress={() => setPaymentMethod(method.value)}
+                  style={[
+                    styles.paymentMethodItem,
+                    selected && styles.paymentMethodItemActive,
+                  ]}
+                >
+                  <Ionicons
+                    name={method.icon}
+                    size={20}
+                    color={selected ? COLORS.primary : COLORS.muted}
+                  />
+
+                  <Text
+                    style={[
+                      styles.paymentMethodText,
+                      selected && styles.paymentMethodTextActive,
+                    ]}
+                  >
+                    {method.label}
+                  </Text>
+
+                  {selected ? (
+                    <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        
 
         <View style={styles.totalBox}>
           <View style={styles.totalRow}>
@@ -468,4 +539,31 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: COLORS.white,
   },
+  paymentMethodList: {
+  gap: 10,
+},
+paymentMethodItem: {
+  minHeight: 50,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: COLORS.border,
+  backgroundColor: COLORS.white,
+  paddingHorizontal: 14,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 10,
+},
+paymentMethodItemActive: {
+  borderColor: COLORS.primary,
+  backgroundColor: "#ECFDF5",
+},
+paymentMethodText: {
+  flex: 1,
+  fontSize: 14,
+  fontWeight: "700",
+  color: COLORS.dark,
+},
+paymentMethodTextActive: {
+  color: COLORS.primary,
+},
 });

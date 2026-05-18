@@ -130,6 +130,42 @@ export const fetchPaymentDetail = async ({ token, paymentId }) => {
   return res?.data ?? null;
 };
 
+export const confirmStaticQrPayment = async ({
+  token,
+  paymentId,
+  result = "success",
+  providerTransactionId,
+}) => {
+  if (!token) throw new Error("Missing token");
+  if (!paymentId) throw new Error("Missing paymentId");
+
+  const payload = {
+    result,
+  };
+
+  if (providerTransactionId) {
+    payload.provider_transaction_id = providerTransactionId;
+  }
+
+  const res = await authApis(token).post(
+    `${endpoints.payments}${paymentId}/confirm_static_qr_payment/`,
+    payload,
+  );
+
+  return res?.data ?? null;
+};
+
+export const cancelPayment = async ({ token, paymentId }) => {
+  if (!token) throw new Error("Missing token");
+  if (!paymentId) throw new Error("Missing paymentId");
+
+  const res = await authApis(token).post(
+    `${endpoints.payments}${paymentId}/cancel/`,
+  );
+
+  return res?.data ?? null;
+};
+
 
   
 export const fetchHotels = async (params = {}) => {

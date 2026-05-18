@@ -23,9 +23,10 @@ export default function ItemDetailScreen() {
   const { isLoggedIn } = useAuth();
 
   const itemId = route.params?.itemId ?? route.params?.ItemId;
+  const { data: place, isLoading, isError } = usePlaceDetail(itemId);
+  
   const initialPackageId = route.params?.selectedPackageId;
 
-  const { data: place, isLoading, isError } = usePlaceDetail(itemId);
   const [selectedPackageId, setSelectedPackageId] = useState(
     initialPackageId ?? null
   );

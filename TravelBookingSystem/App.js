@@ -55,7 +55,6 @@ function RootNavigator() {
           <>
             <Stack.Screen name="MainTabs" component={MyTabs} />
             <Stack.Screen name="AccountRoot" component={AccountStack} />
-            <Stack.Screen name="TripDetail" component={TripDetailScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen
               name="AccountNotLoggedInScreen"

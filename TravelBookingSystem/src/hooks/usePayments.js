@@ -1,6 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  cancelPayment,
+  confirmStaticQrPayment,
+  fetchPaymentDetail,
+  fetchPayments,
+} from "../api/services";
 import { useAuth } from "../../context/AuthContext";
-import { fetchPaymentDetail, fetchPayments } from "../api/services";
 
 const ACTIVE_PAYMENT_STATUSES = ["PENDING", "PROCESSING", "REVIEW"];
 
@@ -35,5 +40,37 @@ export function usePayment(paymentId, options = {}) {
       return ACTIVE_PAYMENT_STATUSES.includes(status) ? 5000 : false;
     },
     ...options,
+  });
+}
+
+export function useCancelPayment() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ paymentId }) => cancelPayment({ token, paymentId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+}
+
+export function useConfirmStaticQrPayment() {
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ paymentId, result = "success", providerTransactionId }) =>
+      confirmStaticQrPayment({
+        token,
+        paymentId,
+        result,
+        providerTransactionId,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
   });
 }
