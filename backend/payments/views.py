@@ -6,12 +6,6 @@ from .payServices.payment_service import complete_static_qr_payment, PaymentLife
 from rest_framework.decorators import action
 from django.utils import timezone
 
-from django.conf import settings
-from django.shortcuts import redirect
-
-from .payServices.momo_service import MoMoPaymentService
-from .payServices.vnpay_service import VnPayPaymentService
-
 
 class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.RetrieveModelMixin,viewsets.GenericViewSet):
     queryset = Payment.objects.select_related(
@@ -55,15 +49,6 @@ class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.Retri
 
         return payment
     
-    def _build_payment_deep_link(self, payment):
-        scheme = getattr(settings, "APP_DEEP_LINK_SCHEME", "travelbooking")
-        return (
-            f"{scheme}://payment-result"
-            f"?payment_id={payment.id}"
-            f"&booking_id={payment.booking_id}"
-            f"&status={payment.payment_status}"
-        )
-    
     def retrieve(self, request, *args, **kwargs):
         payment = self.get_object()
         payment = self._expire_payment_if_needed(payment)
@@ -90,15 +75,7 @@ class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.Retri
     def confirm_static_qr_payment(self, request, pk=None):
         payment = self.get_object()
 
-        if not (
-            request.user.is_staff
-            or request.user.is_superuser
-            or (
-                request.user.is_provider
-                and request.user.is_approved
-                and payment.booking.service.provider_id == request.user.id
-            )
-            ):
+        if not (request.user.is_staff or request.user.is_superuser):
             return Response(
                 {"detail": "Bạn không có quyền xác nhận thanh toán này."}, 
                 status=status.HTTP_403_FORBIDDEN
@@ -148,24 +125,31 @@ class PaymentViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,mixins.Retri
 
     @action(detail=False,methods=["post"],url_path="momo/ipn",permission_classes=[permissions.AllowAny],authentication_classes=[],)
     def momo_ipn(self, request):
-        MoMoPaymentService.handle_ipn(request.data)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {"detail": "MoMo payment is disabled. Use Static QR."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     
     @action(detail=False,methods=["get"],url_path="momo/return",permission_classes=[permissions.AllowAny],authentication_classes=[],)
     def momo_return(self, request):
-        payment = MoMoPaymentService.get_payment_from_return(request.query_params)
-        return redirect(self._build_payment_deep_link(payment))
+        return Response(
+            {"detail": "MoMo payment is disabled. Use Static QR."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     
     @action(detail=False,methods=["get"],url_path="vnpay/ipn",permission_classes=[permissions.AllowAny],authentication_classes=[],)
     def vnpay_ipn(self, request):
-        result = VnPayPaymentService.handle_ipn(request.query_params)
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(
+            {"detail": "VNPay payment is disabled. Use Static QR."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     
     @action(detail=False,methods=["get"],url_path="vnpay/return",permission_classes=[permissions.AllowAny],authentication_classes=[],)
     def vnpay_return(self, request):
-        payment = VnPayPaymentService.get_payment_from_return(request.query_params)
-        return redirect(self._build_payment_deep_link(payment))
+        return Response(
+            {"detail": "VNPay payment is disabled. Use Static QR."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     
 
             
-

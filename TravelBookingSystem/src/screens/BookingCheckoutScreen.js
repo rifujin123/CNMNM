@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -25,8 +24,6 @@ const COLORS = {
 };
 
 const PAYMENT_METHODS = [
-  { label: "MoMo", value: "MOMO", icon: "wallet-outline" },
-  { label: "VNPay", value: "VNPAY", icon: "card-outline" },
   { label: "Static QR", value: "STATIC_QR", icon: "qr-code-outline" },
 ];
 
@@ -66,7 +63,7 @@ export default function BookingCheckoutScreen() {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const [paymentMethod, setPaymentMethod] = useState("MOMO");
+  const [paymentMethod, setPaymentMethod] = useState("STATIC_QR");
 
   const {
     service,
@@ -132,37 +129,11 @@ export default function BookingCheckoutScreen() {
         method: paymentMethod,
       });
 
-      const gatewayLinks = payment?.metadata?.gateway_links || {};
-      const paymentUrl =
-        gatewayLinks.deeplink ||
-        payment?.payment_url ||
-        gatewayLinks.payUrl ||
-        gatewayLinks.qrCodeUrl;
-
       navigation.replace("BookingPayment", {
         bookingId: createdBooking.id,
         paymentId: payment.id,
         payment,
       });
-
-      if (paymentMethod !== "STATIC_QR" && !paymentUrl) {
-        Alert.alert(
-          "Payment link unavailable",
-          "Please refresh the payment screen and try opening the gateway again.",
-        );
-        return;
-      }
-
-      if (paymentMethod !== "STATIC_QR") {
-        try {
-          await Linking.openURL(paymentUrl);
-        } catch (linkErr) {
-          Alert.alert(
-            "Cannot open payment app",
-            "Please use the open payment button on the next screen.",
-          );
-        }
-      }
     } catch (err) {
       const message = getErrorMessage(err);
 

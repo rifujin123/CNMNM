@@ -7,6 +7,8 @@ from bookings.services import BookingService
 
 class StaticQrPaymentService:
     def create_payment(self, payment, request):
+        service_provider_id = getattr(payment.booking.service, "provider_id", None)
+
         payment.payment_status = Payment.PaymentStatus.PROCESSING
         payment.provider_transaction_id = f"STATICQR-{payment.booking_id}"
         payment.payment_url = None
@@ -14,10 +16,21 @@ class StaticQrPaymentService:
             **(payment.metadata or {}),
             "gateway": "STATIC_QR",
             "gateway_status": "qr_created",
+            "receiver": "PLATFORM",
             "transfer_content": payment.transaction_id,
             "amount": str(payment.amount),
+            "booking_id": payment.booking_id,
+            "service_provider_id": service_provider_id,
         }
-        payment.save()
+        payment.save(
+            update_fields=[
+                "payment_status",
+                "provider_transaction_id",
+                "payment_url",
+                "metadata",
+                "updated_at",
+            ]
+        )
         return payment
 
     def complete_payment(self, transaction_id, provider_transaction_id = None, result="success"):
@@ -122,13 +135,7 @@ def create_gateway_payment(payment, request):
     if payment.payment_method == Payment.PaymentMethod.STATIC_QR:
         return StaticQrPaymentService().create_payment(payment, request)
 
-    if payment.payment_method == Payment.PaymentMethod.MOMO:
-        from .momo_service import MoMoPaymentService
-        return MoMoPaymentService.create_payment(payment, request)
-
-    if payment.payment_method == Payment.PaymentMethod.VNPAY:
-        from .vnpay_service import VnPayPaymentService
-        return VnPayPaymentService.create_payment(payment, request)
+    raise ValidationError("Hien tai chi ho tro thanh toan Static QR.")
 
     raise ValidationError("Phương thức thanh toán không hợp lệ")
 

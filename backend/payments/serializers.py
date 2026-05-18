@@ -43,6 +43,14 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
             "booking",
             "payment_method",
         ]
+
+    def validate_payment_method(self, payment_method):
+        if payment_method != Payment.PaymentMethod.STATIC_QR:
+            raise serializers.ValidationError(
+                "Hien tai chi ho tro thanh toan Static QR."
+            )
+
+        return payment_method
         
     def validate_booking(self, booking):
         request = self.context.get('request')

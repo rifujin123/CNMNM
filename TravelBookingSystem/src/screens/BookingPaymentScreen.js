@@ -2,7 +2,6 @@ import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -49,23 +48,9 @@ const formatDateTime = (value) => {
   });
 };
 
-const getGatewayUrl = (payment) => {
-  const links = payment?.metadata?.gateway_links || {};
-
-  return (
-    links.deeplink ||
-    payment?.payment_url ||
-    links.payUrl ||
-    links.qrCodeUrl ||
-    null
-  );
-};
-
 const getMethodLabel = (method) => {
-  if (method === "MOMO") return "MoMo";
-  if (method === "VNPAY") return "VNPay";
   if (method === "STATIC_QR") return "Static QR";
-  return method || "Payment";
+  return "Static QR";
 };
 
 const getPaymentBadge = (status) => {
@@ -138,16 +123,16 @@ const getStatusContent = (payment) => {
     return {
       icon: "qr-code-outline",
       title: "Static QR Payment",
-      text: "Transfer with the content below. Provider or admin will confirm after checking the transaction.",
+      text: "Transfer to the platform account with the content below. Admin will confirm after checking the transaction.",
       color: COLORS.primary,
       backgroundColor: "#CCFBF1",
     };
   }
 
   return {
-    icon: method === "VNPAY" ? "card-outline" : "wallet-outline",
-    title: `${getMethodLabel(method)} Payment`,
-    text: "Complete payment in the gateway. This screen will update automatically after confirmation.",
+    icon: "qr-code-outline",
+    title: "Static QR Payment",
+    text: "Transfer to the platform account with the content below. Admin will confirm after checking the transaction.",
     color: COLORS.primary,
     backgroundColor: "#CCFBF1",
   };
@@ -181,15 +166,11 @@ export default function BookingPaymentScreen() {
     return payment?.metadata?.transfer_content || payment?.transaction_id || "N/A";
   }, [payment]);
 
-  const gatewayUrl = useMemo(() => getGatewayUrl(payment), [payment]);
-
   const status = payment?.payment_status || "PROCESSING";
   const method = payment?.payment_method || "STATIC_QR";
   const isStaticQr = method === "STATIC_QR";
-  const isGatewayPayment = method === "MOMO" || method === "VNPAY";
   const isActive = ACTIVE_STATUSES.includes(status);
   const isFailed = FAILED_STATUSES.includes(status);
-  const canOpenGateway = isGatewayPayment && gatewayUrl && ["PENDING", "PROCESSING"].includes(status);
   const canCancelStaticQr = isStaticQr && ["PENDING", "PROCESSING"].includes(status);
   const badge = getPaymentBadge(status);
   const statusContent = getStatusContent(payment);
@@ -230,19 +211,6 @@ export default function BookingPaymentScreen() {
     tabs?.navigate("HomeFeed", {
       screen: "Home",
     });
-  };
-
-  const openGateway = async () => {
-    if (!gatewayUrl) {
-      Alert.alert("Payment link unavailable", "Please refresh and try again.");
-      return;
-    }
-
-    try {
-      await Linking.openURL(gatewayUrl);
-    } catch (err) {
-      Alert.alert("Cannot open payment gateway", "Please try again later.");
-    }
   };
 
   const handleCancelPayment = () => {
@@ -363,27 +331,18 @@ export default function BookingPaymentScreen() {
 
           {payment?.provider_transaction_id ? (
             <InfoRow
-              label="Gateway Transaction"
+              label="Bank Transaction"
               value={payment.provider_transaction_id}
             />
           ) : null}
 
           <InfoRow label="Expires At" value={formatDateTime(payment?.expires_at)} />
-
-          {canOpenGateway ? (
-            <Pressable style={styles.inlineButton} onPress={openGateway}>
-              <Ionicons name="open-outline" size={18} color={COLORS.white} />
-              <Text style={styles.inlineButtonText}>Open Payment Gateway</Text>
-            </Pressable>
-          ) : null}
         </View>
 
         <View style={styles.noteBox}>
           <Ionicons name="information-circle-outline" size={20} color={COLORS.primary} />
           <Text style={styles.noteText}>
-            {isStaticQr
-              ? "Static QR payments are confirmed by provider or admin only."
-              : "MoMo and VNPay payments are confirmed automatically from gateway IPN."}
+            Static QR payments are received by the platform account and confirmed by admin only.
           </Text>
         </View>
       </ScrollView>
@@ -540,21 +499,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900",
     color: COLORS.primary,
-  },
-  inlineButton: {
-    marginTop: 16,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  inlineButtonText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: COLORS.white,
   },
   noteBox: {
     marginTop: 12,
