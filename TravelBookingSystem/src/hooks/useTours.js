@@ -5,7 +5,7 @@ export const tourKeys = {
   all: ["tours"],
   categories: () => [...tourKeys.all, "categories"],
   places: (params) => [...tourKeys.all, "places", params],
-  detail: (id) => [...tourKeys.all, "detail", id],
+  detail: (id, serviceType) => [...tourKeys.all, "detail", serviceType, id],
   hotels: (params) => [...tourKeys.all, "hotels", params],
   transports: (params) => [...tourKeys.all, "transports", params],
 };
@@ -46,10 +46,10 @@ export function useTransports(params = {}, options = {}) {
   });
 }
 
-export function usePlaceDetail(id, options = {}) {
+export function usePlaceDetail(id, serviceType = "tour", options = {}) {
   return useQuery({
-    queryKey: tourKeys.detail(id),
-    queryFn: () => fetchPlaceDetail(id),
+    queryKey: tourKeys.detail(id, serviceType),
+    queryFn: () => fetchPlaceDetail(id, serviceType),
     enabled: Boolean(id),
     staleTime: 1000 * 60 * 5,
     ...options,

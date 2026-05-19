@@ -19,17 +19,18 @@ const getPlaceImageUri = (item) => {
 
 function ItemCard({ item, onPress, isWishlist, onWishlistToggle, onRequireLogin }) {
   const imageUri = getPlaceImageUri(item) || FALLBACK_IMAGE_URI;
+  const price = item?.base_price_display || item?.base_price || "N/A";
 
   const handleWishlistPress = (e) => {
     e?.stopPropagation?.();
-    const tourId = item?.id;
-    if (!tourId){
+    const serviceId = item?.id;
+    if (!serviceId){
       return;
     }
     if (!onWishlistToggle) {
       onRequireLogin?.({
         type: "wishlist",
-        tourId,
+        serviceId,
       });
       return;
     }
@@ -56,7 +57,7 @@ function ItemCard({ item, onPress, isWishlist, onWishlistToggle, onRequireLogin 
 
         <Text style={styles.price}>
           From <FontAwesome6 name="dong-sign" size={13} color="black" />
-          {item.base_price}
+          {price}
         </Text>
       </Pressable>
       <Pressable

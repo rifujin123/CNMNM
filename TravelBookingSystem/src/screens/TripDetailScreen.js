@@ -83,6 +83,37 @@ const getCityName = (service) => {
 const getServiceType = (booking) =>
   normalize(booking?.service?.service_type || booking?.service_type || "tour");
 
+const getBookingOptionLabel = (booking) => {
+  const serviceType = getServiceType(booking);
+
+  if (serviceType === "tour") {
+    return booking?.tour_package?.name || "N/A";
+  }
+
+  if (serviceType === "hotel") {
+    const roomNumbers = (booking?.rooms || [])
+      .map((room) => room.room_number)
+      .filter(Boolean)
+      .join(", ");
+    const roomType = booking?.room_type?.name;
+
+    if (roomNumbers && roomType) return `${roomType} - room ${roomNumbers}`;
+    return roomType || roomNumbers || "N/A";
+  }
+
+  if (serviceType === "transport") {
+    const routeLabel = booking?.route
+      ? `${booking.route.from_city || "Unknown"} to ${booking.route.to_city || "Unknown"}`
+      : null;
+    const seatType = booking?.seat_type?.name;
+
+    if (routeLabel && seatType) return `${routeLabel} - ${seatType}`;
+    return seatType || routeLabel || "N/A";
+  }
+
+  return "N/A";
+};
+
 const mapBookingToTrip = (booking) => ({
   id: String(booking.id),
   title: booking?.service?.name || "Untitled booking",
@@ -304,8 +335,8 @@ const TripDetailScreen = () => {
 
           <InfoRow label="Service Type" value={getServiceType(selectedBooking)} />
           <InfoRow
-            label="Package"
-            value={selectedBooking.tour_package?.name || "N/A"}
+            label="Option"
+            value={getBookingOptionLabel(selectedBooking)}
           />
           <InfoRow label="Quantity" value={String(selectedBooking.quantity || 1)} />
           <InfoRow label="Total" value={formatMoney(selectedBooking.total_price)} />

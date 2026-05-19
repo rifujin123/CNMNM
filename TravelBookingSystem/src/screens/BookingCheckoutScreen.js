@@ -27,6 +27,17 @@ const PAYMENT_METHODS = [
   { label: "Static QR", value: "STATIC_QR", icon: "qr-code-outline" },
 ];
 
+const SERVICE_LABELS = {
+  tour: "Tour",
+  hotel: "Hotel",
+  transport: "Transport",
+};
+
+const normalizeServiceType = (value) => {
+  const type = String(value || "").toLowerCase();
+  return SERVICE_LABELS[type] ? type : "tour";
+};
+
 const toNumber = (value) => {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -40,6 +51,33 @@ const toNumber = (value) => {
 const formatMoney = (value) => {
   const number = toNumber(value);
   return `${number.toLocaleString("vi-VN")} VND`;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const getCityName = (service) => {
+  if (!service?.city) return "Unknown location";
+  if (typeof service.city === "string") return service.city;
+  return service.city.name || "Unknown location";
+};
+
+const getRouteLabel = (route) => {
+  const fromCity = route?.from_city?.name || "Unknown";
+  const toCity = route?.to_city?.name || "Unknown";
+  return `${fromCity} to ${toCity}`;
 };
 
 const getErrorMessage = (err) => {
@@ -67,10 +105,16 @@ export default function BookingCheckoutScreen() {
 
   const {
     service,
+    serviceType: routeServiceType,
     selectedPackage,
+    selectedRoom,
+    selectedRoute,
+    selectedSeatType,
     quantity: initialQuantity = 1,
   } = route.params ?? {};
 
+  const serviceType = normalizeServiceType(routeServiceType || service?.type);
+  const serviceLabel = SERVICE_LABELS[serviceType];
   const [quantity, setQuantity] = useState(Number(initialQuantity) || 1);
 
   const createBookingMutation = useCreateBooking();
@@ -79,23 +123,98 @@ export default function BookingCheckoutScreen() {
   const isSubmitting =
     createBookingMutation.isPending || createPaymentMutation.isPending;
 
-  const maxQuantity = service?.empty_slot ? Number(service.empty_slot) : null;
+  const selectedOption = useMemo(() => {
+    if (serviceType === "tour") {
+      return selectedPackage
+        ? {
+            title: selectedPackage.name,
+            subtitle: "Tour package",
+            price: selectedPackage.total_price ?? selectedPackage.price,
+          }
+        : null;
+    }
+
+    if (serviceType === "hotel") {
+      return selectedRoom
+        ? {
+            title: `Room ${selectedRoom.room_number || selectedRoom.id}`,
+            subtitle: selectedRoom.room_type?.name || "Hotel room",
+            price: selectedRoom.room_type?.price,
+          }
+        : null;
+    }
+
+    if (serviceType === "transport") {
+      return selectedSeatType
+        ? {
+            title: selectedSeatType.name,
+            subtitle: selectedRoute ? getRouteLabel(selectedRoute) : "Transport seat",
+            price: toNumber(service?.base_price) + toNumber(selectedSeatType.price),
+          }
+        : null;
+    }
+
+    return null;
+  }, [selectedPackage, selectedRoom, selectedRoute, selectedSeatType, service?.base_price, serviceType]);
+
+  const maxQuantity = useMemo(() => {
+    if (serviceType === "tour") {
+      return service?.empty_slot ? Number(service.empty_slot) : null;
+    }
+
+    if (serviceType === "transport") {
+      return selectedSeatType?.availableSeats
+        ? Number(selectedSeatType.availableSeats)
+        : null;
+    }
+
+    return 1;
+  }, [selectedSeatType?.availableSeats, service?.empty_slot, serviceType]);
 
   const unitPrice = useMemo(() => {
-    const packageTotal = toNumber(selectedPackage?.total_price);
-    if (packageTotal > 0) return packageTotal;
+    if (serviceType === "tour") {
+      const packageTotal = toNumber(selectedPackage?.total_price);
+      if (packageTotal > 0) return packageTotal;
 
-    return toNumber(service?.base_price) + toNumber(selectedPackage?.price);
-  }, [service?.base_price, selectedPackage?.price, selectedPackage?.total_price]);
+      return toNumber(service?.base_price) + toNumber(selectedPackage?.price);
+    }
 
-  const totalPrice = unitPrice * quantity;
+    if (serviceType === "hotel") {
+      return toNumber(selectedRoom?.room_type?.price);
+    }
+
+    if (serviceType === "transport") {
+      return toNumber(service?.base_price) + toNumber(selectedSeatType?.price);
+    }
+
+    return toNumber(service?.base_price);
+  }, [
+    selectedPackage?.price,
+    selectedPackage?.total_price,
+    selectedRoom?.room_type?.price,
+    selectedSeatType?.price,
+    service?.base_price,
+    serviceType,
+  ]);
+
+  const billableQuantity = serviceType === "hotel" ? 1 : quantity;
+  const totalPrice = unitPrice * billableQuantity;
+
+  const hasRequiredSelection =
+    Boolean(service?.id) &&
+    ((serviceType === "tour" && Boolean(selectedPackage?.id)) ||
+      (serviceType === "hotel" && Boolean(selectedRoom?.id)) ||
+      (serviceType === "transport" &&
+        Boolean(selectedRoute?.id) &&
+        Boolean(selectedSeatType?.id) &&
+        Number(selectedSeatType?.availableSeats ?? 1) > 0));
 
   const increaseQuantity = () => {
     setQuantity((current) => {
       const next = current + 1;
 
       if (maxQuantity && next > maxQuantity) {
-        Alert.alert("Not enough slots", `Only ${maxQuantity} slots are available.`);
+        Alert.alert("Not enough availability", `Only ${maxQuantity} item(s) are available.`);
         return current;
       }
 
@@ -107,9 +226,38 @@ export default function BookingCheckoutScreen() {
     setQuantity((current) => Math.max(1, current - 1));
   };
 
+  const buildBookingPayload = () => {
+    const payload = {
+      service: Number(service.id),
+      quantity: billableQuantity,
+    };
+
+    if (serviceType === "tour") {
+      payload.tour_package = Number(selectedPackage.id);
+    }
+
+    if (serviceType === "hotel") {
+      payload.rooms = [Number(selectedRoom.id)];
+
+      if (selectedRoom.room_type?.id) {
+        payload.room_type = Number(selectedRoom.room_type.id);
+      }
+    }
+
+    if (serviceType === "transport") {
+      payload.route = Number(selectedRoute.id);
+      payload.seat_type = Number(selectedSeatType.id);
+    }
+
+    return payload;
+  };
+
   const handleConfirmBooking = async () => {
-    if (!service?.id || !selectedPackage?.id) {
-      Alert.alert("Missing booking data", "Please go back and choose a package again.");
+    if (!hasRequiredSelection) {
+      Alert.alert(
+        "Missing booking data",
+        "Please go back and choose an available option again."
+      );
       return;
     }
 
@@ -117,11 +265,7 @@ export default function BookingCheckoutScreen() {
 
     try {
       createdBooking = await createBookingMutation.mutateAsync({
-        payload: {
-          service: Number(service.id),
-          tour_package: Number(selectedPackage.id),
-          quantity,
-        },
+        payload: buildBookingPayload(),
       });
 
       const payment = await createPaymentMutation.mutateAsync({
@@ -140,7 +284,7 @@ export default function BookingCheckoutScreen() {
       if (createdBooking?.id) {
         Alert.alert(
           "Booking created",
-          `Your booking was created, but payment could not be started. ${message}`,
+          `Your booking was created, but payment could not be started. ${message}`
         );
         return;
       }
@@ -149,7 +293,7 @@ export default function BookingCheckoutScreen() {
     }
   };
 
-  if (!service || !selectedPackage) {
+  if (!service || !hasRequiredSelection) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
@@ -162,7 +306,7 @@ export default function BookingCheckoutScreen() {
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Missing booking data</Text>
           <Text style={styles.emptyText}>
-            Please go back to the tour detail and choose a package again.
+            Please go back to the service detail and choose an option again.
           </Text>
 
           <Pressable style={styles.primaryButton} onPress={() => navigation.goBack()}>
@@ -188,51 +332,76 @@ export default function BookingCheckoutScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.section}>
-          <Text style={styles.label}>Tour</Text>
+          <Text style={styles.label}>{serviceLabel}</Text>
           <Text style={styles.title}>{service.name}</Text>
-          <Text style={styles.mutedText}>{service?.city?.name || "Unknown location"}</Text>
+          <Text style={styles.mutedText}>{getCityName(service)}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Selected package</Text>
+          <Text style={styles.label}>Selected option</Text>
           <View style={styles.summaryRow}>
             <View style={styles.summaryText}>
-              <Text style={styles.summaryTitle}>{selectedPackage.name}</Text>
-              <Text style={styles.mutedText}>Unit price</Text>
+              <Text style={styles.summaryTitle}>{selectedOption.title}</Text>
+              <Text style={styles.mutedText}>{selectedOption.subtitle}</Text>
             </View>
             <Text style={styles.summaryPrice}>{formatMoney(unitPrice)}</Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>Guests</Text>
-
-          <View style={styles.quantityRow}>
-            <Pressable
-              onPress={decreaseQuantity}
-              disabled={quantity <= 1 || isSubmitting}
-              style={[
-                styles.stepperButton,
-                (quantity <= 1 || isSubmitting) && styles.disabledButton,
-              ]}
-            >
-              <Ionicons name="remove" size={20} color={COLORS.dark} />
-            </Pressable>
-
-            <Text style={styles.quantityText}>{quantity}</Text>
-
-            <Pressable
-              onPress={increaseQuantity}
-              disabled={isSubmitting}
-              style={[styles.stepperButton, isSubmitting && styles.disabledButton]}
-            >
-              <Ionicons name="add" size={20} color={COLORS.dark} />
-            </Pressable>
+        {serviceType === "transport" ? (
+          <View style={styles.section}>
+            <Text style={styles.label}>Route</Text>
+            <Text style={styles.title}>{getRouteLabel(selectedRoute)}</Text>
+            <Text style={styles.mutedText}>
+              Depart: {formatDateTime(selectedRoute?.departure_time)}
+            </Text>
+            <Text style={styles.mutedText}>
+              Arrive: {formatDateTime(selectedRoute?.arrival_time)}
+            </Text>
           </View>
+        ) : null}
 
-          {maxQuantity ? (
-            <Text style={styles.helperText}>{maxQuantity} slots available</Text>
-          ) : null}
+        <View style={styles.section}>
+          <Text style={styles.label}>
+            {serviceType === "transport"
+              ? "Seats"
+              : serviceType === "hotel"
+                ? "Rooms"
+                : "Guests"}
+          </Text>
+
+          {serviceType === "hotel" ? (
+            <Text style={styles.quantityStatic}>1 room selected</Text>
+          ) : (
+            <>
+              <View style={styles.quantityRow}>
+                <Pressable
+                  onPress={decreaseQuantity}
+                  disabled={quantity <= 1 || isSubmitting}
+                  style={[
+                    styles.stepperButton,
+                    (quantity <= 1 || isSubmitting) && styles.disabledButton,
+                  ]}
+                >
+                  <Ionicons name="remove" size={20} color={COLORS.dark} />
+                </Pressable>
+
+                <Text style={styles.quantityText}>{quantity}</Text>
+
+                <Pressable
+                  onPress={increaseQuantity}
+                  disabled={isSubmitting}
+                  style={[styles.stepperButton, isSubmitting && styles.disabledButton]}
+                >
+                  <Ionicons name="add" size={20} color={COLORS.dark} />
+                </Pressable>
+              </View>
+
+              {maxQuantity ? (
+                <Text style={styles.helperText}>{maxQuantity} available</Text>
+              ) : null}
+            </>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -282,8 +451,14 @@ export default function BookingCheckoutScreen() {
           </View>
 
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Guests</Text>
-            <Text style={styles.totalValue}>{quantity}</Text>
+            <Text style={styles.totalLabel}>
+              {serviceType === "transport"
+                ? "Seats"
+                : serviceType === "hotel"
+                  ? "Rooms"
+                  : "Guests"}
+            </Text>
+            <Text style={styles.totalValue}>{billableQuantity}</Text>
           </View>
 
           <View style={styles.divider} />
@@ -396,6 +571,11 @@ const styles = StyleSheet.create({
     gap: 18,
     marginTop: 4,
   },
+  quantityStatic: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: COLORS.dark,
+  },
   stepperButton: {
     width: 44,
     height: 44,
@@ -431,6 +611,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
+    gap: 12,
   },
   totalLabel: {
     fontSize: 14,

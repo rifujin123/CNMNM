@@ -25,27 +25,27 @@ export default function useWishlist() {
   });
 
   const mutation = useMutation({
-    mutationFn: async ({ tourId, isAdd }) => {
+    mutationFn: async ({ serviceId, isAdd }) => {
       if (isAdd) {
-        return addWishlist({ token, tourId });
+        return addWishlist({ token, serviceId });
       }
 
-      return removeWishlist({ token, tourId });
+      return removeWishlist({ token, serviceId });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: wishlistKeys.all });
     },
   });
 
-  const isWishlisted = (tourId) =>
-    wishlistIds.some((id) => String(id) === String(tourId));
+  const isWishlisted = (serviceId) =>
+    wishlistIds.some((id) => String(id) === String(serviceId));
 
   const toggleWishlist = (item) => {
-    const tourId = item?.id;
-    if (!tourId || !token) return;
+    const serviceId = item?.id;
+    if (!serviceId || !token) return;
 
-    const isAdd = !isWishlisted(tourId);
-    mutation.mutate({ tourId: String(tourId), isAdd });
+    const isAdd = !isWishlisted(serviceId);
+    mutation.mutate({ serviceId: String(serviceId), isAdd });
   };
 
   return {

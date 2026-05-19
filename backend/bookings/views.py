@@ -84,19 +84,6 @@ class BookingViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Cr
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    # @action(detail=True, methods=['post'])
-    # def confirm(self, request, pk=None):
-    #     booking = self.get_object()
-
-    #     booking = BookingService.confirm_booking(booking)
-
-    #     serializer = BookingReadSerializer(
-    #         booking,
-    #         context=self.get_serializer_context()
-    #     )
-
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
-    
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         booking = self.get_object()

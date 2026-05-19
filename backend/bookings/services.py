@@ -2,6 +2,7 @@ from django.db import transaction
 from bookings.models import Booking
 from services.models import TravelTour,Room,SeatStatus
 from rest_framework.exceptions import ValidationError
+from django.utils import timezone
 
 class BookingService:
     @classmethod
@@ -26,6 +27,8 @@ class BookingService:
 
         service_type, concrete_service = cls.get_service_type(service)
 
+        now = timezone.now()
+
         if not service.is_active:
             raise ValidationError({'service': 'Dịch vụ hiện không hoạt động.'})
 
@@ -36,6 +39,12 @@ class BookingService:
         seat_type = data.get('seat_type')
 
         if service_type == 'tour':
+            if concrete_service.time_start <= now:
+                raise ValidationError({'service': 'Tour này đã hết hạn, không thể đặt.'})
+
+            if concrete_service.empty_slot <= 0:
+                raise ValidationError({'service': 'Tour này đã hết chỗ.'})
+            
             if not tour_package:
                 raise ValidationError({'tour_package': 'Tour cần chọn gói tour.'})
 
@@ -65,6 +74,9 @@ class BookingService:
         elif service_type == 'transport':
             if not route:
                 raise ValidationError({'route': 'Transport cần chọn route.'})
+            
+            if route.departure_time <= now:
+                raise ValidationError({'route': 'Chuyến này đã khởi hành, không thể đặt.'})
 
             if route.transport_id != concrete_service.id:
                 raise ValidationError({'route': 'Route không thuộc phương tiện này.'})
@@ -157,29 +169,7 @@ class BookingService:
                 status=SeatStatus.Status.AVAILABLE,
                 booking=None,
             )
-
-    # @classmethod
-    # def confirm_booking(cls, booking):
-    #     with transaction.atomic():
-    #         booking = Booking.objects.select_for_update().get(pk=booking.pk)
-
-    #         if booking.booking_status == Booking.BookingStatus.CONFIRMED:
-    #             return booking
-
-    #         if booking.booking_status != Booking.BookingStatus.PENDING:
-    #             raise ValidationError('Chỉ booking pending mới được confirm.')
-
-    #         booking.booking_status = Booking.BookingStatus.CONFIRMED
-    #         booking.payment_status = Booking.PaymentStatus.PAID
-    #         booking.save(update_fields=['booking_status', 'payment_status', 'updated_date'])
-
-    #         SeatStatus.objects.filter(
-    #             booking=booking,
-    #             status=SeatStatus.Status.HELD,
-    #         ).update(status=SeatStatus.Status.BOOKED)
-
-    #         return booking
-
+            
     @classmethod
     def confirm_booking(cls, booking):
         # Only call after payment success. Do not expose this directly through booking API.

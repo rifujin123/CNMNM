@@ -19,7 +19,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlistItems } from "../hooks/useWishlist";
 
-const categories = ["All", "Tour"];
+const categories = ["All", "Tour", "Hotel", "Transport"];
 
 const SavedScreen = () => {
   const navigation = useNavigation();
@@ -38,14 +38,15 @@ const SavedScreen = () => {
 
   const filteredItems = useMemo(() => {
     if (activeCategory === "All") return savedItems;
-    if (activeCategory === "Tour") return savedItems;
-    return [];
+    return savedItems.filter(
+      (item) => String(item?.type || "").toLowerCase() === activeCategory.toLowerCase()
+    );
   }, [activeCategory, savedItems]);
 
   const onPressItem = (item) => {
     navigation.navigate("ItemDetail", {
       itemId: item.id,
-      type: "tour",
+      serviceType: item.type,
     });
   };
 
@@ -64,9 +65,9 @@ const SavedScreen = () => {
       <SafeAreaView style={styles.container}>
         <AppHeader title="Saved" />
         <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>Sign in to view saved tours</Text>
+          <Text style={styles.stateTitle}>Sign in to view saved services</Text>
           <Text style={styles.stateText}>
-            Tours you save from Home or Explore will appear here.
+            Tours, hotels, and transport you save will appear here.
           </Text>
           <Pressable style={styles.primaryButton} onPress={goToLogin}>
             <Text style={styles.primaryButtonText}>Sign In</Text>
@@ -82,7 +83,7 @@ const SavedScreen = () => {
         <AppHeader title="Saved" />
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color="#0D9488" />
-          <Text style={styles.stateText}>Loading saved tours...</Text>
+          <Text style={styles.stateText}>Loading saved services...</Text>
         </View>
       </SafeAreaView>
     );
@@ -93,7 +94,7 @@ const SavedScreen = () => {
       <SafeAreaView style={styles.container}>
         <AppHeader title="Saved" />
         <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>Cannot load saved tours</Text>
+          <Text style={styles.stateTitle}>Cannot load saved services</Text>
           <Text style={styles.stateText}>
             Please check your connection and try again.
           </Text>
@@ -112,9 +113,9 @@ const SavedScreen = () => {
       <SafeAreaView style={styles.container}>
         <AppHeader title="Saved" />
         <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>No saved tours yet</Text>
+          <Text style={styles.stateTitle}>No saved services yet</Text>
           <Text style={styles.stateText}>
-            Tap the heart icon on a tour to keep it here.
+            Tap the heart icon on a tour, hotel, or transport to keep it here.
           </Text>
           <Button title="Explore Now" onPress={goToHome} />
         </View>

@@ -54,9 +54,7 @@ export default function CategoryListScreen({ route, navigation }) {
   };
 
   const handleWishlistToggle = (item) => {
-    if (item?.type === "tour") {
-      toggleWishlist(item);
-    }
+    toggleWishlist(item);
   };
 
   return (
@@ -69,8 +67,8 @@ export default function CategoryListScreen({ route, navigation }) {
           <ItemListCard
             item={item}
             onPress={() => onPressItem(item)}
-            isWishlist={item?.type === "tour" ? isWishlisted(item?.id) : false}
-            onWishlistToggle={token && item?.type === "tour" ? handleWishlistToggle : undefined}
+            isWishlist={isWishlisted(item?.id)}
+            onWishlistToggle={token ? handleWishlistToggle : undefined}
             onRequireLogin={onRequireLogin}
           />
         )}

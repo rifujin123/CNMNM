@@ -159,15 +159,18 @@ class Comment(models.Model):
 
 class Wishlist(models.Model):
     user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='wishlists')
-    travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='wishlisted_by')
+    service = models.ForeignKey('BaseService', on_delete=models.CASCADE, related_name='saved_by')
+    travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, null=True, blank=True, related_name='wishlisted_by')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'travel_tour')
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'service'], name='uniq_wishlist_user_service'),
+        ]
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.username} - {self.travel_tour.name}"
+        return f"{self.user.username} - {self.service.name}"
 
 
 class PhysicalSeat(models.Model):

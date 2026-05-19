@@ -1,5 +1,52 @@
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 
+const SERVICE_TYPES = {
+  tour: "tour",
+  hotel: "hotel",
+  transport: "transport",
+};
+
+const SERVICE_DETAIL_ENDPOINTS = {
+  [SERVICE_TYPES.tour]: endpoints.tours,
+  [SERVICE_TYPES.hotel]: endpoints.hotels,
+  [SERVICE_TYPES.transport]: endpoints.transports,
+};
+
+const normalizeServiceType = (type) => {
+  const normalized = String(type || "").toLowerCase();
+  return SERVICE_DETAIL_ENDPOINTS[normalized] ? normalized : SERVICE_TYPES.tour;
+};
+
+const formatBasePrice = (item) => {
+  if (item?.base_price_display) return item.base_price_display;
+
+  const value = item?.base_price;
+  const number = Number(value);
+
+  if (value === null || value === undefined || Number.isNaN(number)) {
+    return "N/A";
+  }
+
+  return number.toLocaleString("vi-VN");
+};
+
+const mapServiceListItem = (item, type) => ({
+  id: String(item.id),
+  name: item.name,
+  description: item.description,
+  star_rating: item.star_rating,
+  base_price: item.base_price,
+  base_price_display: formatBasePrice(item),
+  city: item.city,
+  category: item.category,
+  type,
+  empty_slot: item.empty_slot,
+  time_start: item.time_start,
+  is_active: item.is_active,
+  created_at: item.created_at,
+  updated_at: item.updated_at,
+});
+
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
   return res?.data ?? [];
@@ -16,34 +63,31 @@ export const fetchPlaces = async (params = {}) => {
 
   const res = await Apis.get(url);
   const items = res?.data ?? [];
-  return items.map((item, index) => ({
-    id: String(item.id),
-    name: item.name,
-    star_rating: item.star_rating,
-    base_price: item.base_price_display,
-    city: item.city,
-    category: item.category,
-    type: 'tour',
-  }));
+  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.tour));
 };
 
-export const fetchPlaceDetail = async (id) => {
+export const fetchPlaceDetail = async (id, serviceType = SERVICE_TYPES.tour) => {
   if (!id) return null;
-  const res = await Apis.get(`${endpoints.tours}${id}/`);
-  return res?.data ?? null;
+  const type = normalizeServiceType(serviceType);
+  const endpoint = SERVICE_DETAIL_ENDPOINTS[type];
+  const res = await Apis.get(`${endpoint}${id}/`);
+  const data = res?.data ?? null;
+  return data ? { ...data, type } : null;
 };
 
-export const addWishlist = async ({ token, tourId }) => {
-  if (!token || !tourId) throw new Error("Missing token or tourId");
+export const addWishlist = async ({ token, serviceId, tourId }) => {
+  const id = serviceId ?? tourId;
+  if (!token || !id) throw new Error("Missing token or serviceId");
   const res = await authApis(token).post(endpoints.wishlist, {
-    tour_id: Number(tourId),
+    service_id: Number(id),
   });
   return res?.data ?? null;
 };
 
-export const removeWishlist = async ({ token, tourId }) => {
-  if (!token || !tourId) throw new Error("Missing token or tourId");
-  const res = await authApis(token).delete(`${endpoints.wishlist}remove/?tour_id=${tourId}`);
+export const removeWishlist = async ({ token, serviceId, tourId }) => {
+  const id = serviceId ?? tourId;
+  if (!token || !id) throw new Error("Missing token or serviceId");
+  const res = await authApis(token).delete(`${endpoints.wishlist}remove/?service_id=${id}`);
   return res?.data ?? null;
 };
 
@@ -52,7 +96,7 @@ export const fetchWishlist = async ({ token }) => {
   const res = await authApis(token).get(endpoints.wishlist);
   const items = res?.data ?? [];
   return items
-    .map((item) => item.travel_tour?.id ?? item.tour_id ?? item.tour?.id ?? item.tour ?? item.id)
+    .map((item) => item.service?.id ?? item.service_id ?? item.travel_tour?.id ?? item.tour_id ?? item.tour?.id ?? item.tour)
     .filter(Boolean)
     .map(String);
 };
@@ -61,7 +105,14 @@ export const fetchWishListItems = async ({ token }) => {
   if(!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
   const items = res?.data ?? [];
-  return items.map((item) => item.travel_tour).filter(Boolean);
+  return items
+    .map((item) => item.service ?? item.travel_tour)
+    .filter(Boolean)
+    .map((item) => ({
+      ...item,
+      type: item.type || 'tour',
+      base_price_display: formatBasePrice(item),
+    }));
 };
 
 
@@ -179,16 +230,7 @@ export const fetchHotels = async (params = {}) => {
 
   const res = await Apis.get(url);
   const items = res?.data ?? [];
-  return items.map((item) => ({
-    id: String(item.id),
-    name: item.name,
-    star_rating: item.star_rating,
-    base_price: item.base_price,
-    base_price_display: item.base_price ? `From ${item.base_price}` : "N/A",
-    city: item.city,
-    category: item.category,
-    type: 'hotel',
-  }));
+  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.hotel));
 };
 
 export const fetchTransports = async (params = {}) => {
@@ -202,14 +244,5 @@ export const fetchTransports = async (params = {}) => {
 
   const res = await Apis.get(url);
   const items = res?.data ?? [];
-  return items.map((item) => ({
-    id: String(item.id),
-    name: item.name,
-    star_rating: item.star_rating,
-    base_price: item.base_price,
-    base_price_display: item.base_price ? `From ${item.base_price}` : "N/A",
-    city: item.city,
-    category: item.category,
-    type: 'transport',
-  }));
+  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
 };

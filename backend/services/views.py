@@ -6,13 +6,16 @@ from rest_framework import status
 from rest_framework.decorators import action
 from django.db.models import Q
 from django.db.models import Count
-from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package, PromoBanner, Wishlist
+from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package, PromoBanner, Wishlist, SeatStatus
 from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer, TransportWriteSerializer, TransportDetailReadSerializer, PromoBannerSerializer, WishlistSerializer
 from .perms import (
     IsApprovedProviderOrAdmin,
     ServiceOwnerOrAdmin,
     TourPackageOwner,
 )
+from django.db.models import Count, Exists, OuterRef, Q
+from django.utils import timezone
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -85,7 +88,23 @@ class TravelTourViewSet(viewsets.ModelViewSet):
     serializer_class = TravelTourReadDetailSerializer
 
     def get_queryset(self):
-        queryset = TravelTour.objects.annotate(popularity=Count('bookings'))
+        now = timezone.now()
+
+        available_future_seats = SeatStatus.objects.filter(
+            route__transport=OuterRef('pk'),
+            route__departure_time__gte=now,
+            status=SeatStatus.Status.AVAILABLE,
+            booking__isnull=True,
+        )
+
+        queryset = TravelTour.objects.filter(
+            is_active=True,
+            time_start__gte=timezone.now(),
+            empty_slot__gt=0,
+        ).annotate(
+            popularity=Count('bookings', distinct=True)
+        )
+        
         params = self.request.query_params
 
         search_query = params.get('q')
@@ -192,7 +211,19 @@ class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.annotate(popularity=Count('bookings'))
 
     def get_queryset(self):
-        queryset = Hotel.objects.annotate(popularity=Count('bookings'))
+        queryset = Hotel.objects.filter(
+            is_active=True,
+        ).annotate(
+            popularity=Count('bookings', distinct=True),
+            available_room_count=Count(
+                'rooms',
+                filter=Q(rooms__is_available=True),
+                distinct=True,
+            ),
+        ).filter(
+            available_room_count__gt=0
+        )
+
         params = self.request.query_params
 
         category_id = params.get('category')
@@ -242,7 +273,24 @@ class TransportViewSet(viewsets.ModelViewSet):
     queryset = Transport.objects.annotate(popularity=Count('bookings'))
 
     def get_queryset(self):
-        queryset = Transport.objects.annotate(popularity=Count('bookings'))
+        now = timezone.now()
+
+        available_future_seats = SeatStatus.objects.filter(
+            route__transport=OuterRef('pk'),
+            route__departure_time__gte=now,
+            status=SeatStatus.Status.AVAILABLE,
+            booking__isnull=True,
+        )
+
+        queryset = Transport.objects.filter(
+            is_active=True,
+        ).annotate(
+            popularity=Count('bookings', distinct=True),
+            has_available_future_seat=Exists(available_future_seats),
+        ).filter(
+            has_available_future_seat=True
+        )
+        
         params = self.request.query_params
 
         category_id = params.get('category')
@@ -296,40 +344,51 @@ class WishlistViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return Wishlist.objects.none()
-        return Wishlist.objects.filter(user=self.request.user).select_related('travel_tour')
+        return Wishlist.objects.filter(user=self.request.user).select_related(
+            'service',
+            'service__city',
+            'service__category',
+            'travel_tour',
+            'travel_tour__city',
+            'travel_tour__category',
+        )
 
     def get_permissions(self):
         return [IsAuthenticated()]
 
-    def perform_create(self, serializer):
-        existing = Wishlist.objects.filter(
-            user=self.request.user,
-            travel_tour=serializer.validated_data.get('travel_tour')
-        ).first()
-        if existing:
-            return
-        serializer.save(user=self.request.user)
-
     def create(self, request, *args, **kwargs):
-        existing = Wishlist.objects.filter(
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        service = serializer.validated_data.get('service')
+        travel_tour = serializer.validated_data.get('travel_tour')
+
+        wishlist, created = Wishlist.objects.get_or_create(
             user=request.user,
-            travel_tour_id=request.data.get('tour_id')
-        ).first()
-        if existing:
-            serializer = self.get_serializer(existing)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return super().create(request, *args, **kwargs)
+            service=service,
+            defaults={'travel_tour': travel_tour},
+        )
+
+        if travel_tour and wishlist.travel_tour_id is None:
+            wishlist.travel_tour = travel_tour
+            wishlist.save(update_fields=['travel_tour'])
+
+        output = self.get_serializer(wishlist)
+        return Response(
+            output.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
 
     @action(detail=False, methods=['delete'], url_path='remove')
-    def remove_by_tour_id(self, request):
-        tour_id = request.query_params.get('tour_id')
-        if not tour_id:
+    def remove_by_service_id(self, request):
+        service_id = request.query_params.get('service_id') or request.query_params.get('tour_id')
+        if not service_id:
             return Response(
-                {"detail": "tour_id is required."},
+                {"detail": "service_id is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        wishlist = self.get_queryset().filter(travel_tour_id=tour_id).first()
+        wishlist = self.get_queryset().filter(service_id=service_id).first()
         if wishlist is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
 

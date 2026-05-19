@@ -25,7 +25,7 @@ const getPriceText = (item) => {
 
 function ItemCardSave({ item, onPress }) {
   const imageUri = getImageUri(item) || FALLBACK_IMAGE_URI;
-  const title = item?.name || "Untitled tour";
+  const title = item?.name || "Untitled service";
   const location = item?.city?.name || "Unknown location";
   const rating = item?.star_rating || "N/A";
   const price = getPriceText(item);
