@@ -19,7 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { usePlaceDetail } from "../hooks/useTours";
+import { fetchPlaceDetail } from "../api/services";
 import Entypo from "@expo/vector-icons/Entypo";
 const { width, height } = Dimensions.get("window");
 const IMG_HEIGHT = height * 0.45;
@@ -43,13 +43,36 @@ const ItemDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const ItemId = route.params?.ItemId;
-  const { data: place, isLoading } = usePlaceDetail(ItemId);
+  const [place, setPlace] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDescriptionModalVisible, setDescriptionModalVisible] =
     useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState(null);
 
   const scrollRef = useAnimatedRef();
   const scrollOffset = useScrollViewOffset(scrollRef);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadDetail = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchPlaceDetail(ItemId);
+        if (active) setPlace(data);
+      } catch (err) {
+        console.error("Fetch place detail error:", err);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    if (ItemId) loadDetail();
+
+    return () => {
+      active = false;
+    };
+  }, [ItemId]);
 
   useEffect(() => {
     if (place?.tour_package?.length > 0 && !selectedPackageId) {

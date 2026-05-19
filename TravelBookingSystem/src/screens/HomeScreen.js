@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { StyleSheet, ScrollView } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,16 +10,29 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import usePullRefresh from "../../hooks/usePullRefresh";
 import useWishlist from "../hooks/useWishlist";
-import { useCategories, usePlaces } from "../hooks/useTours";
+import { fetchCategories, fetchPlaces } from "../api/services";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
 
-  const { data: categories = [], refetch: refetchCategories } = useCategories();
-  const { data: places = [], refetch: refetchPlaces } = usePlaces();
+  const [categories, setCategories] = useState([]);
+  const [places, setPlaces] = useState([]);
 
   const { token, user } = useAuth();
   const { isWishlisted, toggleWishlist } = useWishlist();
+
+  const loadData = useCallback(async () => {
+    const [cats, pls] = await Promise.all([
+      fetchCategories(),
+      fetchPlaces(),
+    ]);
+    setCategories(cats);
+    setPlaces(pls);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const onPressItem = (item) => {
     navigation.navigate("ItemDetail", { ItemId: item?.id });
@@ -33,9 +46,7 @@ const HomeScreen = () => {
     navigation.navigate("CategoryList", { category });
   };
 
-  const { refreshControl } = usePullRefresh(() =>
-    Promise.all([refetchCategories(), refetchPlaces()])
-  );
+  const { refreshControl } = usePullRefresh(loadData);
 
   return (
     <SafeAreaView style={styles.container}>
