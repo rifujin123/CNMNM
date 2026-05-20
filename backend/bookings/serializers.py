@@ -12,6 +12,7 @@ class BookingReadSerializer(serializers.ModelSerializer):
     route = serializers.SerializerMethodField()
     rooms = serializers.SerializerMethodField()
     seats = serializers.SerializerMethodField()
+    latest_payment = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -31,11 +32,12 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "payment_status",
             "created_date",
             "updated_date",
+            "expires_at",
+            "latest_payment"
         ]
 
     def get_user(self, obj):
         user = obj.user
-
         return {
             "id": user.id,
             "username": getattr(user, 'username', None),
@@ -44,8 +46,6 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "phone": getattr(user, 'phone_number', None)
             }
     
-
-
     def get_service(self, obj):
         service = obj.service
 
@@ -77,6 +77,7 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "end_date": end_date
         }
 
+    # =========================== Hotel Data ===========================
     def get_room_type(self, obj):
         if not obj.room_type:
             return None
@@ -86,39 +87,7 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "name": obj.room_type.name,
             "price": obj.room_type.price
         }
-
-    def get_seat_type(self, obj):
-        if not obj.seat_type:
-            return None
-
-        return {
-            "id": obj.seat_type.id,
-            "name": obj.seat_type.name,
-            "price": obj.seat_type.price
-        }
-
-    def get_tour_package(self, obj):
-        if not obj.tour_package:
-            return None
-
-        return {
-            "id": obj.tour_package.id,
-            "name": obj.tour_package.name,
-            "price": obj.tour_package.price
-        }
-
-    def get_route(self, obj):
-        if not obj.route:
-            return None
-
-        return {
-            "id": obj.route.id,
-            "from_city": obj.route.from_city.name if obj.route.from_city else None,
-            "to_city": obj.route.to_city.name if obj.route.to_city else None,
-            "departure_time": obj.route.departure_time,
-            "arrival_time": obj.route.arrival_time,
-        }
-
+    
     def get_rooms(self, obj):
         return [
             {
@@ -136,6 +105,29 @@ class BookingReadSerializer(serializers.ModelSerializer):
             for room in obj.rooms.all()
         ]
 
+    # =========================== Transport Data ===========================
+    def get_seat_type(self, obj):
+        if not obj.seat_type:
+            return None
+
+        return {
+            "id": obj.seat_type.id,
+            "name": obj.seat_type.name,
+            "price": obj.seat_type.price
+        }
+    
+    def get_route(self, obj):
+        if not obj.route:
+            return None
+
+        return {
+            "id": obj.route.id,
+            "from_city": obj.route.from_city.name if obj.route.from_city else None,
+            "to_city": obj.route.to_city.name if obj.route.to_city else None,
+            "departure_time": obj.route.departure_time,
+            "arrival_time": obj.route.arrival_time,
+        }
+
     def get_seats(self, obj):
         return [
             {
@@ -150,6 +142,33 @@ class BookingReadSerializer(serializers.ModelSerializer):
         }
             for seat_status in obj.seat_statuses.all()
         ]
+    
+    # =========================== Tour_Package Data ===========================
+    def get_tour_package(self, obj):
+        if not obj.tour_package:
+            return None
+
+        return {
+            "id": obj.tour_package.id,
+            "name": obj.tour_package.name,
+            "price": obj.tour_package.price
+        }
+    
+    # =========================== Payment Data ===========================
+    def get_latest_payment(self, obj):
+        payment = obj.payments.order_by("-created_at").first()
+
+        if not payment:
+            return None
+
+        return {
+            "id": payment.id,
+            "payment_method": payment.payment_method,
+            "payment_status": payment.payment_status,
+            "amount": str(payment.amount),
+            "transaction_id": payment.transaction_id,
+            "expires_at": payment.expires_at,
+        }
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):

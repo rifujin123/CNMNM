@@ -4,7 +4,12 @@ from services.models import TravelTour,Room,SeatStatus
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 
+from django.conf import settings
+from datetime import timedelta
+
 class BookingService:
+
+    # ============================ Xác định service ============================
     @classmethod
     def get_service_type(cls, service):
         if hasattr(service, 'traveltour'):
@@ -18,6 +23,8 @@ class BookingService:
 
         return 'base', service
 
+
+    # ============================ Validation ============================
     @classmethod
     def validate_booking_options(cls, data):
         service = data.get('service')
@@ -95,6 +102,8 @@ class BookingService:
 
         return service_type, concrete_service
 
+
+    # ============================ Tính tổng tiền ============================
     @classmethod
     def calculate_total_price(cls, data):
         service = data.get('service')
@@ -116,6 +125,8 @@ class BookingService:
 
         return service.base_price * quantity
 
+
+    # ============================ Tạo Booking ============================
     @classmethod
     def create_booking(cls, user, data):
         with transaction.atomic():
@@ -125,11 +136,16 @@ class BookingService:
             booking_data = dict(data)
             rooms = booking_data.pop('rooms', [])
 
+            expire_at = timezone.now() + timedelta(
+                minutes=settings.BOOKING_HOLD_MINUTES
+            )
+
             booking = Booking.objects.create(
                 user=user,
                 total_price=total_price,
                 booking_status=Booking.BookingStatus.PENDING,
                 payment_status=Booking.PaymentStatus.UNPAID,
+                expire_at = expire_at,
                 **booking_data
             )
 
@@ -145,6 +161,7 @@ class BookingService:
             return booking
         
 
+    # ============================ Quản lý tồn kho ============================
     @classmethod
     def restore_inventory(cls, booking):
         service_type, concrete_service = cls.get_service_type(booking.service)
@@ -169,10 +186,58 @@ class BookingService:
                 status=SeatStatus.Status.AVAILABLE,
                 booking=None,
             )
+    
+        #
+    
+    @classmethod
+    def hold_tour_inventory(cls, tour, quantity):
+        tour = TravelTour.objects.select_for_update().get(pk=tour.pk)
+
+        if tour.empty_slot < quantity:
+            raise ValidationError('Không đủ chỗ trống cho tour này.')
+
+        tour.empty_slot -= quantity
+        tour.save(update_fields=['empty_slot'])
+
+    @classmethod
+    def hold_hotel_inventory(cls, booking, rooms):
+        room_ids = [room.id for room in rooms]
+        
+        locked_rooms = list(Room.objects.select_for_update().filter(id__in=room_ids))
+
+        if len(locked_rooms) != len(room_ids):
+            raise ValidationError({'rooms': 'Có phòng không tồn tại.'})
+        
+        for room in locked_rooms:
+            if not room.is_available:
+                raise ValidationError({'rooms': f'Phòng {room.room_number} không còn trống.'})
             
+        Room.objects.filter(id__in=room_ids).update(is_available=False)
+        booking.rooms.set(locked_rooms)
+
+    @classmethod
+    def hold_transport_inventory(cls, booking):
+        seats = list(SeatStatus.objects.select_for_update()
+                     .filter(route=booking.route,
+                             physical_seat__seat_type=booking.seat_type,
+                             status=SeatStatus.Status.AVAILABLE,
+                             booking__isnull=True)
+                             .order_by('physical_seat__seat_number')[:booking.quantity])
+        
+        if len(seats) < booking.quantity:
+            raise ValidationError('Không đủ ghế trống cho lựa chọn này.')
+        
+        SeatStatus.objects.filter(id__in=[seat.id for seat in seats]).update(
+            status=SeatStatus.Status.HELD,
+            booking=booking
+        )
+    
+    # ==========================================================================
+
+
+    # ========================= Quản lý Booking Status =========================
     @classmethod
     def confirm_booking(cls, booking):
-        # Only call after payment success. Do not expose this directly through booking API.
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
 
@@ -235,49 +300,6 @@ class BookingService:
             return booking
 
     @classmethod
-    def hold_tour_inventory(cls, tour, quantity):
-        tour = TravelTour.objects.select_for_update().get(pk=tour.pk)
-
-        if tour.empty_slot < quantity:
-            raise ValidationError('Không đủ chỗ trống cho tour này.')
-
-        tour.empty_slot -= quantity
-        tour.save(update_fields=['empty_slot'])
-
-    @classmethod
-    def hold_hotel_inventory(cls, booking, rooms):
-        room_ids = [room.id for room in rooms]
-        
-        locked_rooms = list(Room.objects.select_for_update().filter(id__in=room_ids))
-
-        if len(locked_rooms) != len(room_ids):
-            raise ValidationError({'rooms': 'Có phòng không tồn tại.'})
-        
-        for room in locked_rooms:
-            if not room.is_available:
-                raise ValidationError({'rooms': f'Phòng {room.room_number} không còn trống.'})
-            
-        Room.objects.filter(id__in=room_ids).update(is_available=False)
-        booking.rooms.set(locked_rooms)
-
-    @classmethod
-    def hold_transport_inventory(cls, booking):
-        seats = list(SeatStatus.objects.select_for_update()
-                     .filter(route=booking.route,
-                             physical_seat__seat_type=booking.seat_type,
-                             status=SeatStatus.Status.AVAILABLE,
-                             booking__isnull=True)
-                             .order_by('physical_seat__seat_number')[:booking.quantity])
-        
-        if len(seats) < booking.quantity:
-            raise ValidationError('Không đủ ghế trống cho lựa chọn này.')
-        
-        SeatStatus.objects.filter(id__in=[seat.id for seat in seats]).update(
-            status=SeatStatus.Status.HELD,
-            booking=booking
-        )
-
-    @classmethod
     def fail_booking(cls, booking):
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
@@ -302,11 +324,16 @@ class BookingService:
             booking.payment_status = Booking.PaymentStatus.FAILED
             booking.save(update_fields=['booking_status', 'payment_status', 'updated_date'])
             return booking
-        
+
     @classmethod
     def refund_booking(cls, booking):
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
+            if booking.payment_status != Booking.PaymentStatus.PAID:
+                raise ValidationError(
+                    "Chỉ booking đã thanh toán mới có thể hoàn tiền."
+                )
 
             if booking.booking_status == Booking.BookingStatus.PAYMENT_FAILED:
                 return booking
@@ -325,7 +352,7 @@ class BookingService:
             booking.payment_status = Booking.PaymentStatus.REFUNDED
             booking.save(update_fields=['booking_status', 'payment_status', 'updated_date'])
             return booking
-        
+
     @classmethod
     def expire_booking(cls, booking):
         with transaction.atomic():

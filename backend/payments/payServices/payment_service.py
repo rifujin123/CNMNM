@@ -137,7 +137,6 @@ def create_gateway_payment(payment, request):
 
     raise ValidationError("Hien tai chi ho tro thanh toan Static QR.")
 
-    raise ValidationError("Phương thức thanh toán không hợp lệ")
 
 def complete_static_qr_payment(transaction_id, provider_transaction_id = None, result="success"):
     return StaticQrPaymentService().complete_payment(

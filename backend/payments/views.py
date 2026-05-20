@@ -9,6 +9,7 @@ from .payServices.payment_service import (
     complete_static_qr_payment,
 )
 from .serializers import PaymentCreateSerializer, PaymentReadSerializer
+from .pagination import PaymentLimitOffsetPagination
 
 
 class PaymentViewSet(
@@ -25,20 +26,50 @@ class PaymentViewSet(
     )
 
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PaymentLimitOffsetPagination
 
     def get_queryset(self):
         user = self.request.user
 
         if user.is_staff or user.is_superuser:
-            return self.queryset
+            queryset = self.queryset
 
-        if user.is_provider and user.is_approved:
-            return self.queryset.filter(booking__service__provider_id=user.id)
+        elif user.is_provider and user.is_approved:
+            queryset = self.queryset.filter(
+                booking__service__provider_id=user.id
+            )
 
-        if user.is_customer:
-            return self.queryset.filter(user_id=user.id)
+        elif user.is_customer:
+            queryset = self.queryset.filter(
+                user_id=user.id
+            )
 
-        return Payment.objects.none()
+        else:
+            return Payment.objects.none()
+
+        params = self.request.query_params
+
+        payment_status = params.get("payment_status")
+        if payment_status:
+            queryset = queryset.filter(payment_status=payment_status)
+
+        payment_method = params.get("payment_method")
+        if payment_method:
+            queryset = queryset.filter(payment_method=payment_method)
+
+        booking_id = params.get("booking")
+        if booking_id:
+            queryset = queryset.filter(booking_id=booking_id)
+
+        from_date = params.get("from_date")
+        if from_date:
+            queryset = queryset.filter(created_at__date__gte=from_date)
+
+        to_date = params.get("to_date")
+        if to_date:
+            queryset = queryset.filter(created_at__date__lte=to_date)
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "create":

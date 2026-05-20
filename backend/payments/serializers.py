@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from bookings.models import Booking
 from .models import Payment
+from bookings.services import BookingService
 from .payServices.payment_service import create_gateway_payment
 import uuid
 from django.db import transaction
@@ -63,6 +64,15 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
 
         if booking.payment_status == Booking.PaymentStatus.PAID:
             raise serializers.ValidationError("Booking này đã được thanh toán.")
+        
+        if (
+            booking.expires_at
+            and booking.expires_at <= timezone.now()
+            and booking.booking_status == Booking.BookingStatus.PENDING
+            and booking.payment_status == Booking.PaymentStatus.UNPAID
+        ):
+            BookingService.expire_booking(booking)
+            raise serializers.ValidationError("Booking này đã hết hạn, không thể tạo thanh toán.")
         
         if booking.booking_status == Booking.BookingStatus.CANCELLED:
             raise serializers.ValidationError("Booking này đã bị hủy, không thể thanh toán.")
