@@ -117,11 +117,11 @@ export default function BookingCheckoutScreen() {
   const serviceLabel = SERVICE_LABELS[serviceType];
   const [quantity, setQuantity] = useState(Number(initialQuantity) || 1);
 
-  const createBookingMutation = useCreateBooking();
-  const createPaymentMutation = useCreatePayment();
+  const createBookingAction = useCreateBooking();
+  const createPaymentAction = useCreatePayment();
 
   const isSubmitting =
-    createBookingMutation.isPending || createPaymentMutation.isPending;
+    createBookingAction.isPending || createPaymentAction.isPending;
 
   const selectedOption = useMemo(() => {
     if (serviceType === "tour") {
@@ -264,11 +264,11 @@ export default function BookingCheckoutScreen() {
     let createdBooking = null;
 
     try {
-      createdBooking = await createBookingMutation.mutateAsync({
+      createdBooking = await createBookingAction.execute({
         payload: buildBookingPayload(),
       });
 
-      const payment = await createPaymentMutation.mutateAsync({
+      const payment = await createPaymentAction.execute({
         bookingId: createdBooking.id,
         method: paymentMethod,
       });

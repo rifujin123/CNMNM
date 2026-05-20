@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   Pressable,
   ScrollView,
@@ -12,6 +13,8 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { fetchPlaceDetail } from "../api/services";
+import { useAuth } from "../../context/AuthContext";
+import { useWishlist } from "../../context/WishlistContext";
 import Entypo from "@expo/vector-icons/Entypo";
 const { width, height } = Dimensions.get("window");
 const IMG_HEIGHT = height * 0.45;
@@ -89,12 +92,9 @@ const isPastDate = (value) => {
 export default function ItemDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const ItemId = route.params?.ItemId;
-  const [place, setPlace] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDescriptionModalVisible, setDescriptionModalVisible] =
-    useState(false);
-  const [selectedPackageId, setSelectedPackageId] = useState(null);
+
+  const { isLoggedIn } = useAuth();
+  const { isWishlisted, toggleWishlist } = useWishlist();
 
   const itemId = route.params?.itemId ?? route.params?.ItemId;
   const serviceType = normalizeServiceType(
@@ -102,14 +102,16 @@ export default function ItemDetailScreen() {
   );
   const serviceLabel = SERVICE_LABELS[serviceType];
 
-  const { data: place, isLoading, isError } = usePlaceDetail(itemId, serviceType);
-
+  const [place, setPlace] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedPackageId, setSelectedPackageId] = useState(
     route.params?.selectedPackageId ?? null
   );
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState(null);
   const [selectedSeatTypeId, setSelectedSeatTypeId] = useState(null);
+  const [isDescriptionModalVisible, setDescriptionModalVisible] =
+    useState(false);
 
   const packages = place?.tour_package ?? [];
   const availableRooms = useMemo(
@@ -142,7 +144,7 @@ export default function ItemDetailScreen() {
     const loadDetail = async () => {
       try {
         setIsLoading(true);
-        const data = await fetchPlaceDetail(ItemId);
+        const data = await fetchPlaceDetail(itemId);
         if (active) setPlace(data);
       } catch (err) {
         console.error("Fetch place detail error:", err);
@@ -151,12 +153,12 @@ export default function ItemDetailScreen() {
       }
     };
 
-    if (ItemId) loadDetail();
+    if (itemId) loadDetail();
 
     return () => {
       active = false;
     };
-  }, [ItemId]);
+  }, [itemId]);
 
   useEffect(() => {
     if (place?.tour_package?.length > 0 && !selectedPackageId) {
@@ -256,7 +258,7 @@ export default function ItemDetailScreen() {
 
   const handleBookNow = () => {
     if (!isLoggedIn) {
-      navigation.getParent()?.getParent()?.navigate("Login");
+      navigation.navigate("Login");
       return;
     }
 
@@ -465,7 +467,7 @@ export default function ItemDetailScreen() {
     );
   }
 
-  if (isError || !place) {
+  if (!isLoading && !place) {
     return (
       <View style={styles.center}>
         <Text style={styles.title}>Cannot load {serviceLabel.toLowerCase()} detail</Text>

@@ -84,7 +84,7 @@ const TripsScreen = () => {
   };
 
   const goToLogin = () => {
-    navigation.getParent()?.getParent()?.navigate("Login");
+    navigation.navigate("Login");
   };
 
   const openBookingDetail = (bookingId) => {

@@ -49,7 +49,7 @@ const mapServiceListItem = (item, type) => ({
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
-  return res?.data ?? [];
+  return res?.data?.results ?? res?.data ?? [];
 };
 
 export const fetchPlaces = async (params = {}) => {
@@ -62,7 +62,7 @@ export const fetchPlaces = async (params = {}) => {
     : endpoints.tours;
 
   const res = await Apis.get(url);
-  const items = res?.data ?? [];
+  const items = res?.data?.results ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.tour));
 };
 
@@ -104,7 +104,7 @@ export const fetchWishlist = async ({ token }) => {
 export const fetchWishListItems = async ({ token }) => {
   if(!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = res?.data ?? [];
+  const items = res?.data?.results ?? [];
   return items
     .map((item) => item.service ?? item.travel_tour)
     .filter(Boolean)
@@ -229,7 +229,7 @@ export const fetchHotels = async (params = {}) => {
     : endpoints.hotels;
 
   const res = await Apis.get(url);
-  const items = res?.data ?? [];
+  const items = res?.data?.results ?? res?.data ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.hotel));
 };
 
@@ -243,6 +243,6 @@ export const fetchTransports = async (params = {}) => {
     : endpoints.transports;
 
   const res = await Apis.get(url);
-  const items = res?.data ?? [];
+  const items = res?.data?.results ?? res?.data ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
 };

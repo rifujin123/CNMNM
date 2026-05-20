@@ -8,6 +8,7 @@ import CategoryChips from "../components/CategoryChips";
 import { useNavigation } from "@react-navigation/native";
 import usePullRefresh from "../../hooks/usePullRefresh";
 import useWishlist from "../hooks/useWishlist";
+import { useAuth } from "../../context/AuthContext";
 import { fetchCategories, fetchPlaces, fetchHotels, fetchTransports } from "../api/services";
 
 const ExploreScreen = () => {
@@ -17,6 +18,11 @@ const ExploreScreen = () => {
   const [transports, setTransports] = useState([]);
   const navigation = useNavigation();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const { token } = useAuth();
+
+  const onRequireLogin = () => {
+    navigation.navigate("Login");
+  };
 
   const loadData = useCallback(async () => {
     const [cats, pls, htls, trns] = await Promise.all([

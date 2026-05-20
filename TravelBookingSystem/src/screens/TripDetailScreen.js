@@ -169,8 +169,8 @@ const TripDetailScreen = () => {
   } = useBookings();
 
   const { data: payments = [], refetch: refetchPayments } = usePayments();
-  const cancelBookingMutation = useCancelBooking();
-  const createPaymentMutation = useCreatePayment();
+  const cancelBookingAction = useCancelBooking();
+  const createPaymentAction = useCreatePayment();
 
   const selectedBooking = useMemo(
     () => bookings.find((booking) => String(booking.id) === String(bookingId)),
@@ -216,7 +216,7 @@ const TripDetailScreen = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await cancelBookingMutation.mutateAsync({ bookingId: booking.id });
+              await cancelBookingAction.execute({ bookingId: booking.id });
               await refreshAll();
               Alert.alert("Booking cancelled", "Your booking has been cancelled.");
             } catch (err) {
@@ -244,7 +244,7 @@ const TripDetailScreen = () => {
         return;
       }
 
-      const payment = await createPaymentMutation.mutateAsync({
+      const payment = await createPaymentAction.execute({
         bookingId: booking.id,
         method: "STATIC_QR",
       });
@@ -357,13 +357,13 @@ const TripDetailScreen = () => {
             <Pressable
               style={[
                 styles.primaryButton,
-                createPaymentMutation.isPending && styles.disabledButton,
+                createPaymentAction.isPending && styles.disabledButton,
               ]}
-              disabled={createPaymentMutation.isPending}
+              disabled={createPaymentAction.isPending}
               onPress={() => handlePayNow(selectedBooking)}
             >
               <Text style={styles.primaryButtonText}>
-                {createPaymentMutation.isPending ? "Opening..." : payButtonText}
+                {createPaymentAction.isPending ? "Opening..." : payButtonText}
               </Text>
             </Pressable>
           ) : null}
@@ -372,13 +372,13 @@ const TripDetailScreen = () => {
             <Pressable
               style={[
                 styles.dangerButton,
-                cancelBookingMutation.isPending && styles.disabledButton,
+                cancelBookingAction.isPending && styles.disabledButton,
               ]}
-              disabled={cancelBookingMutation.isPending}
+              disabled={cancelBookingAction.isPending}
               onPress={() => handleCancelBooking(selectedBooking)}
             >
               <Text style={styles.dangerButtonText}>
-                {cancelBookingMutation.isPending ? "Cancelling..." : "Cancel Booking"}
+                {cancelBookingAction.isPending ? "Cancelling..." : "Cancel Booking"}
               </Text>
             </Pressable>
           ) : null}

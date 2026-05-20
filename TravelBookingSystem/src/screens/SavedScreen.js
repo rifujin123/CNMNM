@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Button,
   FlatList,
   Pressable,
   StatusBar,
@@ -11,28 +10,29 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CategoryChips from "../components/CategoryChips";
-import ItemCardSave from "../components/ItemCardSave";
+import ItemListCard from "../components/ItemListCard";
 import AppHeader from "../components/AppHeader";
 import { scale } from "react-native-size-matters";
 import usePullRefresh from "../../hooks/usePullRefresh";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
-import { useWishlistItems } from "../hooks/useWishlist";
+import { useWishlist } from "../../context/WishlistContext";
 
 const categories = ["All", "Tour", "Hotel", "Transport"];
 
 const SavedScreen = () => {
   const navigation = useNavigation();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, token } = useAuth();
   const [activeCategory, setActiveCategory] = useState("All");
 
   const {
-    data: savedItems = [],
+    savedItems = [],
     isLoading,
-    isError,
-    refetch,
     isRefetching,
-  } = useWishlistItems();
+    refetch,
+    isWishlisted,
+    toggleWishlist,
+  } = useWishlist();
 
   const { refreshControl } = usePullRefresh(refetch);
 
@@ -50,6 +50,14 @@ const SavedScreen = () => {
     });
   };
 
+  const onRequireLogin = () => {
+    navigation.navigate("Login");
+  };
+
+  const handleWishlistToggle = (item) => {
+    toggleWishlist(item);
+  };
+
   const goToHome = () => {
     navigation.getParent()?.navigate("HomeFeed", {
       screen: "Home",
@@ -57,7 +65,7 @@ const SavedScreen = () => {
   };
 
   const goToLogin = () => {
-    navigation.getParent()?.getParent()?.navigate("Login");
+    navigation.navigate("Login");
   };
 
   if (!isLoggedIn) {
@@ -89,58 +97,50 @@ const SavedScreen = () => {
     );
   }
 
-  if (isError) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <AppHeader title="Saved" />
-        <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>Cannot load saved services</Text>
-          <Text style={styles.stateText}>
-            Please check your connection and try again.
-          </Text>
-          <Pressable style={styles.primaryButton} onPress={refetch}>
-            <Text style={styles.primaryButtonText}>
-              {isRefetching ? "Retrying..." : "Try Again"}
-            </Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (savedItems.length === 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <AppHeader title="Saved" />
-        <View style={styles.centerState}>
-          <Text style={styles.stateTitle}>No saved services yet</Text>
-          <Text style={styles.stateText}>
-            Tap the heart icon on a tour, hotel, or transport to keep it here.
-          </Text>
-          <Button title="Explore Now" onPress={goToHome} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader title="Saved" />
       <View style={styles.content}>
-        <CategoryChips
-          items={categories}
-          onChipPress={(category) => setActiveCategory(String(category))}
-        />
+        {filteredItems.length > 0 && (
+          <CategoryChips
+            items={categories}
+            onChipPress={(category) => setActiveCategory(String(category))}
+          />
+        )}
 
         <FlatList
           data={filteredItems}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => `${item?.type ?? "service"}-${item?.id ?? index}`}
           renderItem={({ item }) => (
-            <ItemCardSave item={item} onPress={() => onPressItem(item)} />
+            <ItemListCard
+              item={item}
+              onPress={() => onPressItem(item)}
+              isWishlist={isWishlisted(item?.id)}
+              onWishlistToggle={token ? handleWishlistToggle : undefined}
+              onRequireLogin={onRequireLogin}
+            />
           )}
           refreshControl={refreshControl}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            isLoading ? (
+              <View style={styles.emptyContainer}>
+                <ActivityIndicator size="small" color="#0D9488" />
+                <Text style={styles.emptyText}>Loading saved services...</Text>
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No saved services yet</Text>
+                <Text style={styles.emptySubtext}>
+                  Tap the heart icon on a tour, hotel, or transport to keep it here.
+                </Text>
+                <Pressable style={styles.primaryButton} onPress={goToHome}>
+                  <Text style={styles.primaryButtonText}>Explore Now</Text>
+                </Pressable>
+              </View>
+            )
+          }
         />
       </View>
     </SafeAreaView>
@@ -152,7 +152,7 @@ export default SavedScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F8FAFC",
     paddingHorizontal: scale(20),
     marginTop: StatusBar.currentHeight || 0,
   },
@@ -198,5 +198,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     color: "#FFFFFF",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 80,
+    gap: 10,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#78716C",
+    fontWeight: "600",
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#78716C",
+    textAlign: "center",
   },
 });

@@ -160,7 +160,7 @@ export default function BookingPaymentScreen() {
     initialData: initialPayment,
   });
 
-  const cancelPaymentMutation = useCancelPayment();
+  const cancelPaymentAction = useCancelPayment();
 
   const transferContent = useMemo(() => {
     return payment?.metadata?.transfer_content || payment?.transaction_id || "N/A";
@@ -224,7 +224,7 @@ export default function BookingPaymentScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await cancelPaymentMutation.mutateAsync({
+              await cancelPaymentAction.execute({
                 paymentId: resolvedPaymentId,
               });
               await refetch();
@@ -370,13 +370,13 @@ export default function BookingPaymentScreen() {
           <Pressable
             style={[
               styles.dangerButton,
-              cancelPaymentMutation.isPending && styles.disabledButton,
+              cancelPaymentAction.isPending && styles.disabledButton,
             ]}
-            disabled={cancelPaymentMutation.isPending}
+            disabled={cancelPaymentAction.isPending}
             onPress={handleCancelPayment}
           >
             <Text style={styles.dangerButtonText}>
-              {cancelPaymentMutation.isPending ? "Cancelling..." : "Cancel Payment"}
+              {cancelPaymentAction.isPending ? "Cancelling..." : "Cancel Payment"}
             </Text>
           </Pressable>
         ) : null}
