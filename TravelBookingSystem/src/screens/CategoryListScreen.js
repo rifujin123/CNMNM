@@ -1,32 +1,61 @@
-import React, { useLayoutEffect, useMemo } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, Pressable, FlatList, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ItemListCard from "../components/ItemListCard";
 import { useAuth } from "../../context/AuthContext";
 import useWishlist from "../hooks/useWishlist";
-import { useHotels, usePlaces, useTransports } from "../hooks/useTours";
+import { fetchHotels, fetchPlaces, fetchTransports } from "../api/services";
 
 export default function CategoryListScreen({ route, navigation }) {
   const { category } = route.params ?? {};
   const { token } = useAuth();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const [tours, setTours] = useState([]);
+  const [hotels, setHotels] = useState([]);
+  const [transports, setTransports] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const isAll = category?.id === "all" || category?.name === "All";
   const categoryId = isAll ? undefined : category?.id;
 
   const params = categoryId ? { category: categoryId } : {};
 
-  const { data: tours = [], isLoading: toursLoading } = usePlaces(params);
-  const { data: hotels = [], isLoading: hotelsLoading } = useHotels(params);
-  const { data: transports = [], isLoading: transportsLoading } = useTransports(params);
+  useEffect(() => {
+    let active = true;
+
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [tourData, hotelData, transportData] = await Promise.all([
+          fetchPlaces(params),
+          fetchHotels(params),
+          fetchTransports(params),
+        ]);
+
+        if (active) {
+          setTours(tourData);
+          setHotels(hotelData);
+          setTransports(transportData);
+        }
+      } catch (err) {
+        console.error("Category services fetch error:", err);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
+  }, [categoryId]);
 
   const allItems = useMemo(
     () => [...tours, ...hotels, ...transports],
     [tours, hotels, transports]
   );
-
-  const isLoading = toursLoading || hotelsLoading || transportsLoading;
 
   useLayoutEffect(() => {
     navigation.setOptions({

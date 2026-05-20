@@ -50,7 +50,7 @@ export const removeWishlist = async ({ token, tourId }) => {
 export const fetchWishlist = async ({ token }) => {
   if (!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = res?.data ?? [];
+  const items = res?.data?.results ?? [];
   return items
     .map((item) => item.travel_tour?.id ?? item.tour_id ?? item.tour?.id ?? item.tour ?? item.id)
     .filter(Boolean)
