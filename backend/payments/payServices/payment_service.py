@@ -4,23 +4,18 @@ from rest_framework.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from bookings.services import BookingService
+from .static_qr_service import build_static_qr_metadata
 
 class StaticQrPaymentService:
     def create_payment(self, payment, request):
-        service_provider_id = getattr(payment.booking.service, "provider_id", None)
+        static_qr_metadata = build_static_qr_metadata(payment)
 
         payment.payment_status = Payment.PaymentStatus.PROCESSING
         payment.provider_transaction_id = f"STATICQR-{payment.booking_id}"
-        payment.payment_url = None
+        payment.payment_url = static_qr_metadata["qr_url"]
         payment.metadata = {
             **(payment.metadata or {}),
-            "gateway": "STATIC_QR",
-            "gateway_status": "qr_created",
-            "receiver": "PLATFORM",
-            "transfer_content": payment.transaction_id,
-            "amount": str(payment.amount),
-            "booking_id": payment.booking_id,
-            "service_provider_id": service_provider_id,
+            **static_qr_metadata,
         }
         payment.save(
             update_fields=[

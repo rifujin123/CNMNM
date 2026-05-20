@@ -2,6 +2,7 @@ from decimal import Decimal
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -12,6 +13,13 @@ from payments.models import Payment
 from services.models import Category, TourPackage, TravelTour
 
 
+@override_settings(
+    STATIC_QR_IMAGE_BASE_URL="https://img.vietqr.io/image",
+    STATIC_QR_BANK_CODE="VCB",
+    STATIC_QR_ACCOUNT_NUMBER="123456789",
+    STATIC_QR_ACCOUNT_NAME="KM TRAVEL",
+    STATIC_QR_TEMPLATE="compact2",
+)
 class PaymentCreateAPITests(APITestCase):
     def setUp(self):
         user_model = get_user_model()
@@ -93,14 +101,26 @@ class PaymentCreateAPITests(APITestCase):
         self.assertEqual(response.data["payment_status"], "PROCESSING")
         self.assertEqual(response.data["payment_method"], "STATIC_QR")
         self.assertIn("transaction_id", response.data)
-        self.assertEqual(response.data["metadata"]["receiver"], "PLATFORM")
-        self.assertEqual(response.data["metadata"]["booking_id"], self.booking.id)
+        metadata = response.data["metadata"]
+        self.assertEqual(metadata["receiver"], "PLATFORM")
+        self.assertEqual(metadata["booking_id"], self.booking.id)
+        self.assertEqual(metadata["qr_provider"], "VIETQR")
+        self.assertEqual(response.data["payment_url"], metadata["qr_url"])
+        self.assertIn(
+            "https://img.vietqr.io/image/VCB-123456789-compact2.png",
+            metadata["qr_url"],
+        )
+        self.assertIn("amount=300000", metadata["qr_url"])
+        self.assertIn(
+            f"addInfo={response.data['transaction_id']}",
+            metadata["qr_url"],
+        )
         self.assertEqual(
-            response.data["metadata"]["service_provider_id"],
+            metadata["service_provider_id"],
             self.provider.id,
         )
         self.assertEqual(
-            response.data["metadata"]["transfer_content"],
+            metadata["transfer_content"],
             response.data["transaction_id"],
         )
 

@@ -24,6 +24,15 @@ PAYMENT_EXPIRE_MINUTES = int(os.getenv("PAYMENT_EXPIRE_MINUTES", "15"))
 # Booking Expire
 BOOKING_HOLD_MINUTES = int(os.getenv("BOOKING_HOLD_MINUTES", "15"))
 
+STATIC_QR_IMAGE_BASE_URL = os.getenv(
+    "STATIC_QR_IMAGE_BASE_URL",
+    "https://img.vietqr.io/image",
+)
+STATIC_QR_BANK_CODE = os.getenv("STATIC_QR_BANK_CODE", "")
+STATIC_QR_ACCOUNT_NUMBER = os.getenv("STATIC_QR_ACCOUNT_NUMBER", "")
+STATIC_QR_ACCOUNT_NAME = os.getenv("STATIC_QR_ACCOUNT_NAME", "")
+STATIC_QR_TEMPLATE = os.getenv("STATIC_QR_TEMPLATE", "compact2")
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
