@@ -54,21 +54,21 @@ const AccountScreen = () => {
       title: "Personal information",
       subtitle: "Profile, phone, email",
       icon: <Octicons name="person" size={18} color="#0F172A" />,
-      onPress: () => navigation.navigate("PersonalInformation"),
+      onPress: () => navigation.navigate("AccountRoot", { screen: "PersonalInformation" }),
     },
     {
       key: "payment",
       title: "Payment methods",
       subtitle: "Cards, billing",
       icon: <MaterialIcons name="payment" size={18} color="#0F172A" />,
-      onPress: () => navigation.navigate("PaymentMethods"),
+      onPress: () => navigation.navigate("AccountRoot", { screen: "PaymentMethods" }),
     },
     {
       key: "security",
       title: "Security",
       subtitle: "Password, devices",
       icon: <Feather name="shield" size={18} color="#0F172A" />,
-      onPress: () => navigation.navigate("Security"),
+      onPress: () => navigation.navigate("AccountRoot", { screen: "Security" }),
     },
     {
       key: "notifications",
@@ -81,14 +81,14 @@ const AccountScreen = () => {
           color="#0F172A"
         />
       ),
-      onPress: () => navigation.navigate("Notifications"),
+      onPress: () => navigation.navigate("AccountRoot", { screen: "Notifications" }),
     },
     {
       key: "help",
       title: "Help & support",
       subtitle: "FAQ, contact",
       icon: <Ionicons name="help-circle-outline" size={18} color="#0F172A" />,
-      onPress: () => navigation.navigate("HelpAndSupport"),
+      onPress: () => navigation.navigate("AccountRoot", { screen: "HelpAndSupport" }),
     },
   ];
 
@@ -116,7 +116,7 @@ const AccountScreen = () => {
 
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => navigation.navigate("PersonalInformation")}
+            onPress={() => navigation.navigate("AccountRoot", { screen: "PersonalInformation" })}
             style={styles.editPill}
           >
             <Text style={styles.editText}>Edit</Text>
@@ -288,3 +288,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 });
+

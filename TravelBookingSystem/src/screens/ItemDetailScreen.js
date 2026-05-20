@@ -11,9 +11,10 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { usePlaceDetail } from "../hooks/useTours";
-import { useAuth } from "../../context/AuthContext";
-
+import { fetchPlaceDetail } from "../api/services";
+import Entypo from "@expo/vector-icons/Entypo";
+const { width, height } = Dimensions.get("window");
+const IMG_HEIGHT = height * 0.45;
 const FALLBACK_IMAGE_URI =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80";
 
@@ -88,7 +89,12 @@ const isPastDate = (value) => {
 export default function ItemDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { isLoggedIn } = useAuth();
+  const ItemId = route.params?.ItemId;
+  const [place, setPlace] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDescriptionModalVisible, setDescriptionModalVisible] =
+    useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState(null);
 
   const itemId = route.params?.itemId ?? route.params?.ItemId;
   const serviceType = normalizeServiceType(
@@ -131,14 +137,30 @@ export default function ItemDetailScreen() {
   }, [place?.availability, place?.seat_types, selectedRouteId]);
 
   useEffect(() => {
-    if (!place) return;
+    let active = true;
 
-    if (serviceType === "tour") {
-      setSelectedPackageId((current) => {
-        const hasCurrent = packages.some((pkg) => String(pkg.id) === String(current));
-        return hasCurrent ? current : packages[0]?.id ?? null;
-      });
-      return;
+    const loadDetail = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchPlaceDetail(ItemId);
+        if (active) setPlace(data);
+      } catch (err) {
+        console.error("Fetch place detail error:", err);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    if (ItemId) loadDetail();
+
+    return () => {
+      active = false;
+    };
+  }, [ItemId]);
+
+  useEffect(() => {
+    if (place?.tour_package?.length > 0 && !selectedPackageId) {
+      setSelectedPackageId(place.tour_package[0].id);
     }
 
     if (serviceType === "hotel") {

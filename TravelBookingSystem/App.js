@@ -2,25 +2,15 @@ import MyTabs from "./src/navigations/BottomTabs";
 import ProviderTabs from "./src/navigations/ProviderTabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 import LoginScreen from "./src/screens/LoginScreen";
 import AccountNotLoggedInScreen from "./src/screens/AccountNotLoggedInScreen";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { WishlistProvider } from "./context/WishlistContext";
 import TripDetailScreen from "./src/screens/TripDetailScreen";
 import AccountStack from "./src/navigations/AccountStack";
 
 const Stack = createNativeStackNavigator();
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 30,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
 
 function RootNavigator() {
   const { authLoading, isLoggedIn, role } = useAuth();
@@ -69,11 +59,11 @@ function RootNavigator() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+    <AuthProvider>
+      <WishlistProvider>
         <RootNavigator />
-      </AuthProvider>
-    </QueryClientProvider>
+      </WishlistProvider>
+    </AuthProvider>
   );
 }
 
