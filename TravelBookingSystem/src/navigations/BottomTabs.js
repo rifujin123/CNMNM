@@ -2,12 +2,13 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import HomeStack from "./HomeStack";
 import TripStack from "./TripStack";
+import SaveStack from "./SaveStack";
 import ExploreStack from "./ExploreStack";
-import TripsScreen from "../srceens/TripsScreen";
-import SavedScreen from "../srceens/SavedScreen";
-import LoginScreen from "../srceens/LoginScreen";
-import AccountNotLoggedInScreen from "../srceens/AccountNotLoggedInScreen";
-import AccountScreen from "../srceens/AccountScreen";
+import TripsScreen from "../screens/TripsScreen";
+import SavedScreen from "../screens/SavedScreen";
+import LoginScreen from "../screens/LoginScreen";
+import AccountNotLoggedInScreen from "../screens/AccountNotLoggedInScreen";
+import AccountScreen from "../screens/AccountScreen";
 const Tab = createBottomTabNavigator();
 
 export default function MyTabs() {
@@ -48,7 +49,7 @@ export default function MyTabs() {
       />
       <Tab.Screen
         name="Saved"
-        component={SavedScreen}
+        component={SaveStack}
         options={{
           tabBarIcon: () => (
             <Ionicons name="bookmark-outline" size={24} color="black" />

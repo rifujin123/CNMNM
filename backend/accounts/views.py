@@ -1,4 +1,7 @@
 from oauth2_provider.models import AccessToken,RefreshToken
+import os
+import time
+import cloudinary.utils
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -8,6 +11,7 @@ from rest_framework.permissions import IsAdminUser
 
 from .models import User
 from .serializers import (
+    ChangePasswordSerializer,
     MeUpdateSerializer,
     ProviderApprovalSerializer,
     RegisterSerializer,
@@ -60,6 +64,18 @@ class MeView(APIView):
         return Response(UserReadSerializer(request.user).data, status=status.HTTP_200_OK)
 
 
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)
+
+
 class PendingProviderListView(ListAPIView):
     permission_classes = [IsAdminUser]
     serializer_class = UserReadSerializer
@@ -97,3 +113,31 @@ class ProviderVerificationView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class CloudinarySignView(APIView):
+    """Sign upload params for Cloudinary (server-side signature)."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        folder = request.data.get('folder') or os.getenv('CLOUDINARY_FOLDER', 'travel_app_uploads')
+        timestamp = int(time.time())
+
+        # Sign only params frontend actually sends to Cloudinary
+        params = {
+            'timestamp': timestamp,
+            'folder': folder,
+        }
+        signature = cloudinary.utils.api_sign_request(
+            params,
+            os.getenv('CLOUDINARY_API_SECRET', '')
+        )
+
+        return Response({
+            'timestamp': timestamp,
+            'signature': signature,
+            'apiKey': os.getenv('CLOUDINARY_API_KEY', ''),
+            'cloudName': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
+            'folder': folder,
+        }, status=status.HTTP_200_OK)

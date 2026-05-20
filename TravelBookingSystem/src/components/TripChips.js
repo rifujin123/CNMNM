@@ -1,61 +1,80 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { scale } from "react-native-size-matters";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+} from "react-native";
+import {
+    scale,
+    verticalScale,
+} from "react-native-size-matters";
 
-export default function TripChips({ items, activeIndex = 0 }) {
+const getLabel = (item) => {
+    if (item === "upcoming") return "Sắp tới";
+    if (item === "completed") return "Hoàn tất";
+    if (item === "cancelled") return "Đã hủy";
+
+    return item;
+};
+
+export default function TripChips({
+    items,
+    activeIndex = 0,
+    onChange,
+}) {
     return (
         <View style={styles.container}>
+            {items.map((item, idx) => {
+                const active = idx === activeIndex;
 
+                return (
+                    <TouchableOpacity key={item} style={styles.tab} activeOpacity={0.8} onPress={() => onChange(idx)}>
+                        <Text style={[styles.text, active && styles.activeText]}>
+                            {getLabel(item)}
+                        </Text>
 
-            <View style={styles.row}>
-                {items.map((item, idx) => {
-                    const active = idx === activeIndex;
-                    return (
-                        <View
-                            key={item}
-                            style={[styles.chip, active ? styles.active : styles.inactive]}
-                        >
-                            <Text
-                                style={[
-                                    styles.chipText,
-                                    active ? styles.activeText : styles.inactiveText,
-                                ]}
-                            >
-                                {item}
-                            </Text>
-                        </View>
-                    );
-                })}
-            </View>
+                        {active && <View style={styles.activeLine} />}
+                    </TouchableOpacity>
+                );
+            })}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: scale(24)
-    },
-    sectionTitle: {
-        fontSize: 20,
-        lineHeight: 24,
-        fontWeight: "700",
-        color: "#0F172A",
-    },
-    row: {
+        height: verticalScale(40),
         flexDirection: "row",
-        marginTop: scale(16),
-        gap: scale(10),
+        backgroundColor: "#FFFFFF",
+        borderBottomWidth: 1,
+        borderBottomColor: "#CBD5E1",
     },
-    chip: {
-        width: 84,
-        height: 36,
-        borderRadius: 18,
-        alignItems: "center",
+
+    tab: {
+        flex: 1,
         justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
     },
-    active: { backgroundColor: "#0F172A" },
-    inactive: { backgroundColor: "#E2E8F0" },
-    chipText: { fontSize: 14, fontWeight: "500" },
-    activeText: { color: "#FFF" },
-    inactiveText: { color: "#475569" },
+
+    text: {
+        fontSize: scale(12),
+        fontWeight: "500",
+        color: "#64748B",
+    },
+
+    activeText: {
+        color: "#2563EB",
+    },
+
+    activeLine: {
+        position: "absolute",
+        bottom: 0,
+        width: "100%",
+        height: verticalScale(4),
+        backgroundColor: "#2563EB",
+        borderTopLeftRadius: scale(4),
+        borderTopRightRadius: scale(4),
+    },
 });

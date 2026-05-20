@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function AppHeader({ title }) {
   const navigation = useNavigation();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, role } = useAuth();
 
   const avatarPath = user?.avatar;
   const avatarUri = avatarPath
@@ -18,7 +18,11 @@ export default function AppHeader({ title }) {
     : null;
   const onAvatarPress = () => {
     if (isLoggedIn) {
-      navigation.navigate("AccountRoot");
+      if (role === "provider") {
+        navigation.navigate("ProviderTabs", { screen: "Profile" });
+      } else {
+        navigation.navigate("AccountRoot");
+      }
     } else {
       navigation.navigate("AccountNotLoggedInScreen");
     }

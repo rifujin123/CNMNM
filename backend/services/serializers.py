@@ -14,8 +14,13 @@ from .models import (
     Route,
     Transport,
     SeatType,
+    SeatStatus,
     PromoBanner,
-) 
+    Wishlist,
+)
+from django.db.models import Count
+from django.utils import timezone
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -100,6 +105,10 @@ class TravelTourReadDetailSerializer(TravelTourSimpleReadSerializer):
             'tour_package',
             'base_price_display',
             'comment_count',
+            'time_start',
+            'is_active',
+            'created_at',
+            'updated_at',
         ]
 
 class TravelTourWriteSerializer(serializers.ModelSerializer):
@@ -115,20 +124,127 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ['id','username','content']
 
+class WishlistSerializer(serializers.ModelSerializer):
+    service_id = serializers.IntegerField(write_only=True, required=False)
+    tour_id = serializers.IntegerField(write_only=True, required=False)
+    service = serializers.SerializerMethodField()
+    travel_tour = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Wishlist
+        fields = ['id', 'service_id', 'tour_id', 'service', 'travel_tour', 'created_at']
+
+    def validate(self, attrs):
+        service_id = attrs.pop('service_id', None) or attrs.pop('tour_id', None)
+        if not service_id:
+            raise serializers.ValidationError({'service_id': 'service_id is required.'})
+
+        try:
+            service = BaseService.objects.get(pk=service_id)
+        except BaseService.DoesNotExist as exc:
+            raise serializers.ValidationError({'service_id': 'Service does not exist.'}) from exc
+
+        attrs['service'] = service
+        attrs['travel_tour'] = self.get_concrete_tour(service)
+        return attrs
+
+    def get_service_type(self, service):
+        if hasattr(service, 'traveltour'):
+            return 'tour'
+        if hasattr(service, 'hotel'):
+            return 'hotel'
+        if hasattr(service, 'transport'):
+            return 'transport'
+        return 'service'
+
+    def get_base_price_display(self, service):
+        return f"{service.base_price:,.0f}"
+
+    def get_concrete_tour(self, service):
+        try:
+            return service.traveltour
+        except TravelTour.DoesNotExist:
+            return None
+
+    def get_service(self, obj):
+        service = obj.service
+        return {
+            'id': service.id,
+            'name': service.name,
+            'description': service.description,
+            'star_rating': service.star_rating,
+            'base_price': service.base_price,
+            'base_price_display': self.get_base_price_display(service),
+            'city': CityReadSerializer(service.city).data if service.city else None,
+            'category': CategorySerializer(service.category).data if service.category else None,
+            'type': self.get_service_type(service),
+        }
+
+    def get_travel_tour(self, obj):
+        travel_tour = obj.travel_tour or self.get_concrete_tour(obj.service)
+        if not travel_tour:
+            return None
+
+        data = TravelTourSimpleReadSerializer(travel_tour).data
+        data['type'] = 'tour'
+        return data
+
 class HotelSimpleReadSerializer(serializers.ModelSerializer):
+    city = CityReadSerializer()
+    category = CategorySerializer()
+
     class Meta:
         model = Hotel
-        fields = ['id','name','city']
+        fields = ['id','name','city','category']
+
+class RoomTypeOptionReadSerializer(serializers.ModelSerializer):
+    available_rooms = serializers.SerializerMethodField()
+
+    def get_available_rooms(self, obj):
+        return obj.rooms.filter(is_available = True).count()
+    
+    class Meta:
+        model = RoomType
+        fields = [
+            'id',
+            'name',
+            'price',
+            'available_rooms'
+        ]        
+
+class HotelRoomOptionReadSerializer(serializers.ModelSerializer):
+    room_type = RoomTypeOptionReadSerializer(read_only=True)
+
+    class Meta:
+        model = Room
+        fields = ['id','room_type','room_number','is_available','total_beds']
 
 class HotelDetailReadSerializer(HotelSimpleReadSerializer):
+    room_types = RoomTypeOptionReadSerializer(many=True, read_only=True)
+    rooms = serializers.SerializerMethodField()
+
+    def get_rooms(self, obj):
+        rooms = obj.rooms.filter(is_available=True).select_related('room_type')
+        return HotelRoomOptionReadSerializer(rooms, many=True).data
+
     class Meta:
         model = Hotel
-        fields = HotelSimpleReadSerializer.Meta.fields + ['description','star_rating','base_price','address_detail','total_rooms']
+        fields = HotelSimpleReadSerializer.Meta.fields + [
+            'description',
+            'star_rating',
+            'base_price',
+            'address_detail',
+            'total_rooms',
+            'room_types',
+            'rooms',
+        ]
+
 
 class HotelWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hotel
         fields = ['name','description','address_detail']
+
 
 class RoomTypeSimpleReadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -148,12 +264,77 @@ class RoomWriteSerializer(serializers.ModelSerializer):
 
 
 class TransportSimpleReadSerializer(serializers.ModelSerializer):
+    city = CityReadSerializer()
+    category = CategorySerializer()
+
     class Meta:
         model = Transport
-        fields = ['id', 'name', 'city']
+        fields = ['id', 'name', 'city', 'category']
+
+class RouteReadSerializer(serializers.ModelSerializer):
+    from_city = CityReadSerializer()
+    to_city = CityReadSerializer()
+
+    class Meta:
+        model = Route
+        fields = ['id', 'from_city', 'to_city', 'departure_time', 'arrival_time']
 
 
 class TransportDetailReadSerializer(TransportSimpleReadSerializer):
+    routes = serializers.SerializerMethodField()
+    seat_types = serializers.SerializerMethodField()
+    availability = serializers.SerializerMethodField()
+
+    def get_routes(self, obj):
+        routes = obj.routes.filter(
+            departure_time__gte=timezone.now()
+        ).order_by('departure_time')
+        return RouteReadSerializer(routes, many=True).data
+
+    def get_seat_types(self, obj):
+        seat_types = SeatType.objects.filter(
+            physical_seats__transport=obj
+        ).distinct()
+        return SeatTypeReadSerializer(seat_types, many=True).data
+
+    def get_availability(self, obj):
+        seat_types = list(
+            SeatType.objects.filter(physical_seats__transport=obj).distinct()
+        )
+
+        route_ids = list(
+            obj.routes.filter(
+                departure_time__gte=timezone.now()
+            ).values_list('id', flat=True)
+        )
+
+        rows = (
+            SeatStatus.objects
+            .filter(
+                route__transport=obj,
+                status=SeatStatus.Status.AVAILABLE,
+                booking__isnull=True,
+                route__departure_time__gte=timezone.now(),
+            )
+            .values('route_id', 'physical_seat__seat_type_id')
+            .annotate(available_seats=Count('id'))
+        )
+
+        count_map = {
+            (row['route_id'], row['physical_seat__seat_type_id']): row['available_seats']
+            for row in rows
+        }
+
+        return [
+            {
+                'route': route_id,
+                'seat_type': seat_type.id,
+                'available_seats': count_map.get((route_id, seat_type.id), 0),
+            }
+            for route_id in route_ids
+            for seat_type in seat_types
+        ]
+
     class Meta:
         model = Transport
         fields = TransportSimpleReadSerializer.Meta.fields + [
@@ -164,6 +345,9 @@ class TransportDetailReadSerializer(TransportSimpleReadSerializer):
             'license_plate',
             'vehicle_type',
             'total_seats',
+            'routes',
+            'seat_types',
+            'availability',
         ]
 
 
@@ -199,3 +383,8 @@ class PromoBannerSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['created_at', 'updated_at']
+
+class SeatTypeReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SeatType
+        fields = ['id', 'name', 'price']

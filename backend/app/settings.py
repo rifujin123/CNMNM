@@ -17,20 +17,37 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
+
+# Payment Expire
+PAYMENT_EXPIRE_MINUTES = int(os.getenv("PAYMENT_EXPIRE_MINUTES", "15"))
+# Booking Expire
+BOOKING_HOLD_MINUTES = int(os.getenv("BOOKING_HOLD_MINUTES", "15"))
+
+STATIC_QR_IMAGE_BASE_URL = os.getenv(
+    "STATIC_QR_IMAGE_BASE_URL",
+    "https://img.vietqr.io/image",
+)
+STATIC_QR_BANK_CODE = os.getenv("STATIC_QR_BANK_CODE", "")
+STATIC_QR_ACCOUNT_NUMBER = os.getenv("STATIC_QR_ACCOUNT_NUMBER", "")
+STATIC_QR_ACCOUNT_NAME = os.getenv("STATIC_QR_ACCOUNT_NAME", "")
+STATIC_QR_TEMPLATE = os.getenv("STATIC_QR_TEMPLATE", "compact2")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY") or "django-insecure-dev-only-change-me"
 
-# SECURITY WARNING: don't run with debug turned on in production!er() in ("", "true")
-# DEBUG = os.getenv("DJANGO_DEBUG", "").lower() in ("", "true")
-DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = (os.getenv("DJANGO_DEBUG") or "True").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in (os.getenv("DJANGO_ALLOWED_HOSTS") or "localhost,127.0.0.1").split(",")
+    if h.strip()
+]
 
 
 # Application definition
@@ -82,6 +99,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:19006",
     "http://127.0.0.1:19006",
+    "http://192.168.6.20:8081",
+    "http://192.168.6.20:19006",
+    "http://192.168.1.51:8081",
+    "http://192.168.1.51:19006",
+    "http://192.168.100.105:8081",
+    "http://192.168.100.105:19006",
 ]
 CORS_ALLOW_ALL_ORIGINS = False
 

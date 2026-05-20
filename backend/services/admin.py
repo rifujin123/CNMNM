@@ -13,6 +13,7 @@ from .models import (
     Comment,
     ServiceImage,
     PromoBanner,
+    Wishlist,
 )
 
 
@@ -104,3 +105,10 @@ class PromoBannerAdmin(admin.ModelAdmin):
     list_display = ['id', 'title', 'is_active', 'display_order', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['title', 'subtitle', 'cta_text']
+
+
+@admin.register(Wishlist)
+class WishlistAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'service', 'created_at']
+    list_filter = ['service__category', 'created_at']
+    search_fields = ['user__username', 'service__name']

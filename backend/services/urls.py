@@ -10,6 +10,7 @@ router.register(r'tour-packages', views.TourPackageViewSet, basename='tour-packa
 router.register(r'travel-tours', views.TravelTourViewSet, basename='travel-tour')
 router.register(r'hotels', views.HotelViewSet, basename='hotel')
 router.register(r'transports', views.TransportViewSet, basename='transport')
+router.register(r'wishlist', views.WishlistViewSet, basename='wishlist')
 urlpatterns = [
     path('', include(router.urls)),
 ]

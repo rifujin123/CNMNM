@@ -1,7 +1,10 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import ExploreScreen from "../srceens/ExploreScreen";
-import ItemDetailScreen from "../srceens/ItemDetailScreen";
-import CategoryListScreen from "../srceens/CategoryListScreen";
+import ExploreScreen from "../screens/ExploreScreen";
+import ItemDetailScreen from "../screens/ItemDetailScreen";
+import CategoryListScreen from "../screens/CategoryListScreen";
+import SeeAllScreen from "../screens/SeeAllScreen";
+import BookingCheckoutScreen from "../screens/BookingCheckoutScreen";
+import BookingPaymentScreen from "../screens/BookingPaymentScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -15,12 +18,26 @@ export default function ExploreStack() {
         component={CategoryListScreen}
         options={({ route }) => ({
           headerShown: true,
-          headerTitle: route.params?.category?.name ?? "Danh mục",
+          headerTitle: route.params?.category?.name ?? "Category",
           headerTintColor: "#0F172A",
           headerStyle: { backgroundColor: "#F8FAFC" },
           headerShadowVisible: false,
         })}
       />
+      <Stack.Screen
+        name="SeeAll"
+        component={SeeAllScreen}
+        options={({ route }) => ({
+          headerShown: true,
+          headerTitle: route.params?.title ?? "All Tours",
+          headerTintColor: "#0F172A",
+          headerStyle: { backgroundColor: "#F8FAFC" },
+          headerShadowVisible: false,
+        })}
+      />
+
+      <Stack.Screen name="BookingCheckout" component={BookingCheckoutScreen} />
+      <Stack.Screen name="BookingPayment" component={BookingPaymentScreen} />
     </Stack.Navigator>
   );
 }
