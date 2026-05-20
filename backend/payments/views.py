@@ -28,25 +28,26 @@ class PaymentViewSet(
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = PaymentLimitOffsetPagination
 
-    def get_queryset(self):
+    def _get_role_queryset(self):
         user = self.request.user
 
         if user.is_staff or user.is_superuser:
-            queryset = self.queryset
+            return self.queryset
 
-        elif user.is_provider and user.is_approved:
-            queryset = self.queryset.filter(
+        if user.is_provider and user.is_approved:
+            return self.queryset.filter(
                 booking__service__provider_id=user.id
             )
 
-        elif user.is_customer:
-            queryset = self.queryset.filter(
+        if user.is_customer:
+            return self.queryset.filter(
                 user_id=user.id
             )
 
-        else:
-            return Payment.objects.none()
+        return Payment.objects.none()
 
+
+    def _apply_query_filters(self, queryset):
         params = self.request.query_params
 
         payment_status = params.get("payment_status")
@@ -70,6 +71,25 @@ class PaymentViewSet(
             queryset = queryset.filter(created_at__date__lte=to_date)
 
         return queryset
+    
+    def _expire_overdue_payments(self, queryset):
+        overdue_ids = list(
+            queryset.filter(
+                payment_status__in=Payment.active_statuses(),
+                expires_at__isnull=False,
+                expires_at__lte=timezone.now(),
+            ).values_list("id", flat=True)
+        )
+
+        for payment in (
+            Payment.objects
+            .select_related("booking")
+            .filter(id__in=overdue_ids)
+        ):
+            PaymentLifecycleService.expire_payment(payment)
+
+    def get_queryset(self):
+        return self._apply_query_filters(self._get_role_queryset())
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -95,10 +115,10 @@ class PaymentViewSet(
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+        role_queryset = self._get_role_queryset()
+        self._expire_overdue_payments(role_queryset)
 
-        for payment in queryset:
-            self._expire_payment_if_needed(payment)
+        queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
         if page is not None:
