@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../screens/HomeScreen";
 import CategoryListScreen from "../screens/CategoryListScreen";
 import ItemDetailScreen from "../screens/ItemDetailScreen";
+import HotelDetailScreen from "../screens/HotelDetailScreen";
 import SeeAllScreen from "../screens/SeeAllScreen";
 import BookingCheckoutScreen from "../screens/BookingCheckoutScreen";
 import BookingPaymentScreen from "../screens/BookingPaymentScreen";
@@ -35,6 +36,7 @@ export default function HomeStack() {
         })}
       />
       <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+      <Stack.Screen name="HotelDetail" component={HotelDetailScreen} />
       <Stack.Screen name="BookingCheckout" component={BookingCheckoutScreen} />
       <Stack.Screen name="BookingPayment" component={BookingPaymentScreen} />
     </Stack.Navigator>

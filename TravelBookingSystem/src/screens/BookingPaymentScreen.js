@@ -1,7 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -10,6 +11,8 @@ import {
   View,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as FileSystem from "expo-file-system/legacy";
+import * as MediaLibrary from "expo-media-library";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useCancelPayment, usePayment } from "../hooks/usePayments";
 
@@ -141,6 +144,7 @@ const getStatusContent = (payment) => {
 export default function BookingPaymentScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const [isSavingQr, setIsSavingQr] = useState(false);
 
   const {
     bookingId,
@@ -166,6 +170,7 @@ export default function BookingPaymentScreen() {
     return payment?.metadata?.transfer_content || payment?.transaction_id || "N/A";
   }, [payment]);
 
+  const qrUrl = payment?.metadata?.qr_url || payment?.payment_url;
   const status = payment?.payment_status || "PROCESSING";
   const method = payment?.payment_method || "STATIC_QR";
   const isStaticQr = method === "STATIC_QR";
@@ -238,6 +243,45 @@ export default function BookingPaymentScreen() {
     );
   };
 
+  const handleSaveQr = async () => {
+    if (!qrUrl) {
+      Alert.alert("Cannot save QR", "QR image is not available.");
+      return;
+    }
+
+    if (!FileSystem.cacheDirectory) {
+      Alert.alert("Cannot save QR", "File cache is not available.");
+      return;
+    }
+
+    try {
+      setIsSavingQr(true);
+
+      const permission = await MediaLibrary.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission required",
+          "Please allow photo library access to save the QR code."
+        );
+        return;
+      }
+
+      const fileUri = `${FileSystem.cacheDirectory}payment-qr-${
+        resolvedPaymentId || Date.now()
+      }.png`;
+      const downloadResult = await FileSystem.downloadAsync(qrUrl, fileUri);
+
+      await MediaLibrary.saveToLibraryAsync(downloadResult.uri);
+
+      Alert.alert("Saved", "QR code has been saved to your photo library.");
+    } catch (err) {
+      console.error("Save QR error:", err);
+      Alert.alert("Save failed", "Could not save QR code. Please try again.");
+    } finally {
+      setIsSavingQr(false);
+    }
+  };
+
   if (isLoading && !payment) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -300,20 +344,72 @@ export default function BookingPaymentScreen() {
           >
             <Ionicons
               name={statusContent.icon}
-              size={34}
+              size={24}
               color={statusContent.color}
             />
           </View>
 
-          <Text style={styles.statusTitle}>{statusContent.title}</Text>
-          <Text style={styles.statusText}>{statusContent.text}</Text>
+          <View style={styles.statusTextBlock}>
+            <View style={styles.statusHeaderRow}>
+              <Text style={styles.statusTitle} numberOfLines={1}>
+                {statusContent.title}
+              </Text>
 
-          <View style={[styles.badge, { backgroundColor: badge.backgroundColor }]}>
-            <Text style={[styles.badgeText, { color: badge.color }]}>
-              {badge.label}
+              <View style={[styles.badge, { backgroundColor: badge.backgroundColor }]}>
+                <Text style={[styles.badgeText, { color: badge.color }]}>
+                  {badge.label}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.statusText} numberOfLines={2}>
+              {statusContent.text}
             </Text>
           </View>
         </View>
+
+        {isStaticQr ? (
+          <View style={styles.qrCard}>
+            <Text style={styles.qrTitle}>Scan to Pay</Text>
+
+            {qrUrl ? (
+              <Image
+                source={{ uri: qrUrl }}
+                style={styles.qrImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={styles.qrPlaceholder}>
+                <Ionicons name="qr-code-outline" size={52} color={COLORS.muted} />
+                <Text style={styles.qrPlaceholderText}>
+                  QR image is not available for this payment.
+                </Text>
+              </View>
+            )}
+
+            <Text style={styles.qrHint}>
+              Open your banking app and scan this QR code.
+            </Text>
+
+            <Pressable
+              disabled={!qrUrl || isSavingQr}
+              onPress={handleSaveQr}
+              style={[
+                styles.saveQrButton,
+                (!qrUrl || isSavingQr) && styles.disabledButton,
+              ]}
+            >
+              {isSavingQr ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <Ionicons name="download-outline" size={16} color={COLORS.primary} />
+              )}
+              <Text style={styles.saveQrButtonText}>
+                {isSavingQr ? "Saving..." : "Save QR"}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.infoCard}>
           <InfoRow
@@ -339,12 +435,7 @@ export default function BookingPaymentScreen() {
           <InfoRow label="Expires At" value={formatDateTime(payment?.expires_at)} />
         </View>
 
-        <View style={styles.noteBox}>
-          <Ionicons name="information-circle-outline" size={20} color={COLORS.primary} />
-          <Text style={styles.noteText}>
-            Static QR payments are received by the platform account and confirmed by admin only.
-          </Text>
-        </View>
+        
       </ScrollView>
 
       <View style={styles.bottomBar}>
@@ -436,42 +527,115 @@ const styles = StyleSheet.create({
   statusCard: {
     backgroundColor: COLORS.white,
     borderRadius: 16,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 10,
+  },
+  statusIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusTextBlock: {
+    flex: 1,
+  },
+  statusHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  statusTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "800",
+    color: COLORS.dark,
+  },
+  statusText: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 16,
+    color: COLORS.muted,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  qrCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
     padding: 18,
     alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: 12,
   },
-  statusIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  statusTitle: {
-    fontSize: 20,
+  qrTitle: {
+    fontSize: 18,
     fontWeight: "800",
     color: COLORS.dark,
-    textAlign: "center",
+    marginBottom: 12,
   },
-  statusText: {
-    marginTop: 8,
-    fontSize: 14,
-    lineHeight: 20,
+  qrImage: {
+    width: 240,
+    height: 240,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+  },
+  qrPlaceholder: {
+    width: 240,
+    height: 240,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+  },
+  qrPlaceholderText: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
     color: COLORS.muted,
     textAlign: "center",
   },
-  badge: {
-    marginTop: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
+  qrHint: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.muted,
+    textAlign: "center",
   },
-  badgeText: {
-    fontSize: 12,
+  saveQrButton: {
+    marginTop: 12,
+    minHeight: 42,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    alignSelf: "stretch",
+  },
+  saveQrButtonText: {
+    fontSize: 13,
     fontWeight: "800",
+    color: COLORS.primary,
   },
   infoCard: {
     backgroundColor: COLORS.white,

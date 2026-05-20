@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ExploreScreen from "../screens/ExploreScreen";
 import ItemDetailScreen from "../screens/ItemDetailScreen";
+import HotelDetailScreen from "../screens/HotelDetailScreen";
 import CategoryListScreen from "../screens/CategoryListScreen";
 import SeeAllScreen from "../screens/SeeAllScreen";
 import BookingCheckoutScreen from "../screens/BookingCheckoutScreen";
@@ -13,6 +14,7 @@ export default function ExploreStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ExploreMain" component={ExploreScreen} />
       <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+      <Stack.Screen name="HotelDetail" component={HotelDetailScreen} />
       <Stack.Screen
         name="CategoryList"
         component={CategoryListScreen}

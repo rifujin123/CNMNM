@@ -1,7 +1,6 @@
-import { StyleSheet, Text, View, ScrollView } from 'react-native'
+import { StyleSheet, ScrollView } from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import App from '../../App'
 import AppHeader from '../components/AppHeader'
 
 const DashboardScreen = () => {

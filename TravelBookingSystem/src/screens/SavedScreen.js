@@ -44,7 +44,9 @@ const SavedScreen = () => {
   }, [activeCategory, savedItems]);
 
   const onPressItem = (item) => {
-    navigation.navigate("ItemDetail", {
+    const detailScreen = item?.type === "hotel" ? "HotelDetail" : "ItemDetail";
+
+    navigation.navigate(detailScreen, {
       itemId: item.id,
       serviceType: item.type,
     });
