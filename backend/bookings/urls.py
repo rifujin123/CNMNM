@@ -1,7 +1,12 @@
-from django.urls import path
-from . import views
+from django.urls import include, path
+from rest_framework.routers import SimpleRouter
 
-urlpattens = [
-    path('', views.index,name='index')
+from .views import BookingViewSet
+
+router = SimpleRouter()
+router.register(r'', BookingViewSet, basename='booking')
+
+urlpatterns = [
+    path('', include(router.urls))
 ]
 

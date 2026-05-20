@@ -156,7 +156,7 @@ CNMNM/
 - **Role-based Permissions** (Customer, Provider, Admin)
 - **Swagger/OpenAPI Documentation** via Drf-Yasg
 - **Image Upload** to Cloudinary
-- **Payment Gateway Integration** (MoMo, ZaloPay, VNPay)
+- **Payment Gateway Integration** (MoMo, VNPay)
 - **Full CRUD** for services, bookings, and user profiles
 
 ---

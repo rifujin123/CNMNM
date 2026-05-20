@@ -41,5 +41,8 @@ yarn-error.*
 /android
 
 .cursor/
-.ccs/
-.claude/
+
+# env
+.env
+.env.*
+!.env.example
