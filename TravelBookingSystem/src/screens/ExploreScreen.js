@@ -5,8 +5,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../components/SearchBar";
 import ItemSection from "../components/ItemSection";
 import CategoryChips from "../components/CategoryChips";
-import HotelCard from "../components/HotelCard";
-import TransportCard from "../components/TransportCard";
 import { useNavigation } from "@react-navigation/native";
 import usePullRefresh from "../../hooks/usePullRefresh";
 import useWishlist from "../hooks/useWishlist";
@@ -40,15 +38,23 @@ const ExploreScreen = () => {
   const { refreshControl } = usePullRefresh(loadData);
 
   const onPressItem = (item) => {
-    navigation.navigate("ItemDetail", { ItemId: item?.id });
+    navigation.navigate("ItemDetail", {
+      ItemId: item?.id,
+      serviceType: item?.type,
+    });
   };
 
   const handleCategoryPress = (category) => {
     navigation.navigate("CategoryList", { category });
   };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
+      >
         <AppHeader title="Explore" />
         <SearchBar placeholder="Search cities, places, hotels" />
         <CategoryChips
@@ -60,7 +66,8 @@ const ExploreScreen = () => {
           items={places}
           onPress={onPressItem}
           isWishlisted={isWishlisted}
-          onWishlistToggle={toggleWishlist}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
           onSeeAllPress={() =>
             navigation.navigate("SeeAll", {
               title: "Recommended For You",
@@ -72,7 +79,9 @@ const ExploreScreen = () => {
           title="Hotels"
           items={hotels}
           onPress={onPressItem}
-          renderCard={(hotel) => <HotelCard hotel={hotel} />}
+          isWishlisted={isWishlisted}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
           onSeeAllPress={() =>
             navigation.navigate("SeeAll", {
               title: "Hotels",
@@ -84,7 +93,9 @@ const ExploreScreen = () => {
           title="Transport"
           items={transports}
           onPress={onPressItem}
-          renderCard={(transport) => <TransportCard transport={transport} />}
+          isWishlisted={isWishlisted}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
           onSeeAllPress={() =>
             navigation.navigate("SeeAll", {
               title: "Transport",

@@ -35,7 +35,7 @@ const HomeScreen = () => {
   }, [loadData]);
 
   const onPressItem = (item) => {
-    navigation.navigate("ItemDetail", { ItemId: item?.id });
+    navigation.navigate("ItemDetail", { ItemId: item?.id, serviceType: item?.type});
   };
 
   const onRequireLogin = () => {

@@ -30,14 +30,24 @@ function ItemListCard({ item, onPress, isWishlist, onWishlistToggle, onRequireLo
   const imageUri = getImageUri(item) || FALLBACK_IMAGE_URI;
   const rating = item?.star_rating || "N/A";
   const location = item?.city?.name || "Unknown location";
-  const price = item?.base_price_display || `From $${item?.base_price || "N/A"}`;
-  const category = item?.category?.name || item?.category_name || "Tour";
+  const price = item?.base_price_display || `From ${item?.base_price || "N/A"}`;
+  const category =
+    item?.category?.name ||
+    item?.category_name ||
+    (item?.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : "Service");
   const reviewCount = item?.comment_count || item?.review_count || 0;
 
   const handleWishlistPress = (e) => {
     e?.stopPropagation?.();
+    const serviceId = item?.id;
+    if (!serviceId){
+      return;
+    }
     if (!onWishlistToggle) {
-      onRequireLogin?.();
+      onRequireLogin?.({
+        type: "wishlist",
+        serviceId,
+      });
       return;
     }
     onWishlistToggle(item);
