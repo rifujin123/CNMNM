@@ -136,7 +136,7 @@ class BookingService:
             booking_data = dict(data)
             rooms = booking_data.pop('rooms', [])
 
-            expire_at = timezone.now() + timedelta(
+            expires_at = timezone.now() + timedelta(
                 minutes=settings.BOOKING_HOLD_MINUTES
             )
 
@@ -145,7 +145,7 @@ class BookingService:
                 total_price=total_price,
                 booking_status=Booking.BookingStatus.PENDING,
                 payment_status=Booking.PaymentStatus.UNPAID,
-                expire_at = expire_at,
+                expires_at=expires_at,
                 **booking_data
             )
 

@@ -63,6 +63,8 @@ class BookingCreateAPITests(APITestCase):
         self.assertIn("id", response.data)
         self.assertEqual(response.data["booking_status"], "pending")
         self.assertEqual(response.data["payment_status"], "unpaid")
+        self.assertIn("expires_at", response.data)
+        self.assertIsNotNone(response.data["expires_at"])
         self.assertEqual(Decimal(response.data["total_price"]), Decimal("300000.00"))
 
         self.tour.refresh_from_db()
