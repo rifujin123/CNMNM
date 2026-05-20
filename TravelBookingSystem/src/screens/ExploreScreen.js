@@ -1,5 +1,5 @@
-import React from "react";
-import { StyleSheet, ScrollView } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { StyleSheet, Text, View, ScrollView } from "react-native";
 import AppHeader from "../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../components/SearchBar";
@@ -8,31 +8,34 @@ import CategoryChips from "../components/CategoryChips";
 import { useNavigation } from "@react-navigation/native";
 import usePullRefresh from "../../hooks/usePullRefresh";
 import useWishlist from "../hooks/useWishlist";
-import { useCategories, useHotels, usePlaces, useTransports } from "../hooks/useTours";
-import { useAuth } from "../../context/AuthContext";
+import { fetchCategories, fetchPlaces, fetchHotels, fetchTransports } from "../api/services";
 
 const ExploreScreen = () => {
-  const { data: places = [], refetch: refetchPlaces } = usePlaces();
-  const { data: hotels = [], refetch: refetchHotels } = useHotels();
-  const { data: transports = [], refetch: refetchTransports } = useTransports();
-  const { data: categories = [], refetch: refetchCategories } = useCategories();
+  const [categories, setCategories] = useState([]);
+  const [places, setPlaces] = useState([]);
+  const [hotels, setHotels] = useState([]);
+  const [transports, setTransports] = useState([]);
   const navigation = useNavigation();
   const { isWishlisted, toggleWishlist } = useWishlist();
 
-  const { token } = useAuth();
+  const loadData = useCallback(async () => {
+    const [cats, pls, htls, trns] = await Promise.all([
+      fetchCategories(),
+      fetchPlaces(),
+      fetchHotels(),
+      fetchTransports(),
+    ]);
+    setCategories(cats);
+    setPlaces(pls);
+    setHotels(htls);
+    setTransports(trns);
+  }, []);
 
-  const onRequireLogin = () => {
-    navigation.navigate("AccountNotLoggedInScreen");
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  const { refreshControl } = usePullRefresh(() =>
-    Promise.all([
-      refetchCategories(),
-      refetchPlaces(),
-      refetchHotels(),
-      refetchTransports(),
-    ])
-  );
+  const { refreshControl } = usePullRefresh(loadData);
 
   const onPressItem = (item) => {
     navigation.navigate("ItemDetail", {
