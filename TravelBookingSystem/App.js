@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import TripDetailScreen from "./src/screens/TripDetailScreen";
 import AccountStack from "./src/navigations/AccountStack";
+import AdminTabs from "./src/navigations/AdminTabs";
 
 const Stack = createNativeStackNavigator();
 
@@ -34,6 +35,11 @@ function RootNavigator() {
               name="AccountNotLoggedInScreen"
               component={AccountNotLoggedInScreen}
             />
+          </>
+        ) : role === "admin" ? (
+          <>
+            <Stack.Screen name="AdminTabs" component={AdminTabs} />
+            <Stack.Screen name="AccountRoot" component={AccountStack} />
           </>
         ) : role === "provider" ? (
           <>

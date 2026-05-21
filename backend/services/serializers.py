@@ -115,7 +115,7 @@ class TravelTourReadDetailSerializer(TravelTourSimpleReadSerializer):
 class TravelTourWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelTour
-        fields = ['name','description','base_price','time_start']
+        fields = ['name','description','base_price','time_start','is_active']
 
 
 
@@ -253,6 +253,9 @@ class HotelDetailReadSerializer(HotelSimpleReadSerializer):
             'star_rating',
             'base_price',
             'address_detail',
+            'is_active',
+            'created_at',
+            'updated_at',
             'total_rooms',
             'room_types',
             'rooms',
@@ -263,7 +266,7 @@ class HotelDetailReadSerializer(HotelSimpleReadSerializer):
 class HotelWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hotel
-        fields = ['name','description','address_detail']
+        fields = ['name','description','address_detail','is_active']
 
 
 class RoomTypeSimpleReadSerializer(serializers.ModelSerializer):
@@ -364,6 +367,9 @@ class TransportDetailReadSerializer(TransportSimpleReadSerializer):
             'brand_name',
             'license_plate',
             'vehicle_type',
+            'is_active',
+            'created_at',
+            'updated_at',
             'total_seats',
             'routes',
             'seat_types',
@@ -384,6 +390,7 @@ class TransportWriteSerializer(serializers.ModelSerializer):
             'brand_name',
             'license_plate',
             'vehicle_type',
+            'is_active',
         ]
 
 

@@ -18,6 +18,7 @@ import Apis, { authApis, endpoints } from "../../configs/Apis";
 import { useAuth } from "../../context/AuthContext";
 import OAuthConfig from "../config/OAuthConfig";
 import { pickSingleImage } from "../utils/pickImage";
+import { getUserRole } from "../utils/authRole";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -92,11 +93,19 @@ const LoginScreen = () => {
       await setAuthData({ accessToken, userInfo: me });
 
       // Navigate based on role
-      const isProvider = me?.is_provider;
+      const resolvedRole = getUserRole(me);
+      const nextRoute =
+        resolvedRole === "admin"
+          ? "AdminTabs"
+          : resolvedRole === "provider"
+            ? "ProviderTabs"
+            : "MainTabs";
+
       navigation.reset({
         index: 0,
-        routes: [{ name: isProvider ? "ProviderTabs" : "MainTabs" }],
+        routes: [{ name: nextRoute }],
       });
+
     } catch (err) {
       const message =
         err?.response?.data?.error_description ||

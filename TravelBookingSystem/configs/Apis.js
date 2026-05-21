@@ -1,5 +1,4 @@
 import axios from "axios";
-
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export const endpoints = {
@@ -8,15 +7,22 @@ export const endpoints = {
   logout: "/api/accounts/logout/",
   currentUser: "/api/accounts/me/",
   changePassword: "/api/accounts/me/change-password/",
+
   categories: "/api/services/categories/",
   tours: "/api/services/travel-tours/",
   hotels: "/api/services/hotels/",
   transports: "/api/services/transports/",
-  providerPending: "/api/providers/pending/",
-  wishlist: "/api/services/wishlist/",
+  promoBanners: "/api/services/promo-banners",
 
+  providerPending: "/api/providers/pending/",
+  providerVerification: (providerId) => `/api/providers/${providerId}/verification/`,
+
+  wishlist: "/api/services/wishlist/",
   bookings: "/api/bookings/",
   payments: "/api/payments/",
+
+  bookingRefund: (bookingId) => `/api/bookings/${bookingId}/refund/`,
+  confirmStaticQrPayment: (paymentId) => `/api/payments/${paymentId}/confirm_static_qr_payment/`
 };
 
 export const authApis = (token) =>
