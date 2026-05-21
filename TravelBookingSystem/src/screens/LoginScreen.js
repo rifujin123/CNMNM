@@ -1,5 +1,6 @@
-import {
+﻿import {
   Image,
+  KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
   Text,
@@ -34,10 +35,10 @@ const LoginScreen = () => {
   const [businessName, setBusinessName] = useState("");
   const [taxCode, setTaxCode] = useState("");
   const [businessLicense, setBusinessLicense] = useState(null);
+  const [avatar, setAvatar] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
 
   const pickBusinessLicense = async () => {
     try {
@@ -45,6 +46,21 @@ const LoginScreen = () => {
       if (!image) return;
 
       setBusinessLicense({
+        uri: image.uri,
+        name: image.fileName,
+        type: image.mimeType,
+      });
+    } catch (err) {
+      setError("Photo library permission required");
+    }
+  };
+
+  const pickAvatar = async () => {
+    try {
+      const image = await pickSingleImage();
+      if (!image) return;
+
+      setAvatar({
         uri: image.uri,
         name: image.fileName,
         type: image.mimeType,
@@ -118,6 +134,11 @@ const LoginScreen = () => {
         return;
       }
 
+      if (!avatar) {
+        setError("Please upload an avatar before registering.");
+        return;
+      }
+
       if (password !== confirmPassword) {
         setError("Passwords do not match");
         return;
@@ -145,6 +166,7 @@ const LoginScreen = () => {
         formData.append("username", username.trim());
         formData.append("email", email.trim());
         formData.append("password", password);
+        formData.append("avatar", avatar);
         formData.append("is_provider", "true");
         formData.append("is_customer", "false");
         formData.append("provider_business_name", businessName.trim());
@@ -155,14 +177,17 @@ const LoginScreen = () => {
           headers: { "Content-Type": "multipart/form-data" },
         });
       } else {
-        const payload = {
-          username: username.trim(),
-          email: email.trim(),
-          password: password,
-          is_provider: false,
-          is_customer: true,
-        };
-        res = await Apis.post(endpoints.register, payload);
+        const formData = new FormData();
+        formData.append("username", username.trim());
+        formData.append("email", email.trim());
+        formData.append("password", password);
+        formData.append("avatar", avatar);
+        formData.append("is_provider", "false");
+        formData.append("is_customer", "true");
+
+        res = await Apis.post(endpoints.register, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
       }
 
       setActiveTab("Login");
@@ -175,6 +200,7 @@ const LoginScreen = () => {
       setBusinessName("");
       setTaxCode("");
       setBusinessLicense(null);
+      setAvatar(null);
 
       setError("Registration successful. Please login.");
       console.log("Register success:", res?.data);
@@ -185,6 +211,7 @@ const LoginScreen = () => {
         data?.email?.[0] ||
         data?.username?.[0] ||
         data?.password?.[0] ||
+        data?.avatar?.[0] ||
         data?.provider_business_name?.[0] ||
         data?.provider_tax_code?.[0] ||
         data?.business_license?.[0] ||
@@ -197,12 +224,18 @@ const LoginScreen = () => {
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
+      behavior="padding"
+      keyboardVerticalOffset={vs(20)}
       style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
     >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        overScrollMode="never"
+      >
       <View style={styles.headerRow}>
         <TouchableOpacity
           hitSlop={8}
@@ -265,6 +298,30 @@ const LoginScreen = () => {
             autoCapitalize="none"
             keyboardType="email-address"
           />
+
+          {/* Avatar picker */}
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={pickAvatar}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="image-outline" size={22} color="#0F172A" />
+            <Text style={styles.uploadButtonText}>
+              {avatar ? "Change Avatar" : "Upload Avatar"}
+            </Text>
+          </TouchableOpacity>
+
+          {avatar && (
+            <View style={styles.avatarPreview}>
+              <Image
+                source={{ uri: avatar.uri }}
+                style={styles.avatarImage}
+              />
+              <Text style={styles.avatarFileName} numberOfLines={1}>
+                {avatar.name}
+              </Text>
+            </View>
+          )}
 
           {isProviderRole && (
             <>
@@ -346,7 +403,8 @@ const LoginScreen = () => {
         </Text>
       </TouchableOpacity>
       <GoogleLoginCard />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -419,7 +477,7 @@ const styles = StyleSheet.create({
     color: "#DC2626",
     fontSize: vs(11),
   },
-    uploadButton: {
+  uploadButton: {
     marginTop: vs(10),
     borderWidth: s(1),
     borderColor: "#93C5FD",
@@ -450,6 +508,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#E2E8F0",
   },
   licenseFileName: {
+    flex: 1,
+    color: "#334155",
+    fontSize: vs(10),
+  },
+  avatarPreview: {
+    marginTop: vs(8),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: s(8),
+    backgroundColor: "#F8FAFC",
+    borderRadius: s(10),
+    padding: s(8),
+  },
+  avatarImage: {
+    width: s(44),
+    height: s(44),
+    borderRadius: s(22),
+    backgroundColor: "#E2E8F0",
+  },
+  avatarFileName: {
     flex: 1,
     color: "#334155",
     fontSize: vs(10),

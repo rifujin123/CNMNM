@@ -9,6 +9,7 @@ export const endpoints = {
   currentUser: "/api/accounts/me/",
   changePassword: "/api/accounts/me/change-password/",
   categories: "/api/services/categories/",
+  cities: "/api/locations/cities/",
   tours: "/api/services/travel-tours/",
   hotels: "/api/services/hotels/",
   transports: "/api/services/transports/",

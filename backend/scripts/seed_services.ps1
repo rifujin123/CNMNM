@@ -1,5 +1,5 @@
 param(
-    [string]$PythonCommand = "python"
+    [string]$PythonCommand = "..\venv\Scripts\python.exe"
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,6 +33,8 @@ from services.models import (
     Package,
     TourPackage,
     SeatType,
+    PhysicalSeat,
+    SeatStatus,
 )
 
 User = get_user_model()
@@ -81,19 +83,29 @@ def ensure_categories():
     return tour_cat, hotel_cat, transport_cat
 
 
+def dedupe_then_update_or_create(model, lookup, defaults):
+    """Remove duplicate records, then update_or_create."""
+    qs = model.objects.filter(**lookup)
+    count = qs.count()
+    if count > 1:
+        keep = qs.first()
+        qs.exclude(pk=keep.pk).delete()
+    return model.objects.update_or_create(defaults=defaults, **lookup)
+
+
 def seed_tours(provider, cities, category):
     now = timezone.now()
     tours = []
     for i in range(1, 6):
-        tour, _ = TravelTour.objects.update_or_create(
-            name=f"Seed Tour {i}",
-            provider=provider,
+        city = cities[(i - 1) % len(cities)]
+        tour, _ = dedupe_then_update_or_create(
+            TravelTour,
+            lookup={"name": f"Seed Tour {i}", "provider": provider, "city": city},
             defaults={
                 "description": f"Tour sample #{i} seeded by script.",
                 "star_rating": Decimal("4.5"),
                 "base_price": Decimal("1290000.00") + Decimal(i * 150000),
                 "is_active": True,
-                "city": cities[(i - 1) % len(cities)],
                 "category": category,
                 "time_start": now + timedelta(days=i),
                 "empty_slot": 20 + i,
@@ -106,15 +118,15 @@ def seed_tours(provider, cities, category):
 def seed_hotels(provider, cities, category):
     hotels = []
     for i in range(1, 6):
-        hotel, _ = Hotel.objects.update_or_create(
-            name=f"Seed Hotel {i}",
-            provider=provider,
+        city = cities[(i - 1) % len(cities)]
+        hotel, _ = dedupe_then_update_or_create(
+            Hotel,
+            lookup={"name": f"Seed Hotel {i}", "provider": provider, "city": city},
             defaults={
                 "description": f"Hotel sample #{i} seeded by script.",
                 "star_rating": Decimal("4.2"),
                 "base_price": Decimal("890000.00") + Decimal(i * 90000),
                 "is_active": True,
-                "city": cities[(i - 1) % len(cities)],
                 "category": category,
                 "address_detail": f"{100 + i} Seed Street",
             },
@@ -127,15 +139,15 @@ def seed_transports(provider, cities, category):
     vehicle_types = ["Bus", "Van", "Limousine", "Train", "Flight"]
     transports = []
     for i in range(1, 6):
-        transport, _ = Transport.objects.update_or_create(
-            name=f"Seed Transport {i}",
-            provider=provider,
+        city = cities[(i - 1) % len(cities)]
+        transport, _ = dedupe_then_update_or_create(
+            Transport,
+            lookup={"name": f"Seed Transport {i}", "provider": provider, "city": city},
             defaults={
                 "description": f"Transport sample #{i} seeded by script.",
                 "star_rating": Decimal("4.0"),
                 "base_price": Decimal("290000.00") + Decimal(i * 50000),
                 "is_active": True,
-                "city": cities[(i - 1) % len(cities)],
                 "category": category,
                 "brand_name": f"Seed Mobility {i}",
                 "license_plate": f"43A-10{i:02d}",
@@ -191,36 +203,58 @@ def seed_hotel_rooms(hotels):
         )
 
 
-def seed_transport_routes(transports, cities):
+def seed_transport_routes(transports, cities, seat_type_objs):
     now = timezone.now()
     for i, transport in enumerate(transports):
-        from_city = cities[i % len(cities)]
-        to_city = cities[(i + 1) % len(cities)]
-        departure_time = now + timedelta(days=i + 1, hours=8)
-        arrival_time = departure_time + timedelta(hours=2)
+        # Create 10 physical seats per transport
+        seats = []
+        for seat_num in range(1, 11):
+            seat_type = seat_type_objs[(seat_num - 1) % len(seat_type_objs)]
+            seat, _ = PhysicalSeat.objects.update_or_create(
+                transport=transport,
+                seat_number=f"A{seat_num}",
+                defaults={"seat_type": seat_type},
+            )
+            seats.append(seat)
 
-        Route.objects.update_or_create(
-            transport=transport,
-            from_city=from_city,
-            to_city=to_city,
-            defaults={
-                "departure_time": departure_time,
-                "arrival_time": arrival_time,
-            },
-        )
+        # Create 2 routes per transport
+        for j in range(2):
+            from_city = cities[(i + j) % len(cities)]
+            to_city = cities[(i + j + 1) % len(cities)]
+            departure_time = now + timedelta(days=i + j + 1, hours=8 + j * 4)
+            arrival_time = departure_time + timedelta(hours=2)
+
+            route, _ = Route.objects.update_or_create(
+                transport=transport,
+                from_city=from_city,
+                to_city=to_city,
+                defaults={
+                    "departure_time": departure_time,
+                    "arrival_time": arrival_time,
+                },
+            )
+
+            # Create available seat statuses for this route
+            for seat in seats:
+                SeatStatus.objects.update_or_create(
+                    route=route,
+                    physical_seat=seat,
+                    defaults={"status": SeatStatus.Status.AVAILABLE},
+                )
 
 
 def seed_seat_types(provider):
-    SeatType.objects.update_or_create(
+    economy, _ = SeatType.objects.update_or_create(
         provider=provider,
         name="Economy",
         defaults={"price": Decimal("90000.00")},
     )
-    SeatType.objects.update_or_create(
+    business, _ = SeatType.objects.update_or_create(
         provider=provider,
         name="Business",
         defaults={"price": Decimal("180000.00")},
     )
+    return [economy, business]
 
 
 def main():
@@ -233,8 +267,8 @@ def main():
     transports = seed_transports(provider, cities, transport_cat)
     seed_tour_packages(tours)
     seed_hotel_rooms(hotels)
-    seed_transport_routes(transports, cities)
-    seed_seat_types(provider)
+    seat_type_objs = seed_seat_types(provider)
+    seed_transport_routes(transports, cities, seat_type_objs)
 
     print("Seed completed:")
     print(" - 5 tours")

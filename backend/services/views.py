@@ -16,6 +16,14 @@ from .perms import (
 from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 
+
+def get_service_category_or_raise(name):
+    category = Category.objects.filter(name__iexact=name).first()
+    if not category:
+        raise PermissionDenied(f"Category '{name}' does not exist.")
+    return category
+
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -180,7 +188,11 @@ class TravelTourViewSet(viewsets.ModelViewSet):
         if self.action in ['create','update','partial_update']:
             return TravelTourWriteSerializer
         return TravelTourReadDetailSerializer
-    
+
+    def perform_create(self, serializer):
+        category = get_service_category_or_raise('Tour')
+        serializer.save(provider=self.request.user, category=category)
+
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'get_comments']:
             return [AllowAny()]
@@ -262,6 +274,10 @@ class HotelViewSet(viewsets.ModelViewSet):
             return HotelWriteSerializer
         return HotelDetailReadSerializer
 
+    def perform_create(self, serializer):
+        category = get_service_category_or_raise('Hotel')
+        serializer.save(provider=self.request.user, category=category)
+
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
@@ -328,6 +344,10 @@ class TransportViewSet(viewsets.ModelViewSet):
         if self.action in ['create','update','partial_update']:
             return TransportWriteSerializer
         return TransportDetailReadSerializer
+
+    def perform_create(self, serializer):
+        category = get_service_category_or_raise('Transport')
+        serializer.save(provider=self.request.user, category=category)
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:

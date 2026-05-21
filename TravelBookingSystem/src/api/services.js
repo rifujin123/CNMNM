@@ -1,9 +1,17 @@
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 
+const UNVERIFIED_PROVIDER_ERROR = "Provider account is not verified";
+
 const SERVICE_TYPES = {
   tour: "tour",
   hotel: "hotel",
   transport: "transport",
+};
+
+const SERVICE_ENDPOINTS = {
+  [SERVICE_TYPES.tour]: endpoints.tours,
+  [SERVICE_TYPES.hotel]: endpoints.hotels,
+  [SERVICE_TYPES.transport]: endpoints.transports,
 };
 
 const SERVICE_DETAIL_ENDPOINTS = {
@@ -49,6 +57,11 @@ const mapServiceListItem = (item, type) => ({
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
+  return res?.data?.results ?? res?.data ?? [];
+};
+
+export const fetchCities = async () => {
+  const res = await Apis.get(endpoints.cities);
   return res?.data?.results ?? res?.data ?? [];
 };
 
@@ -245,4 +258,36 @@ export const fetchTransports = async (params = {}) => {
   const res = await Apis.get(url);
   const items = res?.data?.results ?? res?.data ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
+};
+
+export const createService = async ({ token, user, type, payload }) => {
+  if (!token) throw new Error("Missing token");
+  if (user?.is_verified_provider !== true) throw new Error(UNVERIFIED_PROVIDER_ERROR);
+  const endpoint = SERVICE_ENDPOINTS[type];
+  if (!endpoint) throw new Error("Invalid service type");
+
+  const res = await authApis(token).post(endpoint, payload);
+  return res?.data;
+};
+
+export const updateService = async ({ token, user, type, id, payload }) => {
+  if (!token) throw new Error("Missing token");
+  if (user?.is_verified_provider !== true) throw new Error(UNVERIFIED_PROVIDER_ERROR);
+  if (!id) throw new Error("Missing service id");
+  const endpoint = SERVICE_ENDPOINTS[type];
+  if (!endpoint) throw new Error("Invalid service type");
+
+  const res = await authApis(token).put(`${endpoint}${id}/`, payload);
+  return res?.data;
+};
+
+export const deleteService = async ({ token, user, type, id }) => {
+  if (!token) throw new Error("Missing token");
+  if (user?.is_verified_provider !== true) throw new Error(UNVERIFIED_PROVIDER_ERROR);
+  if (!id) throw new Error("Missing service id");
+  const endpoint = SERVICE_ENDPOINTS[type];
+  if (!endpoint) throw new Error("Invalid service type");
+
+  const res = await authApis(token).delete(`${endpoint}${id}/`);
+  return res?.data;
 };

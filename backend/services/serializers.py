@@ -111,10 +111,56 @@ class TravelTourReadDetailSerializer(TravelTourSimpleReadSerializer):
             'updated_at',
         ]
 
+class TourPackageNestedWriteSerializer(serializers.ModelSerializer):
+    """Nested inside TravelTour write — no 'tour' field needed."""
+    packages = serializers.PrimaryKeyRelatedField(
+        queryset=Package.objects.all(),
+        many=True,
+        required=False,
+    )
+
+    class Meta:
+        model = TourPackage
+        fields = ['name', 'price', 'packages']
+
+
 class TravelTourWriteSerializer(serializers.ModelSerializer):
+    tour_packages = TourPackageNestedWriteSerializer(many=True, required=False, write_only=True)
+
     class Meta:
         model = TravelTour
-        fields = ['name','description','base_price','time_start']
+        fields = [
+            'name', 'description', 'base_price',
+            'time_start', 'empty_slot', 'city',
+            'tour_packages',
+        ]
+
+    def create(self, validated_data):
+        packages_data = validated_data.pop('tour_packages', [])
+        tour = TravelTour.objects.create(**validated_data)
+        for pkg_data in packages_data:
+            sub_packages = pkg_data.pop('packages', [])
+            tp = TourPackage.objects.create(tour=tour, **pkg_data)
+            if sub_packages:
+                tp.packages.set(sub_packages)
+        return tour
+
+    def update(self, instance, validated_data):
+        packages_data = validated_data.pop('tour_packages', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if packages_data is not None:
+            # Replace all tour packages
+            instance.tour_package.all().delete()
+            for pkg_data in packages_data:
+                sub_packages = pkg_data.pop('packages', [])
+                tp = TourPackage.objects.create(tour=instance, **pkg_data)
+                if sub_packages:
+                    tp.packages.set(sub_packages)
+
+        return instance
 
 
 
@@ -243,7 +289,10 @@ class HotelDetailReadSerializer(HotelSimpleReadSerializer):
 class HotelWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hotel
-        fields = ['name','description','address_detail']
+        fields = [
+            'name', 'description', 'base_price',
+            'address_detail', 'city',
+        ]
 
 
 class RoomTypeSimpleReadSerializer(serializers.ModelSerializer):
@@ -351,20 +400,48 @@ class TransportDetailReadSerializer(TransportSimpleReadSerializer):
         ]
 
 
+class RouteNestedWriteSerializer(serializers.ModelSerializer):
+    """Nested inside Transport write."""
+    class Meta:
+        model = Route
+        fields = ['from_city', 'to_city', 'departure_time', 'arrival_time']
+
+
 class TransportWriteSerializer(serializers.ModelSerializer):
+    routes = RouteNestedWriteSerializer(many=True, required=False, write_only=True)
+
     class Meta:
         model = Transport
         fields = [
             'name',
             'description',
-            'star_rating',
             'base_price',
             'city',
-            'category',
             'brand_name',
             'license_plate',
             'vehicle_type',
+            'routes',
         ]
+
+    def create(self, validated_data):
+        routes_data = validated_data.pop('routes', [])
+        transport = Transport.objects.create(**validated_data)
+        for route_data in routes_data:
+            Route.objects.create(transport=transport, **route_data)
+        return transport
+
+    def update(self, instance, validated_data):
+        routes_data = validated_data.pop('routes', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if routes_data is not None:
+            instance.routes.all().delete()
+            for route_data in routes_data:
+                Route.objects.create(transport=instance, **route_data)
+
+        return instance
 
 
 class PromoBannerSerializer(serializers.ModelSerializer):
@@ -383,6 +460,7 @@ class PromoBannerSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['created_at', 'updated_at']
+
 
 class SeatTypeReadSerializer(serializers.ModelSerializer):
     class Meta:
