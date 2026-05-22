@@ -1,8 +1,9 @@
 import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native'
 import React, { useState } from 'react'
 
-const CategoryFilterChips = ({ onFilterChange }) => {
-    const [selected, setSelected] = useState('all')
+const CategoryFilterChips = ({ onFilterChange, activeFilter }) => {
+    const [internalSelected, setInternalSelected] = useState('all')
+    const selected = activeFilter !== undefined ? activeFilter : internalSelected
 
     const categories = [
         { id: 'all', label: 'All' },
@@ -12,7 +13,7 @@ const CategoryFilterChips = ({ onFilterChange }) => {
     ]
 
     const handlePress = (id) => {
-        setSelected(id)
+        if (activeFilter === undefined) setInternalSelected(id)
         onFilterChange?.(id)
     }
 
