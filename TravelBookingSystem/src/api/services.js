@@ -229,9 +229,17 @@ export const cancelPayment = async ({ token, paymentId }) => {
 
   return res?.data ?? null;
 };
+export const fetchDashboardStats = async ({ token, filters = {} }) => {
+  if (!token) return null;
+
+  const res = await authApis(token).get(`${endpoints.providerStats}revenue/`, {
+    params: filters,
+  });
+
+  return res?.data ?? null;
+};
 
 
-  
 export const fetchHotels = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);

@@ -18,6 +18,7 @@ export const endpoints = {
 
   bookings: "/api/bookings/",
   payments: "/api/payments/",
+  providerStats: "/api/provider/stats/",
 };
 
 export const authApis = (token) =>
