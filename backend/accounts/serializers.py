@@ -1,11 +1,11 @@
-from rest_framework import serializers
+﻿from rest_framework import serializers
 
 from .models import User, ProviderProfile
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
-    # Flat fields — multipart/form-data dễ gửi kèm file hơn nested JSON
+    # Flat fields — multipart/form-data easier to send with files than nested JSON
     provider_business_name = serializers.CharField(
         write_only=True, required=False, allow_blank=True
     )
@@ -31,19 +31,24 @@ class RegisterSerializer(serializers.ModelSerializer):
             'business_license',
         ]
 
+    def validate_avatar(self, value):
+        if not value:
+            raise serializers.ValidationError('Avatar is required.')
+        return value
+
     def validate(self, attrs):
         if attrs.get('is_provider'):
             if not attrs.get('provider_business_name'):
                 raise serializers.ValidationError(
-                    {'provider_business_name': 'Tên doanh nghiệp là bắt buộc.'}
+                    {'provider_business_name': 'Business name is required.'}
                 )
             if not attrs.get('provider_tax_code'):
                 raise serializers.ValidationError(
-                    {'provider_tax_code': 'Mã số thuế là bắt buộc.'}
+                    {'provider_tax_code': 'Tax code is required.'}
                 )
             if not attrs.get('business_license'):
                 raise serializers.ValidationError(
-                    {'business_license': 'Giấy phép kinh doanh là bắt buộc.'}
+                    {'business_license': 'Business license is required.'}
                 )
         return attrs
 
@@ -160,3 +165,4 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class ProviderApprovalSerializer(serializers.Serializer):
     approved = serializers.BooleanField()
+    reason = serializers.CharField(required=False, allow_blank=True, default='')

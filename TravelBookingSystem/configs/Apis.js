@@ -9,6 +9,7 @@ export const endpoints = {
   changePassword: "/api/accounts/me/change-password/",
 
   categories: "/api/services/categories/",
+  cities: "/api/locations/cities/",
   tours: "/api/services/travel-tours/",
   hotels: "/api/services/hotels/",
   transports: "/api/services/transports/",
@@ -20,9 +21,7 @@ export const endpoints = {
   wishlist: "/api/services/wishlist/",
   bookings: "/api/bookings/",
   payments: "/api/payments/",
-
-  bookingRefund: (bookingId) => `/api/bookings/${bookingId}/refund/`,
-  confirmStaticQrPayment: (paymentId) => `/api/payments/${paymentId}/confirm_static_qr_payment/`
+  providerStats: "/api/provider/stats/",
 };
 
 export const authApis = (token) =>
