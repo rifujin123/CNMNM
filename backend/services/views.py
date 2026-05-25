@@ -196,28 +196,42 @@ class TravelTourViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'get_comments']:
             return [AllowAny()]
-        if self.action in ['add_comment']:
+        if self.action == 'comments' and self.request.method == 'GET':
+            return [AllowAny()]
+        if self.action in ['add_comment', 'comments']:
             return [IsAuthenticated()]
         if self.action in ['create']:
             return [IsApprovedProviderOrAdmin()]
         return [ServiceOwnerOrAdmin()]
-    
-    @action(detail = True, methods = ['get'])
-    def get_comments(self, request, pk = None):
+
+    def _list_comments(self, request, pk=None):
         travel_tour = self.get_object()
         comments = travel_tour.comments.all()
-        serializer = CommentSerializer(comments, many = True)
+        serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data)
 
-    @action(detail = True, methods = ['post'])
-    def add_comment(self, request, pk = None):
+    def _create_comment(self, request, pk=None):
         travel_tour = self.get_object()
-        serializer = CommentSerializer(data = request.data)
+        serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user = request.user, travel_tour = travel_tour)
-            return Response(serializer.data, status = status.HTTP_201_CREATED)
-        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
-        
+            serializer.save(user=request.user, travel_tour=travel_tour)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get', 'post'], url_path='comments')
+    def comments(self, request, pk=None):
+        if request.method == 'GET':
+            return self._list_comments(request, pk=pk)
+        return self._create_comment(request, pk=pk)
+
+    @action(detail=True, methods=['get'])
+    def get_comments(self, request, pk=None):
+        return self._list_comments(request, pk=pk)
+
+    @action(detail=True, methods=['post'])
+    def add_comment(self, request, pk=None):
+        return self._create_comment(request, pk=pk)
+
     
 class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.annotate(popularity=Count('bookings'))
@@ -399,9 +413,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
 
-    @action(detail=False, methods=['delete'], url_path='remove')
-    def remove_by_service_id(self, request):
-        service_id = request.query_params.get('service_id') or request.query_params.get('tour_id')
+    def _delete_by_service_id(self, request, service_id):
         if not service_id:
             return Response(
                 {"detail": "service_id is required."},
@@ -414,3 +426,12 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
         wishlist.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['delete'], url_path=r'(?P<service_id>[^/.]+)')
+    def delete_by_service_id(self, request, service_id=None):
+        return self._delete_by_service_id(request, service_id)
+
+    @action(detail=False, methods=['delete'], url_path='remove')
+    def remove_by_service_id(self, request):
+        service_id = request.query_params.get('service_id') or request.query_params.get('tour_id')
+        return self._delete_by_service_id(request, service_id)

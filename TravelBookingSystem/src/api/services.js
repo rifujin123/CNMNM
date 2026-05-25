@@ -100,7 +100,7 @@ export const addWishlist = async ({ token, serviceId, tourId }) => {
 export const removeWishlist = async ({ token, serviceId, tourId }) => {
   const id = serviceId ?? tourId;
   if (!token || !id) throw new Error("Missing token or serviceId");
-  const res = await authApis(token).delete(`${endpoints.wishlist}remove/?service_id=${id}`);
+  const res = await authApis(token).delete(`${endpoints.wishlist}${id}/`);
   return res?.data ?? null;
 };
 
@@ -212,7 +212,7 @@ export const confirmStaticQrPayment = async ({
   }
 
   const res = await authApis(token).post(
-    `${endpoints.payments}${paymentId}/confirm_static_qr_payment/`,
+    `${endpoints.payments}${paymentId}/static-qr-confirmation/`,
     payload,
   );
 
