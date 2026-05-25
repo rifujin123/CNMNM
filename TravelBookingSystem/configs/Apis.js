@@ -14,14 +14,15 @@ export const endpoints = {
   hotels: "/api/services/hotels/",
   transports: "/api/services/transports/",
   promoBanners: "/api/services/promo-banners",
+  wishlist: "/api/services/wishlist/",
 
   providerPending: "/api/providers/pending/",
   providerVerification: (providerId) => `/api/providers/${providerId}/verification/`,
-
-  wishlist: "/api/services/wishlist/",
   bookings: "/api/bookings/",
   payments: "/api/payments/",
   providerStats: "/api/provider/stats/",
+  bookingRefund: (bookingId) => `/api/bookings/${bookingId}/refund/`,
+  confirmStaticQrPayment: (paymentId) => `/api/payments/${paymentId}/confirm_static_qr_payment/`,
 };
 
 export const authApis = (token) =>

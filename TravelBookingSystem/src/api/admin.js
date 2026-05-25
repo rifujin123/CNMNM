@@ -112,16 +112,11 @@ export const confirmStaticQrPayment = async ({
   token,
   paymentId,
   result = "success",
-  providerTransactionId = "",
 }) => {
   requireToken(token);
   if (!paymentId) throw new Error("Missing paymentId");
 
   const payload = { result };
-
-  if (providerTransactionId) {
-    payload.provider_transaction_id = providerTransactionId;
-  }
 
   const res = await authApis(token).post(
     endpoints.confirmStaticQrPayment(paymentId),
