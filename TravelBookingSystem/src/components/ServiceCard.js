@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
   Text,
@@ -6,7 +6,6 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
-  Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -24,12 +23,20 @@ const COLORS = {
   danger: "#EF4444",
 };
 
-const ServiceCard = ({
-  item,
-  onEdit,
-  onDelete,
-}) => {
-  const [isDeleting, setIsDeleting] = useState(false);
+const ServiceCard = () => {
+  // Hardcoded mock data
+  const item = {
+    id: 1,
+    name: "Bali Beach Resort",
+    type: "Hotel",
+    image_url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800",
+    base_price_display: "$150",
+    rating: 4.8,
+    booking_count: 24,
+    is_active: true,
+  };
+
+  const isActive = item?.is_active ?? true;
 
   const getServiceIcon = (type) => {
     switch (type?.toLowerCase()) {
@@ -42,33 +49,16 @@ const ServiceCard = ({
     }
   };
 
-  const handleDelete = () => {
-    Alert.alert(
-      "Delete Service",
-      `Are you sure you want to delete "${item?.name}"? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              await onDelete?.(item);
-            } finally {
-              setIsDeleting(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   return (
     <TouchableOpacity activeOpacity={0.9} style={styles.card}>
       <View style={styles.imageContainer}>
         <Image source={{ uri: item?.image_url }} style={styles.image} />
-        <View style={styles.typeBadge}>
+        <View
+          style={[
+            styles.typeBadge,
+            { backgroundColor: isActive ? COLORS.primary : COLORS.muted },
+          ]}
+        >
           <MaterialCommunityIcons
             name={getServiceIcon(item?.type)}
             size={14}
@@ -83,15 +73,11 @@ const ServiceCard = ({
           <Text style={styles.name} numberOfLines={1}>
             {item?.name}
           </Text>
-          <TouchableOpacity
-            hitSlop={10}
-            onPress={handleDelete}
-            disabled={isDeleting}
-          >
+          <TouchableOpacity hitSlop={10}>
             <Ionicons
-              name={isDeleting ? "hourglass" : "trash-outline"}
+              name={isActive ? "eye-outline" : "eye-off-outline"}
               size={20}
-              color={COLORS.danger}
+              color={isActive ? COLORS.primary : COLORS.muted}
             />
           </TouchableOpacity>
         </View>
@@ -104,19 +90,16 @@ const ServiceCard = ({
             </Text>
           </View>
           <View style={styles.dot} />
-          <Text style={styles.statText}>{item?.booking_count || 0} bookings</Text>
+          <Text style={styles.statText}>{item?.booking_count} bookings</Text>
         </View>
 
         <View style={styles.footer}>
           <View>
             <Text style={styles.priceLabel}>Starting from</Text>
-            <Text style={styles.priceValue}>{item?.base_price_display || "—"}</Text>
+            <Text style={styles.priceValue}>{item?.base_price_display}</Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => onEdit?.(item)}
-          >
+          <TouchableOpacity style={styles.editButton}>
             <Ionicons name="pencil-sharp" size={16} color={COLORS.primary} />
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>

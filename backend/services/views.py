@@ -17,11 +17,30 @@ from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 
 
-def get_service_category_or_raise(name):
-    category = Category.objects.filter(name__iexact=name).first()
-    if not category:
-        raise PermissionDenied(f"Category '{name}' does not exist.")
-    return category
+def is_admin_service_request(request):
+    user = request.user
+    return bool(
+        user
+        and user.is_authenticated
+        and (user.is_staff or user.is_superuser)
+        and request.query_params.get('admin') == 'true'
+    )
+
+
+def apply_active_filter(queryset, params):
+    is_active = params.get('is_active')
+    if is_active is not None:
+        queryset = queryset.filter(is_active=is_active.lower() == 'true')
+    return queryset
+
+
+def apply_service_id_filter(queryset, params):
+    service_id = params.get('service_id') or params.get('id')
+    if service_id:
+        if not str(service_id).isdigit():
+            return queryset.none()
+        queryset = queryset.filter(id=service_id)
+    return queryset
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -198,50 +217,32 @@ class TravelTourViewSet(viewsets.ModelViewSet):
         if self.action in ['create','update','partial_update']:
             return TravelTourWriteSerializer
         return TravelTourReadDetailSerializer
-
-    def perform_create(self, serializer):
-        category = get_service_category_or_raise('Tour')
-        serializer.save(provider=self.request.user, category=category)
-
+    
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'get_comments']:
             return [AllowAny()]
-        if self.action == 'comments' and self.request.method == 'GET':
-            return [AllowAny()]
-        if self.action in ['add_comment', 'comments']:
+        if self.action in ['add_comment']:
             return [IsAuthenticated()]
         if self.action in ['create']:
             return [IsApprovedProviderOrAdmin()]
         return [ServiceOwnerOrAdmin()]
-
-    def _list_comments(self, request, pk=None):
+    
+    @action(detail = True, methods = ['get'])
+    def get_comments(self, request, pk = None):
         travel_tour = self.get_object()
         comments = travel_tour.comments.all()
-        serializer = CommentSerializer(comments, many=True)
+        serializer = CommentSerializer(comments, many = True)
         return Response(serializer.data)
 
-    def _create_comment(self, request, pk=None):
+    @action(detail = True, methods = ['post'])
+    def add_comment(self, request, pk = None):
         travel_tour = self.get_object()
-        serializer = CommentSerializer(data=request.data)
+        serializer = CommentSerializer(data = request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user, travel_tour=travel_tour)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['get', 'post'], url_path='comments')
-    def comments(self, request, pk=None):
-        if request.method == 'GET':
-            return self._list_comments(request, pk=pk)
-        return self._create_comment(request, pk=pk)
-
-    @action(detail=True, methods=['get'])
-    def get_comments(self, request, pk=None):
-        return self._list_comments(request, pk=pk)
-
-    @action(detail=True, methods=['post'])
-    def add_comment(self, request, pk=None):
-        return self._create_comment(request, pk=pk)
-
+            serializer.save(user = request.user, travel_tour = travel_tour)
+            return Response(serializer.data, status = status.HTTP_201_CREATED)
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+        
     
 class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.annotate(popularity=Count('bookings'))
@@ -310,10 +311,6 @@ class HotelViewSet(viewsets.ModelViewSet):
         if self.action in ['create','update','partial_update']:
             return HotelWriteSerializer
         return HotelDetailReadSerializer
-
-    def perform_create(self, serializer):
-        category = get_service_category_or_raise('Hotel')
-        serializer.save(provider=self.request.user, category=category)
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -394,10 +391,6 @@ class TransportViewSet(viewsets.ModelViewSet):
             return TransportWriteSerializer
         return TransportDetailReadSerializer
 
-    def perform_create(self, serializer):
-        category = get_service_category_or_raise('Transport')
-        serializer.save(provider=self.request.user, category=category)
-
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
@@ -448,7 +441,9 @@ class WishlistViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
 
-    def _delete_by_service_id(self, request, service_id):
+    @action(detail=False, methods=['delete'], url_path='remove')
+    def remove_by_service_id(self, request):
+        service_id = request.query_params.get('service_id') or request.query_params.get('tour_id')
         if not service_id:
             return Response(
                 {"detail": "service_id is required."},
@@ -461,12 +456,3 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
         wishlist.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=False, methods=['delete'], url_path=r'(?P<service_id>[^/.]+)')
-    def delete_by_service_id(self, request, service_id=None):
-        return self._delete_by_service_id(request, service_id)
-
-    @action(detail=False, methods=['delete'], url_path='remove')
-    def remove_by_service_id(self, request):
-        service_id = request.query_params.get('service_id') or request.query_params.get('tour_id')
-        return self._delete_by_service_id(request, service_id)

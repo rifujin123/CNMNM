@@ -23,7 +23,6 @@ import Apis, { endpoints } from "../../configs/Apis";
 const ProviderAccountScreen = () => {
   const { user, token, clearAuth } = useAuth();
   const navigation = useNavigation();
-  const isVerifiedProvider = user?.is_verified_provider === true;
 
   const handleLogout = async () => {
     try {
@@ -108,16 +107,9 @@ const ProviderAccountScreen = () => {
               <Text style={styles.name} numberOfLines={1}>
                 {(user?.last_name || "").trim()} {(user?.first_name || "").trim()}
               </Text>
-              <View style={styles.metaRow}>
-                <Text style={styles.meta} numberOfLines={1}>
-                  @{user?.username || "user"}
-                </Text>
-                <View style={[styles.badge, isVerifiedProvider ? styles.badgeVerified : styles.badgeUnverified]}>
-                  <Text style={[styles.badgeText, isVerifiedProvider ? styles.badgeTextVerified : styles.badgeTextUnverified]}>
-                    {isVerifiedProvider ? "Verified" : "Not verified"}
-                  </Text>
-                </View>
-              </View>
+              <Text style={styles.meta} numberOfLines={1}>
+                @{user?.username || "user"}
+              </Text>
             </View>
           </View>
 
@@ -228,34 +220,6 @@ const styles = StyleSheet.create({
     fontSize: vs(12),
     fontWeight: "700",
     color: "#0F172A",
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: s(6),
-    flexWrap: "wrap",
-  },
-  badge: {
-    paddingHorizontal: s(6),
-    paddingVertical: vs(2),
-    borderRadius: s(4),
-  },
-  badgeVerified: {
-    backgroundColor: "#DCFCE7",
-  },
-  badgeUnverified: {
-    backgroundColor: "#FEE2E2",
-  },
-  badgeText: {
-    fontSize: vs(9),
-    fontWeight: "800",
-    textTransform: "uppercase",
-  },
-  badgeTextVerified: {
-    color: "#15803D",
-  },
-  badgeTextUnverified: {
-    color: "#B91C1C",
   },
 
   sectionShell: {

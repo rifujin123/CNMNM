@@ -8,7 +8,7 @@ const WishlistContext = createContext(null);
 const WISHLIST_STORAGE_KEY = 'wishlist_ids';
 
 export function WishlistProvider({ children }) {
-  const { token, role } = useAuth();
+  const { token } = useAuth();
   const [wishlistIds, setWishlistIds] = useState([]);
   const [savedItems, setSavedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,14 +17,14 @@ export function WishlistProvider({ children }) {
 
   // Fetch wishlist on mount and when token changes
   useEffect(() => {
-    if (token && role === 'customer') {
+    if (token) {
       loadWishlist();
     } else {
       setWishlistIds([]);
       setSavedItems([]);
       AsyncStorage.removeItem(WISHLIST_STORAGE_KEY);
     }
-  }, [token, role]);
+  }, [token]);
 
   const loadWishlist = async (isRefresh = false) => {
     try {
