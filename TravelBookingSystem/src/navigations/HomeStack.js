@@ -1,10 +1,10 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import HomeScreen from "../screens/HomeScreen";
-import CategoryListScreen from "../screens/CategoryListScreen";
-import ItemDetailScreen from "../screens/ItemDetailScreen";
-import SeeAllScreen from "../screens/SeeAllScreen";
-import BookingCheckoutScreen from "../screens/BookingCheckoutScreen";
-import BookingPaymentScreen from "../screens/BookingPaymentScreen";
+import HomeScreen from "../screens/shared/HomeScreen";
+import CategoryListScreen from "../screens/shared/CategoryListScreen";
+import ItemDetailScreen from "../screens/shared/ItemDetailScreen";
+import SeeAllScreen from "../screens/shared/SeeAllScreen";
+import BookingCheckoutScreen from "../screens/shared/BookingCheckoutScreen";
+import BookingPaymentScreen from "../screens/shared/BookingPaymentScreen";
 
 const Stack = createNativeStackNavigator();
 

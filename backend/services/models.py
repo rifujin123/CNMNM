@@ -149,7 +149,7 @@ class TourPackage(models.Model):
 
     def validate_price(self, value):
         if value <= 0:
-            raise ValidationError('Giá phải lớn hơn 0')
+            raise ValidationError('Value must be greater than zero.')
         return value
     
 class Comment(models.Model):
