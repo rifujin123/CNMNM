@@ -4,11 +4,11 @@ import HomeStack from "./HomeStack";
 import TripStack from "./TripStack";
 import SaveStack from "./SaveStack";
 import ExploreStack from "./ExploreStack";
-import TripsScreen from "../screens/TripsScreen";
-import SavedScreen from "../screens/SavedScreen";
-import LoginScreen from "../screens/LoginScreen";
-import AccountNotLoggedInScreen from "../screens/AccountNotLoggedInScreen";
-import AccountScreen from "../screens/AccountScreen";
+import TripsScreen from "../screens/shared/TripsScreen";
+import SavedScreen from "../screens/shared/SavedScreen";
+import LoginScreen from "../screens/guest/LoginScreen";
+import AccountNotLoggedInScreen from "../screens/guest/AccountNotLoggedInScreen";
+import AccountScreen from "../screens/account/AccountScreen";
 const Tab = createBottomTabNavigator();
 
 export default function MyTabs() {

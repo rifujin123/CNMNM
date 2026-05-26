@@ -1,7 +1,10 @@
 import { StyleSheet, ScrollView } from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import AppHeader from '../components/AppHeader'
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters'
+import Ionicons from '@expo/vector-icons/Ionicons'
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6'
+import AppHeader from '../../components/AppHeader'
 
 const BookingsScreen = () => {
   return (

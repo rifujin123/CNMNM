@@ -9,8 +9,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { s, vs } from "react-native-size-matters";
-import { useAuth } from "../../context/AuthContext";
-import { authApis, endpoints } from "../../configs/Apis";
+import { commonStyles } from "../../styles/commonStyles";
+import { useAuth } from "../../../context/AuthContext";
+import { authApis, endpoints } from "../../../configs/Apis";
 
 const SecurityScreen = () => {
   const { token, user, setAuthData } = useAuth();
@@ -108,86 +109,86 @@ const SecurityScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Security</Text>
+    <SafeAreaView style={commonStyles.formSafe}>
+      <ScrollView contentContainerStyle={commonStyles.formContainer} showsVerticalScrollIndicator={false}>
+        <Text style={[commonStyles.formTitle, styles.title]}>Security</Text>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
 
-          <Text style={styles.label}>Username</Text>
+          <Text style={commonStyles.label}>Username</Text>
           <TextInput
             value={username}
             onChangeText={setUsername}
             placeholder="Username"
             autoCapitalize="none"
-            style={styles.input}
+            style={commonStyles.input}
           />
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={commonStyles.label}>Email</Text>
           <TextInput
             value={email}
             onChangeText={setEmail}
             placeholder="Email"
             autoCapitalize="none"
             keyboardType="email-address"
-            style={styles.input}
+            style={commonStyles.input}
           />
 
           <TouchableOpacity
-            style={[styles.button, savingProfile && styles.disabled]}
+            style={[commonStyles.formButton, styles.button, savingProfile && commonStyles.disabled]}
             onPress={handleSaveProfile}
             disabled={savingProfile}
             activeOpacity={0.85}
           >
-            <Text style={styles.buttonText}>{savingProfile ? "Saving..." : "Save account"}</Text>
+            <Text style={commonStyles.formButtonText}>{savingProfile ? "Saving..." : "Save account"}</Text>
           </TouchableOpacity>
-          {!!profileError && <Text style={styles.errorText}>{profileError}</Text>}
-          {!!profileSuccess && <Text style={styles.successText}>{profileSuccess}</Text>}
+          {!!profileError && <Text style={[commonStyles.errorText, styles.errorText]}>{profileError}</Text>}
+          {!!profileSuccess && <Text style={[commonStyles.successText, styles.successText]}>{profileSuccess}</Text>}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Password</Text>
 
-          <Text style={styles.label}>Current password</Text>
+          <Text style={commonStyles.label}>Current password</Text>
           <TextInput
             value={oldPassword}
             onChangeText={setOldPassword}
             placeholder="Current password"
             secureTextEntry
-            style={styles.input}
+            style={commonStyles.input}
           />
 
-          <Text style={styles.label}>New password</Text>
+          <Text style={commonStyles.label}>New password</Text>
           <TextInput
             value={newPassword}
             onChangeText={setNewPassword}
             placeholder="New password"
             secureTextEntry
-            style={styles.input}
+            style={commonStyles.input}
           />
 
-          <Text style={styles.label}>Confirm password</Text>
+          <Text style={commonStyles.label}>Confirm password</Text>
           <TextInput
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm password"
             secureTextEntry
-            style={styles.input}
+            style={commonStyles.input}
           />
 
           <TouchableOpacity
-            style={[styles.button, savingPassword && styles.disabled]}
+            style={[commonStyles.formButton, styles.button, savingPassword && commonStyles.disabled]}
             onPress={handleChangePassword}
             disabled={savingPassword}
             activeOpacity={0.85}
           >
-            <Text style={styles.buttonText}>
+            <Text style={commonStyles.formButtonText}>
               {savingPassword ? "Changing..." : "Change password"}
             </Text>
           </TouchableOpacity>
-          {!!passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
-          {!!passwordSuccess && <Text style={styles.successText}>{passwordSuccess}</Text>}
+          {!!passwordError && <Text style={[commonStyles.errorText, styles.errorText]}>{passwordError}</Text>}
+          {!!passwordSuccess && <Text style={[commonStyles.successText, styles.successText]}>{passwordSuccess}</Text>}
         </View>
 
         {/* Removed global error/success */}
@@ -199,14 +200,6 @@ const SecurityScreen = () => {
 export default SecurityScreen;
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  container: {
-    padding: s(16),
-    paddingBottom: vs(28),
-  },
   title: {
     fontSize: vs(20),
     fontWeight: "700",
@@ -222,45 +215,13 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     marginBottom: vs(12),
   },
-  label: {
-    fontSize: vs(12),
-    color: "#334155",
-    fontWeight: "600",
-    marginBottom: vs(6),
-  },
-  input: {
-    height: vs(44),
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: s(10),
-    paddingHorizontal: s(12),
-    marginBottom: vs(14),
-    color: "#0F172A",
-  },
   button: {
-    height: vs(44),
-    borderRadius: s(10),
-    backgroundColor: "#2563EB",
-    alignItems: "center",
-    justifyContent: "center",
     marginTop: vs(2),
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: vs(13),
-    fontWeight: "700",
-  },
   errorText: {
-    color: "#DC2626",
-    fontSize: vs(11),
     marginTop: vs(2),
   },
   successText: {
-    color: "#16A34A",
-    fontSize: vs(11),
     marginTop: vs(2),
-  },
-  disabled: {
-    opacity: 0.7,
   },
 });

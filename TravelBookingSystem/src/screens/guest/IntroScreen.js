@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View, Image } from "react-native";
 import React from "react";
-import TravelLogo from "../assets/TravelLogo";
-import TopLeftBlobs from "../assets/TopLeftBlobs";
-import RightTopPills from "../assets/RightTopPills";
-import BottomRightBlobs from "../assets/BottomRightBlobs";
-import BottomLeftDots from "../assets/BottomLeftDots";
+import TravelLogo from "../../assets/TravelLogo";
+import TopLeftBlobs from "../../assets/TopLeftBlobs";
+import RightTopPills from "../../assets/RightTopPills";
+import BottomRightBlobs from "../../assets/BottomRightBlobs";
+import BottomLeftDots from "../../assets/BottomLeftDots";
 const IntroScreen = () => {
   return (
     <View style={styles.container}>

@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { StyleSheet, Text, View, ScrollView } from "react-native";
-import AppHeader from "../components/AppHeader";
+import { ScrollView } from "react-native";
+import AppHeader from "../../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
-import SearchBar from "../components/SearchBar";
-import ItemSection from "../components/ItemSection";
-import CategoryChips from "../components/CategoryChips";
+import SearchBar from "../../components/SearchBar";
+import ItemSection from "../../components/ItemSection";
+import CategoryChips from "../../components/CategoryChips";
 import { useNavigation } from "@react-navigation/native";
-import usePullRefresh from "../../hooks/usePullRefresh";
-import useWishlist from "../hooks/useWishlist";
-import { useAuth } from "../../context/AuthContext";
-import { fetchCategories, fetchPlaces, fetchHotels, fetchTransports } from "../api/services";
+import usePullRefresh from "../../../hooks/usePullRefresh";
+import useWishlist from "../../hooks/useWishlist";
+import { useAuth } from "../../../context/AuthContext";
+import { fetchCategories, fetchPlaces, fetchHotels, fetchTransports } from "../../api/services";
+import { commonStyles as styles } from "../../styles/commonStyles";
 
 const ExploreScreen = () => {
   const [categories, setCategories] = useState([]);
@@ -57,9 +58,9 @@ const ExploreScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.tabScreen}>
       <ScrollView
-        style={styles.content}
+        style={styles.tabContent}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
       >
@@ -118,14 +119,3 @@ const ExploreScreen = () => {
 
 export default ExploreScreen;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-});

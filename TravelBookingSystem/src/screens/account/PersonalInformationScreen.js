@@ -11,10 +11,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { s, vs } from "react-native-size-matters";
+import { commonStyles } from "../../styles/commonStyles";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { pickSingleImage } from "../utils/pickImage";
-import { useAuth } from "../../context/AuthContext";
-import Apis, { authApis, endpoints } from "../../configs/Apis";
+import { pickSingleImage } from "../../utils/pickImage";
+import { useAuth } from "../../../context/AuthContext";
+import Apis, { authApis, endpoints } from "../../../configs/Apis";
 
 const PersonalInformationScreen = () => {
   const { token, user, setAuthData } = useAuth();
@@ -102,9 +103,9 @@ const PersonalInformationScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Personal Information</Text>
+    <SafeAreaView style={commonStyles.formSafe}>
+      <ScrollView contentContainerStyle={commonStyles.formContainer} showsVerticalScrollIndicator={false}>
+        <Text style={[commonStyles.formTitle, styles.title]}>Personal Information</Text>
 
         <View style={styles.avatarSection}>
           {previewUri ? (
@@ -129,32 +130,32 @@ const PersonalInformationScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>First name</Text>
+        <Text style={commonStyles.label}>First name</Text>
         <TextInput
           value={firstName}
           onChangeText={setFirstName}
           placeholder="First name"
-          style={styles.input}
+          style={commonStyles.input}
         />
 
-        <Text style={styles.label}>Last name</Text>
+        <Text style={commonStyles.label}>Last name</Text>
         <TextInput
           value={lastName}
           onChangeText={setLastName}
           placeholder="Last name"
-          style={styles.input}
+          style={commonStyles.input}
         />
 
-        {!!error && <Text style={styles.errorText}>{error}</Text>}
-        {!!success && <Text style={styles.successText}>{success}</Text>}
+        {!!error && <Text style={[commonStyles.errorText, styles.errorText]}>{error}</Text>}
+        {!!success && <Text style={[commonStyles.successText, styles.successText]}>{success}</Text>}
 
         <TouchableOpacity
-          style={[styles.saveButton, saving && styles.disabled]}
+          style={[commonStyles.formButton, styles.saveButton, saving && commonStyles.disabled]}
           onPress={handleSave}
           disabled={saving}
           activeOpacity={0.85}
         >
-          <Text style={styles.saveButtonText}>{saving ? "Saving..." : "Save"}</Text>
+          <Text style={commonStyles.formButtonText}>{saving ? "Saving..." : "Save"}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -164,14 +165,6 @@ const PersonalInformationScreen = () => {
 export default PersonalInformationScreen;
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  container: {
-    padding: s(16),
-    paddingBottom: vs(28),
-  },
   title: {
     fontSize: vs(20),
     fontWeight: "700",
@@ -206,45 +199,13 @@ const styles = StyleSheet.create({
     fontSize: vs(12),
     fontWeight: "600",
   },
-  label: {
-    fontSize: vs(12),
-    color: "#334155",
-    fontWeight: "600",
-    marginBottom: vs(6),
-  },
-  input: {
-    height: vs(44),
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: s(10),
-    paddingHorizontal: s(12),
-    marginBottom: vs(14),
-    color: "#0F172A",
-  },
   saveButton: {
-    height: vs(44),
-    borderRadius: s(10),
-    backgroundColor: "#2563EB",
-    alignItems: "center",
-    justifyContent: "center",
     marginTop: vs(8),
   },
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: vs(13),
-    fontWeight: "700",
-  },
   errorText: {
-    color: "#DC2626",
-    fontSize: vs(11),
     marginBottom: vs(8),
   },
   successText: {
-    color: "#16A34A",
-    fontSize: vs(11),
     marginBottom: vs(8),
-  },
-  disabled: {
-    opacity: 0.7,
   },
 });

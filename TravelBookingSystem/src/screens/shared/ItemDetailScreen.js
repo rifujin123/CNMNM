@@ -12,9 +12,9 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { fetchPlaceDetail } from "../api/services";
-import { useAuth } from "../../context/AuthContext";
-import { useWishlist } from "../../context/WishlistContext";
+import { fetchPlaceDetail } from "../../api/services";
+import { useAuth } from "../../../context/AuthContext";
+import { useWishlist } from "../../../context/WishlistContext";
 import Entypo from "@expo/vector-icons/Entypo";
 const { width, height } = Dimensions.get("window");
 const IMG_HEIGHT = height * 0.45;

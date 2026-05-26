@@ -1,10 +1,10 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import DashboardScreen from '../screens/DashboardScreen';
-import ServicesScreen from '../screens/ServicesScreen';
-import BookingsScreen from '../screens/BookingsScreen';
-import ProviderAccountScreen from '../screens/ProviderAccountScreen';
+import DashboardScreen from '../screens/provider/DashboardScreen';
+import ServicesScreen from '../screens/provider/ServicesScreen';
+import BookingsScreen from '../screens/provider/BookingsScreen';
+import ProviderAccountScreen from '../screens/provider/ProviderAccountScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -32,15 +32,6 @@ export default function ProviderTabs() {
         options={{
           tabBarIcon: ({ color }) => (
             <Ionicons name="list-outline" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Bookings"
-        component={BookingsScreen}
-        options={{
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="calendar-outline" size={24} color={color} />
           ),
         }}
       />
