@@ -23,20 +23,12 @@ const COLORS = {
   danger: "#EF4444",
 };
 
-const ServiceCard = () => {
-  // Hardcoded mock data
-  const item = {
-    id: 1,
-    name: "Bali Beach Resort",
-    type: "Hotel",
-    image_url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800",
-    base_price_display: "$150",
-    rating: 4.8,
-    booking_count: 24,
-    is_active: true,
-  };
-
-  const isActive = item?.is_active ?? true;
+const ServiceCard = ({
+  item,
+  onEdit,
+  onDelete,
+}) => {
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const getServiceIcon = (type) => {
     switch (type?.toLowerCase()) {

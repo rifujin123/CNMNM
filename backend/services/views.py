@@ -17,30 +17,11 @@ from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 
 
-def is_admin_service_request(request):
-    user = request.user
-    return bool(
-        user
-        and user.is_authenticated
-        and (user.is_staff or user.is_superuser)
-        and request.query_params.get('admin') == 'true'
-    )
-
-
-def apply_active_filter(queryset, params):
-    is_active = params.get('is_active')
-    if is_active is not None:
-        queryset = queryset.filter(is_active=is_active.lower() == 'true')
-    return queryset
-
-
-def apply_service_id_filter(queryset, params):
-    service_id = params.get('service_id') or params.get('id')
-    if service_id:
-        if not str(service_id).isdigit():
-            return queryset.none()
-        queryset = queryset.filter(id=service_id)
-    return queryset
+def get_service_category_or_raise(name):
+    category = Category.objects.filter(name__iexact=name).first()
+    if not category:
+        raise PermissionDenied(f"Category '{name}' does not exist.")
+    return category
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

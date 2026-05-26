@@ -14,12 +14,30 @@ import { Ionicons } from '@expo/vector-icons'
 const ServicesScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
 
-  const { refreshControl } = usePullRefresh(() => {
-    // Simulate data refresh
-    return new Promise((resolve) => {
-      setTimeout(resolve, 2000);
-    });
-  });
+  const loadServices = async () => {
+    if (!token) return
+    setLoading(true)
+    setError('')
+    try {
+      const [tours, hotels, transports] = await Promise.all([
+        fetchPlaces({ token }),
+        fetchHotels({ token }),
+        fetchTransports({ token }),
+      ])
+      setServices([...tours, ...hotels, ...transports])
+    } catch (err) {
+      setError(err.message || 'Failed to load services')
+      console.error('Load services error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadServices()
+  }, [token])
+
+  const { refreshControl } = usePullRefresh(loadServices)
 
   const handleAddService = () => {
     setModalVisible(true);
@@ -38,7 +56,19 @@ const ServicesScreen = () => {
         <SearchBar placeholder="Search services" />
         <StatsBar />
         <CategoryFilterChips />
-        <ServiceCard />
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+        {services.map((service) => (
+          <ServiceCard
+            key={`${service.type}-${service.id}`}
+            item={service}
+            onEdit={handleEditService}
+            onDelete={handleDeleteService}
+          />
+        ))}
       </ScrollView>
 
       <View style={styles.fabContainer}>
@@ -71,6 +101,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 24,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 13,
   },
   fabContainer: {
     position: 'absolute',

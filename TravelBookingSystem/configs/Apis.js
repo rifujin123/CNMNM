@@ -20,9 +20,7 @@ export const endpoints = {
   wishlist: "/api/services/wishlist/",
   bookings: "/api/bookings/",
   payments: "/api/payments/",
-
-  bookingRefund: (bookingId) => `/api/bookings/${bookingId}/refund/`,
-  confirmStaticQrPayment: (paymentId) => `/api/payments/${paymentId}/confirm_static_qr_payment/`
+  providerStats: "/api/provider/stats/",
 };
 
 export const authApis = (token) =>

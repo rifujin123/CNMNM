@@ -52,6 +52,11 @@ export const fetchCategories = async () => {
   return res?.data?.results ?? res?.data ?? [];
 };
 
+export const fetchCities = async () => {
+  const res = await Apis.get(endpoints.cities);
+  return res?.data?.results ?? res?.data ?? [];
+};
+
 export const fetchPlaces = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
@@ -199,7 +204,7 @@ export const confirmStaticQrPayment = async ({
   }
 
   const res = await authApis(token).post(
-    `${endpoints.payments}${paymentId}/confirm_static_qr_payment/`,
+    `${endpoints.payments}${paymentId}/static-qr-confirmation/`,
     payload,
   );
 
@@ -245,4 +250,36 @@ export const fetchTransports = async (params = {}) => {
   const res = await Apis.get(url);
   const items = res?.data?.results ?? res?.data ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
+};
+
+export const createService = async ({ token, user, type, payload }) => {
+  if (!token) throw new Error("Missing token");
+  if (user?.is_verified_provider !== true) throw new Error(UNVERIFIED_PROVIDER_ERROR);
+  const endpoint = SERVICE_ENDPOINTS[type];
+  if (!endpoint) throw new Error("Invalid service type");
+
+  const res = await authApis(token).post(endpoint, payload);
+  return res?.data;
+};
+
+export const updateService = async ({ token, user, type, id, payload }) => {
+  if (!token) throw new Error("Missing token");
+  if (user?.is_verified_provider !== true) throw new Error(UNVERIFIED_PROVIDER_ERROR);
+  if (!id) throw new Error("Missing service id");
+  const endpoint = SERVICE_ENDPOINTS[type];
+  if (!endpoint) throw new Error("Invalid service type");
+
+  const res = await authApis(token).put(`${endpoint}${id}/`, payload);
+  return res?.data;
+};
+
+export const deleteService = async ({ token, user, type, id }) => {
+  if (!token) throw new Error("Missing token");
+  if (user?.is_verified_provider !== true) throw new Error(UNVERIFIED_PROVIDER_ERROR);
+  if (!id) throw new Error("Missing service id");
+  const endpoint = SERVICE_ENDPOINTS[type];
+  if (!endpoint) throw new Error("Invalid service type");
+
+  const res = await authApis(token).delete(`${endpoint}${id}/`);
+  return res?.data;
 };
