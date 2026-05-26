@@ -1,5 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {ActivityIndicator,Alert,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,View,} from "react-native";
+import React, { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useCreateBooking, useCreatePayment } from "../hooks/useBookings";
@@ -71,26 +80,22 @@ const getRouteLabel = (route) => {
   return `${fromCity} to ${toCity}`;
 };
 
-const getErrorText = (value) => {
-  if (!value) return null;
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) return getErrorText(value[0]);
+const getErrorMessage = (err) => {
+  const data = err?.response?.data;
 
-  if (typeof value === "object") {
-    return (
-      getErrorText(value.detail) ||
-      getErrorText(value.non_field_errors) ||
-      getErrorText(value[Object.keys(value)[0]])
-    );
+  if (typeof data === "string") return data;
+  if (data?.detail) return data.detail;
+
+  if (data && typeof data === "object") {
+    const firstKey = Object.keys(data)[0];
+    const firstValue = data[firstKey];
+
+    if (Array.isArray(firstValue)) return firstValue[0];
+    if (typeof firstValue === "string") return firstValue;
   }
 
-  return null;
+  return err?.message || "Cannot create booking. Please try again.";
 };
-
-const getErrorMessage = (err) =>
-  getErrorText(err?.response?.data) ||
-  err?.message ||
-  "Cannot create booking. Please try again.";
 
 export default function BookingCheckoutScreen() {
   const navigation = useNavigation();
@@ -154,23 +159,17 @@ export default function BookingCheckoutScreen() {
 
   const maxQuantity = useMemo(() => {
     if (serviceType === "tour") {
-      const slotCount = Number(service?.empty_slot);
-      return Number.isFinite(slotCount) ? slotCount : null;
+      return service?.empty_slot ? Number(service.empty_slot) : null;
     }
 
     if (serviceType === "transport") {
-      const seatCount = Number(selectedSeatType?.availableSeats);
-      return Number.isFinite(seatCount) ? seatCount : null;
+      return selectedSeatType?.availableSeats
+        ? Number(selectedSeatType.availableSeats)
+        : null;
     }
 
     return 1;
   }, [selectedSeatType?.availableSeats, service?.empty_slot, serviceType]);
-
-  useEffect(() => {
-    if (serviceType === "hotel" || maxQuantity === null || maxQuantity < 1) return;
-
-    setQuantity((current) => Math.min(current, maxQuantity));
-  }, [maxQuantity, serviceType]);
 
   const unitPrice = useMemo(() => {
     if (serviceType === "tour") {
@@ -200,24 +199,21 @@ export default function BookingCheckoutScreen() {
 
   const billableQuantity = serviceType === "hotel" ? 1 : quantity;
   const totalPrice = unitPrice * billableQuantity;
-  const hasEnoughAvailability =
-    maxQuantity === null || (maxQuantity > 0 && billableQuantity <= maxQuantity);
 
   const hasRequiredSelection =
     Boolean(service?.id) &&
-    billableQuantity >= 1 &&
-    hasEnoughAvailability &&
     ((serviceType === "tour" && Boolean(selectedPackage?.id)) ||
       (serviceType === "hotel" && Boolean(selectedRoom?.id)) ||
       (serviceType === "transport" &&
         Boolean(selectedRoute?.id) &&
-        Boolean(selectedSeatType?.id)));
+        Boolean(selectedSeatType?.id) &&
+        Number(selectedSeatType?.availableSeats ?? 1) > 0));
 
   const increaseQuantity = () => {
     setQuantity((current) => {
       const next = current + 1;
 
-      if (maxQuantity !== null && next > maxQuantity) {
+      if (maxQuantity && next > maxQuantity) {
         Alert.alert("Not enough availability", `Only ${maxQuantity} item(s) are available.`);
         return current;
       }
@@ -401,7 +397,7 @@ export default function BookingCheckoutScreen() {
                 </Pressable>
               </View>
 
-              {maxQuantity !== null ? (
+              {maxQuantity ? (
                 <Text style={styles.helperText}>{maxQuantity} available</Text>
               ) : null}
             </>

@@ -1,15 +1,28 @@
 import React from "react";
-import {View,Text,StyleSheet,TouchableOpacity,} from "react-native";
-import {scale,verticalScale,} from "react-native-size-matters";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+} from "react-native";
+import {
+    scale,
+    verticalScale,
+} from "react-native-size-matters";
 
 const getLabel = (item) => {
-  if (item === "upcoming") return "Upcoming";
-  if (item === "completed") return "Completed";
-  if (item === "cancelled") return "Cancelled";
-  return item;
+    if (item === "upcoming") return "Sắp tới";
+    if (item === "completed") return "Hoàn tất";
+    if (item === "cancelled") return "Đã hủy";
+
+    return item;
 };
 
-export default function TripChips({ items , activeIndex = 0 , onChange ,}) {
+export default function TripChips({
+    items,
+    activeIndex = 0,
+    onChange,
+}) {
     return (
         <View style={styles.container}>
             {items.map((item, idx) => {
@@ -30,9 +43,38 @@ export default function TripChips({ items , activeIndex = 0 , onChange ,}) {
 }
 
 const styles = StyleSheet.create({
-    container: {height: verticalScale(40),flexDirection: "row",borderBottomWidth: 1,borderBottomColor: "#CBD5E1",},
-    tab: {flex: 1,justifyContent: "center",alignItems: "center",position: "relative",},
-    text: {fontSize: scale(12),fontWeight: "500",color: "#64748B",},
-    activeText: {color: "#2563EB",},
-    activeLine: {position: "absolute",bottom: 0,width: "100%",height: verticalScale(4),backgroundColor: "#2563EB",borderTopLeftRadius: scale(4),borderTopRightRadius: scale(4),},
+    container: {
+        height: verticalScale(40),
+        flexDirection: "row",
+        backgroundColor: "#FFFFFF",
+        borderBottomWidth: 1,
+        borderBottomColor: "#CBD5E1",
+    },
+
+    tab: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
+    },
+
+    text: {
+        fontSize: scale(12),
+        fontWeight: "500",
+        color: "#64748B",
+    },
+
+    activeText: {
+        color: "#2563EB",
+    },
+
+    activeLine: {
+        position: "absolute",
+        bottom: 0,
+        width: "100%",
+        height: verticalScale(4),
+        backgroundColor: "#2563EB",
+        borderTopLeftRadius: scale(4),
+        borderTopRightRadius: scale(4),
+    },
 });

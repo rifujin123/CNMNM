@@ -8,13 +8,14 @@ const WishlistContext = createContext(null);
 const WISHLIST_STORAGE_KEY = 'wishlist_ids';
 
 export function WishlistProvider({ children }) {
-  const { token, role, clearAuth } = useAuth();
+  const { token, role } = useAuth();
   const [wishlistIds, setWishlistIds] = useState([]);
   const [savedItems, setSavedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
   const [error, setError] = useState(null);
 
+  // Fetch wishlist on mount and when token changes
   useEffect(() => {
     if (token && role === 'customer') {
       loadWishlist();
@@ -41,16 +42,9 @@ export function WishlistProvider({ children }) {
       setSavedItems(items);
       await AsyncStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids));
     } catch (err) {
-        console.error('Load wishlist error:', err?.response?.status, err?.response?.data || err.message);
-        setError(err.message);
-
-        if (err?.response?.status === 401) {
-          setWishlistIds([]);
-          setSavedItems([]);
-          await AsyncStorage.removeItem(WISHLIST_STORAGE_KEY);
-          await clearAuth();
-          return;
-        }
+      console.error('Load wishlist error:', err);
+      setError(err.message);
+      // Fallback to cached data
       try {
         const cached = await AsyncStorage.getItem(WISHLIST_STORAGE_KEY);
         if (cached) {
@@ -113,19 +107,19 @@ export function WishlistProvider({ children }) {
   };
 
   const toggleWishlist = async (item) => {
-    const serviceId = item?.id;
-    if (!serviceId || !token) return;
+    const tourId = item?.id;
+    if (!tourId || !token) return;
 
     try {
-      if (isWishlisted(serviceId)) {
-        await removeFromWishlist(serviceId);
+      if (isWishlisted(tourId)) {
+        await removeFromWishlist(tourId);
       } else {
-        await addToWishlist(item);
+        await addToWishlist(tourId);
       }
     } catch (err) {
       console.error('Toggle wishlist error:', err);
     }
-};
+  };
 
   const value = {
     wishlistIds,

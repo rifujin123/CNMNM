@@ -30,7 +30,6 @@ const ServiceCard = ({
   onDelete,
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
-  const rating = Number(item?.star_rating ?? item?.rating);
 
   const getServiceIcon = (type) => {
     switch (type?.toLowerCase()) {
@@ -101,7 +100,7 @@ const ServiceCard = ({
           <View style={styles.stat}>
             <Ionicons name="star" size={14} color={COLORS.secondary} />
             <Text style={styles.statText}>
-              {Number.isFinite(rating) ? rating.toFixed(1) : "N/A"}
+              {Number(item?.rating).toFixed(1)}
             </Text>
           </View>
           <View style={styles.dot} />
@@ -157,7 +156,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 8,
-    backgroundColor: "rgba(15, 23, 42, 0.76)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,

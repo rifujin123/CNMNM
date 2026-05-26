@@ -41,7 +41,10 @@ const AccountScreen = () => {
       console.log("Logout status:", error?.response?.status);
       console.log("Token:", token);
     } finally {
+      await AsyncStorage.removeItem("auth_access_token");
+      await AsyncStorage.removeItem("auth_user");
       clearAuth();
+      navigation.navigate("MainTabs", { screen: "HomeFeed" });
     }
   };
 

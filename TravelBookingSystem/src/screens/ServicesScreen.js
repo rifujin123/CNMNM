@@ -23,22 +23,14 @@ const ServicesScreen = () => {
   const [error, setError] = useState('')
 
   const loadServices = async () => {
-    if (!token || !isVerifiedProvider) {
-      setServices([])
-      return
-    }
+    if (!token) return
     setLoading(true)
     setError('')
     try {
-      const ownServiceParams = {
-        token,
-        mine: true,
-        ordering: 'newest',
-      }
       const [tours, hotels, transports] = await Promise.all([
-        fetchPlaces(ownServiceParams),
-        fetchHotels(ownServiceParams),
-        fetchTransports(ownServiceParams),
+        fetchPlaces({ token }),
+        fetchHotels({ token }),
+        fetchTransports({ token }),
       ])
       setServices([...tours, ...hotels, ...transports])
     } catch (err) {
@@ -51,7 +43,7 @@ const ServicesScreen = () => {
 
   useEffect(() => {
     loadServices()
-  }, [token, isVerifiedProvider])
+  }, [token])
 
   const { refreshControl } = usePullRefresh(loadServices)
 
@@ -131,22 +123,14 @@ const ServicesScreen = () => {
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
-        {services.length === 0 && !loading && !error ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="briefcase-outline" size={44} color="#94A3B8" />
-            <Text style={styles.emptyTitle}>No services yet</Text>
-            <Text style={styles.emptySubtitle}>Tap add to create your first tour, hotel, or transport service.</Text>
-          </View>
-        ) : (
-          services.map((service) => (
-            <ServiceCard
-              key={`${service.type}-${service.id}`}
-              item={service}
-              onEdit={handleEditService}
-              onDelete={handleDeleteService}
-            />
-          ))
-        )}
+        {services.map((service) => (
+          <ServiceCard
+            key={`${service.type}-${service.id}`}
+            item={service}
+            onEdit={handleEditService}
+            onDelete={handleDeleteService}
+          />
+        ))}
       </ScrollView>
 
       <View style={styles.fabContainer}>
@@ -210,12 +194,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 20,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 48,
-    gap: 10,
   },
   errorContainer: {
     backgroundColor: '#FEE2E2',

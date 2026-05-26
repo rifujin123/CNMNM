@@ -1,4 +1,4 @@
-import { useWishlist as useWishlistContext } from "../../context/WishlistContext.js";
+import { useWishlist as useWishlistContext } from "../../context/WishlistContext";
 
 export default function useWishlist() {
   return useWishlistContext();

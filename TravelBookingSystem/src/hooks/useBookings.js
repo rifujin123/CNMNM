@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { cancelBooking, createBooking, createPayment, fetchBookings } from "../api/services";
 
+export const bookingKeys = {
+  all: ["bookings"],
+  list: (filters = {}) => [...bookingKeys.all, "list", filters],
+};
+
 export function useBookings(filters = {}) {
   const { token } = useAuth();
   const [data, setData] = useState([]);
@@ -21,12 +26,10 @@ export function useBookings(filters = {}) {
       const bookings = await fetchBookings({ token, filters });
       setData(bookings);
       return bookings;
-
     } catch (err) {
       console.error("Load bookings error:", err);
       setIsError(true);
       throw err;
-      
     } finally {
       setIsLoading(false);
       setIsRefetching(false);

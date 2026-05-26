@@ -46,6 +46,7 @@ export default function AdminPaymentsScreen() {
   const [payments, setPayments] = useState([]);
   const [bookingFilter, setBookingFilter] = useState("");
 
+  const [bankCodes, setBankCodes] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
@@ -88,7 +89,24 @@ export default function AdminPaymentsScreen() {
     loadPayments();
   }, [loadPayments]);
 
+  const updateBankCode = (paymentId, value) => {
+    setBankCodes((current) => ({
+      ...current,
+      [paymentId]: value,
+    }));
+  };
+
   const handleConfirmSuccess = (payment) => {
+    const bankCode = bankCodes[payment.id]?.trim();
+
+    if (!bankCode) {
+      Alert.alert(
+        "Missing bank transaction",
+        "Please enter the bank transaction code before confirming."
+      );
+      return;
+    }
+
     Alert.alert(
       "Confirm payment",
       `Confirm ${formatMoney(payment.amount, payment.currency)} as paid?`,
@@ -104,6 +122,7 @@ export default function AdminPaymentsScreen() {
                 token,
                 paymentId: payment.id,
                 result: "success",
+                providerTransactionId: bankCode,
               });
 
               await loadPayments(true);
@@ -208,6 +227,8 @@ export default function AdminPaymentsScreen() {
             <PaymentCard
               key={payment.id}
               payment={payment}
+              bankCode={bankCodes[payment.id] || ""}
+              onBankCodeChange={(value) => updateBankCode(payment.id, value)}
               isLoading={actionLoadingId === payment.id}
               onConfirm={() => handleConfirmSuccess(payment)}
               onFailed={() => handleMarkFailed(payment)}
@@ -221,6 +242,8 @@ export default function AdminPaymentsScreen() {
 
 function PaymentCard({
   payment,
+  bankCode,
+  onBankCodeChange,
   isLoading,
   onConfirm,
   onFailed,
@@ -256,26 +279,43 @@ function PaymentCard({
         value={formatDateTime(payment.expires_at)}
       />
 
-      {canReview ? (
-        <View style={styles.actions}>
-          <Pressable
-            disabled={isLoading}
-            style={[styles.failedButton, isLoading && styles.disabled]}
-            onPress={onFailed}
-          >
-            <Text style={styles.buttonText}>Mark Failed</Text>
-          </Pressable>
+      {payment.provider_transaction_id ? (
+        <InfoRow
+          label="Bank Transaction"
+          value={payment.provider_transaction_id}
+        />
+      ) : null}
 
-          <Pressable
-            disabled={isLoading}
-            style={[styles.confirmButton, isLoading && styles.disabled]}
-            onPress={onConfirm}
-          >
-            <Text style={styles.buttonText}>
-              {isLoading ? "Processing..." : "Confirm Success"}
-            </Text>
-          </Pressable>
-        </View>
+      {canReview ? (
+        <>
+          <TextInput
+            style={styles.bankInput}
+            value={bankCode}
+            onChangeText={onBankCodeChange}
+            placeholder="Bank transaction code"
+            autoCapitalize="characters"
+          />
+
+          <View style={styles.actions}>
+            <Pressable
+              disabled={isLoading}
+              style={[styles.failedButton, isLoading && styles.disabled]}
+              onPress={onFailed}
+            >
+              <Text style={styles.buttonText}>Mark Failed</Text>
+            </Pressable>
+
+            <Pressable
+              disabled={isLoading}
+              style={[styles.confirmButton, isLoading && styles.disabled]}
+              onPress={onConfirm}
+            >
+              <Text style={styles.buttonText}>
+                {isLoading ? "Processing..." : "Confirm Success"}
+              </Text>
+            </Pressable>
+          </View>
+        </>
       ) : null}
     </View>
   );
@@ -400,6 +440,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     color: "#0F172A",
+  },
+  bankInput: {
+    marginTop: 12,
+    minHeight: 46,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
   },
   actions: {
     marginTop: 12,

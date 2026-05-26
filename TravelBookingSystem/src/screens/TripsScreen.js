@@ -1,5 +1,13 @@
-import React, { useMemo, useState } from "react";
-import {ActivityIndicator,FlatList,Pressable,StatusBar,StyleSheet,Text,View,} from "react-native";
+import React, { useMemo } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import AppHeader from "../components/AppHeader";
 import { scale } from "react-native-size-matters";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,29 +15,10 @@ import { useNavigation } from "@react-navigation/native";
 import TripSumaryCard from "../components/TripSumaryCard";
 import { useAuth } from "../../context/AuthContext";
 import { useBookings } from "../hooks/useBookings";
-import GuestHero from "../components/GuestHero";
-import TripChips from "../components/TripChips";
-import CategoryFilterChips from "../components/CategoryFilterChips";
-
-
-const statusTabs = ["upcoming", "completed", "cancelled"];
-const statusGroups = {
-  upcoming: ["pending", "confirmed"],
-  completed: ["completed"],
-  cancelled: ["cancelled", "expired", "payment_failed", "refunded"],
-};
-
-const normalize = (value) => String(value || "").toLowerCase();
-
-const getServiceType = (booking) =>
-  normalize(booking?.service?.service_type || booking?.service_type || "tour");
 
 const getTripGroupStatus = (bookingStatus) => {
-  const status = normalize(bookingStatus);
-
-  if (["pending", "confirmed"].includes(status)) return "upcoming";
-  if (status === "completed") return "completed";
-
+  if (["pending", "confirmed"].includes(bookingStatus)) return "upcoming";
+  if (bookingStatus === "completed") return "completed";
   return "cancelled";
 };
 
@@ -67,15 +56,13 @@ const mapBookingToTrip = (booking) => {
     status: getTripGroupStatus(booking.booking_status),
     bookingStatus: booking.booking_status,
     paymentStatus: booking.payment_status,
-    serviceType: getServiceType(booking),
+    serviceType: service.service_type,
   };
 };
 
 const TripsScreen = () => {
   const navigation = useNavigation();
   const { isLoggedIn } = useAuth();
-  const [activeStatusIndex, setActiveStatusIndex] = useState(0);
-  const [activeType, setActiveType] = useState("all");
 
   const {
     data: bookings = [],
@@ -85,26 +72,9 @@ const TripsScreen = () => {
     isRefetching,
   } = useBookings();
 
-  const filteredBookings = useMemo(() => {
-    const activeStatus = statusTabs[activeStatusIndex] || "upcoming";
-    const allowedStatuses = statusGroups[activeStatus] || [];
-
-    return bookings.filter((booking) => {
-      const statusMatches = allowedStatuses.includes(
-        String(booking.booking_status || "").toLowerCase()
-      );
-
-      const serviceType = getServiceType(booking);
-
-      const typeMatches = activeType === "all" || serviceType === activeType;
-
-      return statusMatches && typeMatches;
-    });
-  }, [activeStatusIndex, activeType, bookings]);
-
   const tripSummaries = useMemo(
-    () => filteredBookings.map(mapBookingToTrip),
-    [filteredBookings],
+    () => bookings.map(mapBookingToTrip),
+    [bookings],
   );
 
   const goToHome = () => {
@@ -123,12 +93,20 @@ const TripsScreen = () => {
 
   if (!isLoggedIn) {
     return (
-          <SafeAreaView style={styles.container}>
-          <AppHeader title="Trip" />
-          <View style={styles.guestWrapper}>
-            <GuestHero onLoginPress={goToLogin} />
-          </View>
-          </SafeAreaView>
+      <SafeAreaView style={styles.container}>
+        <AppHeader title="Trip" />
+
+        <View style={styles.centerState}>
+          <Text style={styles.stateTitle}>Sign in to view your trips</Text>
+          <Text style={styles.stateText}>
+            Your bookings and payment status will appear here after you sign in.
+          </Text>
+
+          <Pressable style={styles.primaryButton} onPress={goToLogin}>
+            <Text style={styles.primaryButtonText}>Sign In</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -138,7 +116,7 @@ const TripsScreen = () => {
         <AppHeader title="Trip" />
 
         <View style={styles.centerState}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#0D9488" />
           <Text style={styles.stateText}>Loading your bookings...</Text>
         </View>
       </SafeAreaView>
@@ -171,19 +149,6 @@ const TripsScreen = () => {
       <AppHeader title="Trip" />
 
       <View style={styles.content}>
-        <TripChips
-          items={statusTabs}
-          activeIndex={activeStatusIndex}
-          onChange={setActiveStatusIndex}
-        />
-
-        <View style={styles.typeFilterWrapper}>
-          <CategoryFilterChips
-            activeFilter={activeType}
-            onFilterChange={setActiveType}
-          />
-        </View>
-
         <FlatList
           data={tripSummaries}
           keyExtractor={(item) => item.id}
@@ -196,10 +161,6 @@ const TripsScreen = () => {
           refreshing={isRefetching}
           onRefresh={refetch}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.listContent,
-            tripSummaries.length === 0 && styles.emptyListContent,
-          ]}
           ListEmptyComponent={
             <View style={styles.textNoTrip}>
               <Text style={styles.textNoTripTitle}>No Bookings, No Trips Yet!</Text>
@@ -221,18 +182,72 @@ const TripsScreen = () => {
 export default TripsScreen;
 
 const styles = StyleSheet.create({
-container: {flex: 1,backgroundColor: "#F8FAFC",paddingHorizontal: scale(20),marginTop: StatusBar.currentHeight || 0,},
-content: {flex: 1,},
-guestWrapper: {flex: 1,justifyContent: "center",paddingHorizontal: scale(4),},
-typeFilterWrapper: {marginTop: scale(10),marginBottom: scale(6),},
-listContent: {paddingBottom: scale(24),},
-emptyListContent: {flexGrow: 1,},
-primaryButton: {marginTop: scale(8),minWidth: scale(140),height: scale(46),borderRadius: scale(14),backgroundColor: "#2563EB",alignItems: "center",justifyContent: "center",paddingHorizontal: scale(18),},
-textNoTripContent: {fontSize: 14,lineHeight: 20,fontWeight: "400",color: "#64748B",textAlign: "center",},
-centerState: {flex: 1,alignItems: "center",justifyContent: "center",gap: scale(12),paddingHorizontal: scale(16),},
-stateTitle: {fontSize: 20,lineHeight: 24,fontWeight: "700",color: "#0F172A",textAlign: "center",},
-stateText: {fontSize: 14,lineHeight: 20,color: "#64748B",textAlign: "center",},
-primaryButtonText: {fontSize: 14,fontWeight: "800",color: "#FFFFFF",},
-textNoTrip: {alignItems: "center",justifyContent: "center",gap: scale(8),marginTop: scale(100),paddingHorizontal: scale(10),},
-textNoTripTitle: {fontSize: 20,lineHeight: 24,fontWeight: "700",color: "#0F172A",textAlign: "center",},
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingHorizontal: scale(20),
+    marginTop: StatusBar.currentHeight || 0,
+  },
+  content: {
+    flex: 1,
+    flexDirection: "column",
+    gap: scale(16),
+  },
+  centerState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: scale(12),
+    paddingHorizontal: scale(16),
+  },
+  stateTitle: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+    color: "#0F172A",
+    textAlign: "center",
+  },
+  stateText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "400",
+    color: "#64748B",
+    textAlign: "center",
+  },
+  primaryButton: {
+    marginTop: scale(8),
+    minWidth: scale(140),
+    height: scale(46),
+    borderRadius: scale(14),
+    backgroundColor: "#0D9488",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: scale(18),
+  },
+  primaryButtonText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  textNoTrip: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: scale(8),
+    marginTop: scale(120),
+    paddingHorizontal: scale(10),
+  },
+  textNoTripTitle: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+    color: "#0F172A",
+    textAlign: "center",
+  },
+  textNoTripContent: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "400",
+    color: "#0F172A",
+    textAlign: "center",
+  },
 });
