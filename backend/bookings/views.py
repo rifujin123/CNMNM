@@ -59,6 +59,12 @@ class BookingViewSet(mixins.ListModelMixin,
 
         params = self.request.query_params
 
+        booking_id = params.get("booking_id") or params.get("id")
+        if booking_id:
+            if not str(booking_id).isdigit():
+                return queryset.none()
+            queryset = queryset.filter(id=booking_id)
+
         booking_status = params.get("booking_status")
         if booking_status:
             queryset = queryset.filter(booking_status=booking_status)

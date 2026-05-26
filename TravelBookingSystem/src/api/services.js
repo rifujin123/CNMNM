@@ -38,6 +38,33 @@ const formatBasePrice = (item) => {
   return number.toLocaleString("vi-VN");
 };
 
+const normalizeListItems = (data) => {
+  if (Array.isArray(data)) return data;
+  return data?.results ?? [];
+};
+
+const buildQueryString = (params = {}) => {
+  const queryParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (key === "token") return;
+    if (value === undefined || value === null || value === "") return;
+    queryParams.append(key, value);
+  });
+
+  return queryParams.toString();
+};
+
+const fetchServiceList = async ({ endpoint, type, params = {} }) => {
+  const { token, ...filters } = params;
+  const queryString = buildQueryString(filters);
+  const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+  const client = token ? authApis(token) : Apis;
+  const res = await client.get(url);
+  const items = normalizeListItems(res?.data);
+  return items.map((item) => mapServiceListItem(item, type));
+};
+
 const mapServiceListItem = (item, type) => ({
   id: String(item.id),
   name: item.name,
@@ -57,26 +84,20 @@ const mapServiceListItem = (item, type) => ({
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
-  return res?.data?.results ?? res?.data ?? [];
+  return normalizeListItems(res?.data);
 };
 
 export const fetchCities = async () => {
   const res = await Apis.get(endpoints.cities);
-  return res?.data?.results ?? res?.data ?? [];
+  return normalizeListItems(res?.data);
 };
 
 export const fetchPlaces = async (params = {}) => {
-  const queryParams = new URLSearchParams();
-  if (params.category) queryParams.append('category', params.category);
-  if (params.q) queryParams.append('q', params.q);
-
-  const url = queryParams.toString()
-    ? `${endpoints.tours}?${queryParams}`
-    : endpoints.tours;
-
-  const res = await Apis.get(url);
-  const items = res?.data?.results ?? [];
-  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.tour));
+  return fetchServiceList({
+    endpoint: endpoints.tours,
+    type: SERVICE_TYPES.tour,
+    params,
+  });
 };
 
 export const fetchPlaceDetail = async (id, serviceType = SERVICE_TYPES.tour) => {
@@ -107,7 +128,7 @@ export const removeWishlist = async ({ token, serviceId, tourId }) => {
 export const fetchWishlist = async ({ token }) => {
   if (!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = res?.data?.results ?? [];
+  const items = normalizeListItems(res?.data);
   return items
     .map((item) => item.service?.id ?? item.service_id ?? item.travel_tour?.id ?? item.tour_id ?? item.tour?.id ?? item.tour)
     .filter(Boolean)
@@ -117,7 +138,7 @@ export const fetchWishlist = async ({ token }) => {
 export const fetchWishListItems = async ({ token }) => {
   if(!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = res?.data?.results ?? [];
+  const items = normalizeListItems(res?.data);
   return items
     .map((item) => item.service ?? item.travel_tour)
     .filter(Boolean)
@@ -194,31 +215,6 @@ export const fetchPaymentDetail = async ({ token, paymentId }) => {
   return res?.data ?? null;
 };
 
-export const confirmStaticQrPayment = async ({
-  token,
-  paymentId,
-  result = "success",
-  providerTransactionId,
-}) => {
-  if (!token) throw new Error("Missing token");
-  if (!paymentId) throw new Error("Missing paymentId");
-
-  const payload = {
-    result,
-  };
-
-  if (providerTransactionId) {
-    payload.provider_transaction_id = providerTransactionId;
-  }
-
-  const res = await authApis(token).post(
-    `${endpoints.payments}${paymentId}/static-qr-confirmation/`,
-    payload,
-  );
-
-  return res?.data ?? null;
-};
-
 export const cancelPayment = async ({ token, paymentId }) => {
   if (!token) throw new Error("Missing token");
   if (!paymentId) throw new Error("Missing paymentId");
@@ -241,31 +237,19 @@ export const fetchDashboardStats = async ({ token, filters = {} }) => {
 
 
 export const fetchHotels = async (params = {}) => {
-  const queryParams = new URLSearchParams();
-  if (params.category) queryParams.append('category', params.category);
-  if (params.q) queryParams.append('q', params.q);
-
-  const url = queryParams.toString()
-    ? `${endpoints.hotels}?${queryParams}`
-    : endpoints.hotels;
-
-  const res = await Apis.get(url);
-  const items = res?.data?.results ?? res?.data ?? [];
-  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.hotel));
+  return fetchServiceList({
+    endpoint: endpoints.hotels,
+    type: SERVICE_TYPES.hotel,
+    params,
+  });
 };
 
 export const fetchTransports = async (params = {}) => {
-  const queryParams = new URLSearchParams();
-  if (params.category) queryParams.append('category', params.category);
-  if (params.q) queryParams.append('q', params.q);
-
-  const url = queryParams.toString()
-    ? `${endpoints.transports}?${queryParams}`
-    : endpoints.transports;
-
-  const res = await Apis.get(url);
-  const items = res?.data?.results ?? res?.data ?? [];
-  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
+  return fetchServiceList({
+    endpoint: endpoints.transports,
+    type: SERVICE_TYPES.transport,
+    params,
+  });
 };
 
 export const createService = async ({ token, user, type, payload }) => {
