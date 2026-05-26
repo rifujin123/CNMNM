@@ -17,6 +17,7 @@ from .models import (
     SeatStatus,
     PromoBanner,
     Wishlist,
+    ServiceImage
 )
 from django.db.models import Count
 from django.utils import timezone
@@ -265,9 +266,27 @@ class HotelRoomOptionReadSerializer(serializers.ModelSerializer):
         model = Room
         fields = ['id','room_type','room_number','is_available','total_beds']
 
+
+class ServiceImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    def get_image_url(self, obj):
+        request = self.context.get("request")
+        url = obj.image.url if obj.image else None
+        if request and url:
+            return request.build_absolute_uri(url)
+        return url
+
+    class Meta:
+        model = ServiceImage
+        fields = ["id", "image", "image_url", "caption"]
+
+
+
 class HotelDetailReadSerializer(HotelSimpleReadSerializer):
     room_types = RoomTypeOptionReadSerializer(many=True, read_only=True)
     rooms = serializers.SerializerMethodField()
+    images = ServiceImageSerializer(many=True, read_only=True)
 
     def get_rooms(self, obj):
         rooms = obj.rooms.filter(is_available=True).select_related('room_type')
@@ -280,9 +299,13 @@ class HotelDetailReadSerializer(HotelSimpleReadSerializer):
             'star_rating',
             'base_price',
             'address_detail',
+            'is_active',
+            'created_at',
+            'updated_at',
             'total_rooms',
             'room_types',
             'rooms',
+            'images'
         ]
 
 
@@ -393,6 +416,9 @@ class TransportDetailReadSerializer(TransportSimpleReadSerializer):
             'brand_name',
             'license_plate',
             'vehicle_type',
+            'is_active',
+            'created_at',
+            'updated_at',
             'total_seats',
             'routes',
             'seat_types',
@@ -466,3 +492,4 @@ class SeatTypeReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = SeatType
         fields = ['id', 'name', 'price']
+

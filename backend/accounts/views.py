@@ -16,6 +16,7 @@ from .serializers import (
     ProviderApprovalSerializer,
     RegisterSerializer,
     UserReadSerializer,
+    PendingProviderReadSerializer,
 )
 
 # Create your views here.
@@ -78,10 +79,19 @@ class ChangePasswordView(APIView):
 
 class PendingProviderListView(ListAPIView):
     permission_classes = [IsAdminUser]
-    serializer_class = UserReadSerializer
+    serializer_class = PendingProviderReadSerializer
 
     def get_queryset(self):
-        return User.objects.filter(is_provider=True, is_approved=False).order_by('-date_joined')
+        return (
+            User.objects
+            .filter(
+                is_provider=True,
+                is_approved=False,
+                provider_profile__is_rejected=False,
+            )
+            .select_related('provider_profile')
+            .order_by('-date_joined')
+        )
 
 
 class ProviderVerificationView(APIView):
@@ -95,7 +105,6 @@ class ProviderVerificationView(APIView):
         serializer = ProviderApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         approved = serializer.validated_data['approved']
-        reason = serializer.validated_data.get('reason', '')
 
         provider.is_approved = approved
         provider.save(update_fields=['is_approved'])
@@ -103,13 +112,13 @@ class ProviderVerificationView(APIView):
         profile = getattr(provider, 'provider_profile', None)
         if profile:
             profile.is_verified = approved
-            profile.save(update_fields=['is_verified'])
+            profile.is_rejected = not approved
+            profile.save(update_fields=['is_verified', 'is_rejected'])
 
         return Response(
             {
                 'provider_id': provider.id,
                 'approved': approved,
-                'reason': reason,
             },
             status=status.HTTP_200_OK,
         )

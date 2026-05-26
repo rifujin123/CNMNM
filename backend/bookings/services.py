@@ -172,8 +172,9 @@ class BookingService:
             tour.save(update_fields=['empty_slot'])
 
         elif service_type == 'hotel':
-            room_ids = booking.rooms.values_list('id', flat=True)
-            Room.objects.select_for_update().filter(id__in=room_ids).update(is_available=True)
+            room_ids = list(booking.rooms.values_list('id', flat=True))
+            if room_ids:
+                Room.objects.select_for_update().filter(id__in=room_ids).update(is_available=True)
 
         elif service_type == 'transport':
             SeatStatus.objects.select_for_update().filter(

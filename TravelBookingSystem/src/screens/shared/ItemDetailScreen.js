@@ -144,7 +144,9 @@ export default function ItemDetailScreen() {
     const loadDetail = async () => {
       try {
         setIsLoading(true);
-        const data = await fetchPlaceDetail(itemId);
+
+        const data = await fetchPlaceDetail(itemId, serviceType);
+
         if (active) setPlace(data);
       } catch (err) {
         console.error("Fetch place detail error:", err);
@@ -158,7 +160,7 @@ export default function ItemDetailScreen() {
     return () => {
       active = false;
     };
-  }, [itemId]);
+  }, [itemId, serviceType]);
 
   useEffect(() => {
     if (place?.tour_package?.length > 0 && !selectedPackageId) {
