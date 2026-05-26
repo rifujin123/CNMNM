@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KM Travel API Endpoints</title>
+  <style>
+    :root { --bg:#f6f8fb; --card:#fff; --text:#172033; --muted:#64748b; --line:#e2e8f0; --blue:#2563eb; --green:#16a34a; --amber:#d97706; --red:#dc2626; --purple:#7c3aed; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, Segoe UI, Arial, sans-serif; color:var(--text); background:var(--bg); line-height:1.5; }
+    header { background: linear-gradient(135deg, #0f172a, #1e40af); color:#fff; padding:42px 28px; }
+    header h1 { margin:0 0 8px; font-size:34px; }
+    header p { margin:0; color:#dbeafe; }
+    .wrap { max-width:1200px; margin:0 auto; padding:28px; }
+    .toc { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin-bottom:24px; }
+    .toc a { display:block; padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--blue); text-decoration:none; font-weight:600; }
+    .toc a:hover { border-color:var(--blue); box-shadow:0 8px 24px rgba(37,99,235,.12); }
+    section { background:var(--card); border:1px solid var(--line); border-radius:16px; margin:18px 0; overflow:hidden; box-shadow:0 6px 20px rgba(15,23,42,.04); }
+    section h2 { margin:0; padding:18px 20px; background:#f8fafc; border-bottom:1px solid var(--line); font-size:22px; }
+    .note { margin:14px 20px; padding:12px 14px; background:#eff6ff; border-left:4px solid var(--blue); border-radius:8px; color:#1e3a8a; }
+    h3 { margin:22px 20px 10px; font-size:18px; }
+    table { width:100%; border-collapse:collapse; margin:0; }
+    th, td { padding:12px 14px; border-top:1px solid var(--line); vertical-align:top; text-align:left; }
+    th { background:#f8fafc; color:#334155; font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+    code { background:#f1f5f9; border:1px solid #e2e8f0; padding:2px 6px; border-radius:6px; font-family: Consolas, Monaco, monospace; font-size:13px; }
+    .method { display:inline-block; min-width:58px; text-align:center; padding:3px 8px; border-radius:999px; color:#fff; font-size:12px; font-weight:800; }
+    .GET { background:var(--green); } .POST { background:var(--blue); } .PATCH,.PUT { background:var(--amber); } .DELETE { background:var(--red); } .VARIES { background:var(--purple); }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:14px; padding:0 20px 20px; }
+    .role { border:1px solid var(--line); border-radius:14px; padding:14px; background:#fcfdff; }
+    .role h3 { margin:0 0 8px; }
+    ul { margin:8px 0 0; padding-left:22px; }
+    li { margin:4px 0; }
+    .small { color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>KM Travel API Endpoints</h1>
+    <p>Tổng hợp endpoint + chức năng. Backend prefix: <code>/api/</code>, OAuth prefix: <code>/o/</code>.</p>
+  </div>
+</header>
+<main class="wrap">
+  <nav class="toc">
+    <a href="#accounts">Accounts</a><a href="#providers-admin">Providers Admin</a><a href="#provider-stats">Provider Stats</a><a href="#services">Services</a><a href="#locations">Locations</a><a href="#bookings">Bookings</a><a href="#payments">Payments</a><a href="#oauth-docs">OAuth & Docs</a><a href="#roles">Theo vai trò</a>
+  </nav>
+
+  <section id="accounts"><h2>1. Accounts — tài khoản user</h2>
+    <div class="note">Prefix: <code>/api/accounts/</code></div>
+    <table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method POST">POST</span></td><td><code>/api/accounts/register/</code></td><td>Đăng ký user customer/provider</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/api/accounts/logout/</code></td><td>Logout, xóa access/refresh token</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/accounts/me/</code></td><td>Lấy thông tin user hiện tại</td></tr>
+      <tr><td><span class="method PATCH">PATCH</span></td><td><code>/api/accounts/me/</code></td><td>Cập nhật profile user hiện tại</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/api/accounts/me/change-password/</code></td><td>Đổi mật khẩu</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/api/accounts/cloudinary/sign/</code></td><td>Tạo chữ ký upload Cloudinary</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="providers-admin"><h2>2. Providers Admin — admin duyệt provider</h2>
+    <div class="note">Prefix: <code>/api/providers/</code>. Dùng cho admin xem provider pending, duyệt/không duyệt provider.</div>
+    <table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/providers/pending/</code></td><td>Admin lấy danh sách provider chưa duyệt</td></tr>
+      <tr><td><span class="method PATCH">PATCH</span></td><td><code>/api/providers/{provider_id}/verification/</code></td><td>Admin duyệt/từ chối provider (<code>is_approved</code>, <code>is_verified</code>)</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="provider-stats"><h2>3. Provider Dashboard / Stats</h2>
+    <div class="note">Prefix: <code>/api/provider/</code>. Dùng cho provider/admin xem thống kê doanh thu, booking, service.</div>
+    <table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/provider/stats/revenue/</code></td><td>Xem thống kê doanh thu tổng quan. Query: <code>period</code>, <code>service_type</code>, <code>service_id</code></td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/provider/stats/services/{service_id}/</code></td><td>Xem thống kê 1 service</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/provider/stats/services/{service_id}/stats/</code></td><td>Alias cũ cho thống kê 1 service</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="services"><h2>4. Services — dịch vụ du lịch</h2>
+    <div class="note">Prefix: <code>/api/services/</code></div>
+    <h3>Categories</h3><table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/categories/</code></td><td>Danh sách category</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/categories/</code></td><td>Admin tạo category</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/services/categories/{id}/</code></td><td>Chi tiết category</td></tr><tr><td><span class="method PATCH">PUT/PATCH</span></td><td><code>/api/services/categories/{id}/</code></td><td>Admin cập nhật category</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/categories/{id}/</code></td><td>Admin xóa category</td></tr>
+    </tbody></table>
+    <h3>Promo banners</h3><table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/promo-banners/</code></td><td>Danh sách banner. Query: <code>is_active=true|false</code></td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/promo-banners/</code></td><td>Admin tạo banner</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/services/promo-banners/{id}/</code></td><td>Chi tiết banner</td></tr><tr><td><span class="method PATCH">PUT/PATCH</span></td><td><code>/api/services/promo-banners/{id}/</code></td><td>Admin cập nhật banner</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/promo-banners/{id}/</code></td><td>Admin xóa banner</td></tr>
+    </tbody></table>
+    <h3>Packages / Tour packages</h3><table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/packages/</code></td><td>Danh sách package</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/packages/</code></td><td>Provider/admin tạo package</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/services/packages/{id}/</code></td><td>Chi tiết package</td></tr><tr><td><span class="method PATCH">PUT/PATCH</span></td><td><code>/api/services/packages/{id}/</code></td><td>Provider/admin cập nhật package</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/packages/{id}/</code></td><td>Provider/admin xóa package</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/tour-packages/</code></td><td>Danh sách tour package</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/tour-packages/</code></td><td>Provider/admin tạo tour package</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/services/tour-packages/{id}/</code></td><td>Chi tiết tour package</td></tr><tr><td><span class="method PATCH">PUT/PATCH</span></td><td><code>/api/services/tour-packages/{id}/</code></td><td>Owner/admin cập nhật</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/tour-packages/{id}/</code></td><td>Owner/admin xóa</td></tr>
+    </tbody></table>
+    <h3>Travel tours</h3><table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/travel-tours/</code></td><td>Danh sách tour. Filters: <code>q</code>, <code>city</code>, <code>category</code>, <code>provider</code>, <code>min_price</code>, <code>max_price</code>, <code>min_star</code>, <code>max_star</code>, <code>min_empty_slot</code>, <code>time_start_from</code>, <code>time_start_to</code>, <code>ordering</code></td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/api/services/travel-tours/</code></td><td>Provider/admin tạo tour</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/services/travel-tours/{id}/</code></td><td>Chi tiết tour</td></tr><tr><td><span class="method PATCH">PUT/PATCH</span></td><td><code>/api/services/travel-tours/{id}/</code></td><td>Owner/admin cập nhật tour</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/travel-tours/{id}/</code></td><td>Owner/admin xóa tour</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/travel-tours/{id}/comments/</code></td><td>Lấy comments của tour</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/travel-tours/{id}/comments/</code></td><td>User login thêm comment</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/services/travel-tours/{id}/get_comments/</code></td><td>Alias cũ</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/travel-tours/{id}/add_comment/</code></td><td>Alias cũ</td></tr>
+    </tbody></table>
+    <h3>Hotels / Transports</h3><table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/hotels/</code></td><td>Danh sách hotel còn phòng. Filters: <code>q</code>, <code>category</code>, <code>ordering</code></td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/hotels/</code></td><td>Provider/admin tạo hotel</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/services/hotels/{id}/</code></td><td>Chi tiết hotel</td></tr><tr><td><span class="method PATCH">PUT/PATCH</span></td><td><code>/api/services/hotels/{id}/</code></td><td>Owner/admin cập nhật hotel</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/hotels/{id}/</code></td><td>Owner/admin xóa hotel</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/transports/</code></td><td>Danh sách transport còn ghế tương lai. Filters: <code>q</code>, <code>category</code>, <code>ordering</code></td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/transports/</code></td><td>Provider/admin tạo transport</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/services/transports/{id}/</code></td><td>Chi tiết transport</td></tr><tr><td><span class="method PATCH">PUT/PATCH</span></td><td><code>/api/services/transports/{id}/</code></td><td>Owner/admin cập nhật transport</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/transports/{id}/</code></td><td>Owner/admin xóa transport</td></tr>
+    </tbody></table>
+    <h3>Wishlist</h3><table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/services/wishlist/</code></td><td>Lấy wishlist của user hiện tại</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/services/wishlist/</code></td><td>Thêm service/tour vào wishlist</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/wishlist/{service_id}/</code></td><td>Xóa wishlist bằng service_id — route mới</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/wishlist/remove/?service_id={id}</code></td><td>Alias cũ</td></tr><tr><td><span class="method DELETE">DELETE</span></td><td><code>/api/services/wishlist/remove/?tour_id={id}</code></td><td>Alias cũ</td></tr>
+    </tbody></table>
+    <div class="note">Cần test router order: <code>/wishlist/{service_id}/</code> có thể trùng default detail route <code>/wishlist/{pk}/</code>.</div>
+  </section>
+
+  <section id="locations"><h2>5. Locations — địa điểm</h2>
+    <table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/locations/countries/</code></td><td>Danh sách country</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/locations/countries/{id}/</code></td><td>Chi tiết country</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/locations/countries/{id}/cities/</code></td><td>Danh sách city thuộc country</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/locations/cities/</code></td><td>Danh sách city</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/locations/cities/{id}/</code></td><td>Chi tiết city</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="bookings"><h2>6. Bookings — đặt dịch vụ</h2>
+    <div class="note">Role: admin thấy tất cả; approved provider thấy booking service của mình; customer thấy booking của chính mình.</div>
+    <table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/bookings/</code></td><td>Danh sách booking theo role. Filters: <code>booking_status</code>, <code>service</code>, <code>service_type</code>, <code>from_date</code>, <code>to_date</code></td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/bookings/</code></td><td>Customer/admin tạo booking</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/bookings/{id}/</code></td><td>Chi tiết booking</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/bookings/{id}/cancel/</code></td><td>Customer/admin hủy booking</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/bookings/{id}/complete/</code></td><td>Provider owner/admin hoàn tất booking</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/bookings/{id}/refund/</code></td><td>Admin refund booking</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="payments"><h2>7. Payments — thanh toán</h2>
+    <div class="note">Role: admin thấy tất cả; approved provider thấy payment booking thuộc service của mình; customer thấy payment của chính mình.</div>
+    <table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/api/payments/</code></td><td>Danh sách payment theo role. Filters: <code>payment_status</code>, <code>payment_method</code>, <code>booking</code>, <code>from_date</code>, <code>to_date</code></td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/payments/</code></td><td>Tạo payment cho booking</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/api/payments/{id}/</code></td><td>Chi tiết payment</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/payments/{id}/static-qr-confirmation/</code></td><td>Admin xác nhận thanh toán Static QR</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/payments/{id}/confirm_static_qr_payment/</code></td><td>Alias cũ</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/api/payments/{id}/cancel/</code></td><td>User hủy payment Static QR còn active</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="oauth-docs"><h2>8. OAuth & Docs</h2>
+    <table><thead><tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr></thead><tbody>
+      <tr><td><span class="method POST">POST</span></td><td><code>/o/token/</code></td><td>Login lấy OAuth2 access token/refresh token</td></tr><tr><td><span class="method POST">POST</span></td><td><code>/o/revoke_token/</code></td><td>Revoke token nếu oauth2_provider enabled</td></tr><tr><td><span class="method VARIES">VARIES</span></td><td><code>/o/...</code></td><td>Các route mặc định từ <code>oauth2_provider.urls</code></td></tr><tr><td><span class="method GET">GET</span></td><td><code>/swagger/</code></td><td>Swagger UI</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/swagger.json</code></td><td>OpenAPI JSON</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/swagger.yaml</code></td><td>OpenAPI YAML</td></tr><tr><td><span class="method GET">GET</span></td><td><code>/redoc/</code></td><td>Redoc UI</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="roles"><h2>9. Endpoint theo vai trò</h2>
+    <div class="grid">
+      <div class="role"><h3>Public</h3><ul><li>Register</li><li>Cloudinary sign</li><li>Categories, banners</li><li>Tour/hotel/transport list + detail</li><li>Tour comments GET</li><li>Countries/cities</li></ul></div>
+      <div class="role"><h3>Customer</h3><ul><li>Wishlist</li><li>Booking create/list/detail own</li><li>Payment create/list/detail own</li><li>Cancel own booking/payment</li><li>Add comment</li></ul></div>
+      <div class="role"><h3>Provider</h3><ul><li>Create/update own services</li><li>View provider bookings/payments</li><li>Complete booking</li><li>View <code>/api/provider/stats/...</code></li></ul></div>
+      <div class="role"><h3>Admin</h3><ul><li>Provider pending/verification</li><li>Category/banner management</li><li>All bookings/payments</li><li>Refund booking</li><li>Confirm Static QR payment</li></ul></div>
+    </div>
+  </section>
+
+  <p class="small">Generated from current KMTravel backend routes/views. Alias cũ giữ để tránh vỡ frontend.</p>
+</main>
+</body>
+</html>

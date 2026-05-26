@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import Apis, { authApis, endpoints } from "../../../configs/Apis";
 import { useAuth } from "../../../context/AuthContext";
 import OAuthConfig from "../../config/OAuthConfig";
+import { commonStyles } from "../../styles/commonStyles";
 import { pickSingleImage } from "../../utils/pickImage";
 
 const LoginScreen = () => {
@@ -301,23 +302,23 @@ const LoginScreen = () => {
 
           {/* Avatar picker */}
           <TouchableOpacity
-            style={styles.uploadButton}
+            style={commonStyles.uploadButton}
             onPress={pickAvatar}
             activeOpacity={0.7}
           >
             <Ionicons name="image-outline" size={22} color="#0F172A" />
-            <Text style={styles.uploadButtonText}>
+            <Text style={commonStyles.uploadButtonText}>
               {avatar ? "Change Avatar" : "Upload Avatar"}
             </Text>
           </TouchableOpacity>
 
           {avatar && (
-            <View style={styles.avatarPreview}>
+            <View style={commonStyles.uploadPreview}>
               <Image
                 source={{ uri: avatar.uri }}
-                style={styles.avatarImage}
+                style={commonStyles.uploadPreviewAvatar}
               />
-              <Text style={styles.avatarFileName} numberOfLines={1}>
+              <Text style={commonStyles.uploadPreviewText} numberOfLines={1}>
                 {avatar.name}
               </Text>
             </View>
@@ -340,23 +341,23 @@ const LoginScreen = () => {
 
               {/* Upload license button + preview */}
               <TouchableOpacity
-                style={styles.uploadButton}
+                style={commonStyles.uploadButton}
                 onPress={pickBusinessLicense}
                 activeOpacity={0.7}
               >
                 <Ionicons name="cloud-upload-outline" size={22} color="#0F172A" />
-                <Text style={styles.uploadButtonText}>
+                <Text style={commonStyles.uploadButtonText}>
                   {businessLicense ? "Change License" : "Upload Business License"}
                 </Text>
               </TouchableOpacity>
 
               {businessLicense && (
-                <View style={styles.licensePreview}>
+                <View style={commonStyles.uploadPreview}>
                   <Image
                     source={{ uri: businessLicense.uri }}
-                    style={styles.licenseImage}
+                    style={commonStyles.uploadPreviewImage}
                   />
-                  <Text style={styles.licenseFileName} numberOfLines={1}>
+                  <Text style={commonStyles.uploadPreviewText} numberOfLines={1}>
                     {businessLicense.name}
                   </Text>
                 </View>
@@ -476,60 +477,5 @@ const styles = StyleSheet.create({
     marginTop: vs(8),
     color: "#DC2626",
     fontSize: vs(11),
-  },
-  uploadButton: {
-    marginTop: vs(10),
-    borderWidth: s(1),
-    borderColor: "#93C5FD",
-    borderStyle: "dashed",
-    borderRadius: s(10),
-    paddingVertical: vs(10),
-    alignItems: "center",
-    backgroundColor: "#EFF6FF",
-  },
-  uploadButtonText: {
-    color: "#1D4ED8",
-    fontSize: vs(11),
-    fontWeight: "600",
-  },
-  licensePreview: {
-    marginTop: vs(8),
-    flexDirection: "row",
-    alignItems: "center",
-    gap: s(8),
-    backgroundColor: "#F8FAFC",
-    borderRadius: s(10),
-    padding: s(8),
-  },
-  licenseImage: {
-    width: s(44),
-    height: s(44),
-    borderRadius: s(8),
-    backgroundColor: "#E2E8F0",
-  },
-  licenseFileName: {
-    flex: 1,
-    color: "#334155",
-    fontSize: vs(10),
-  },
-  avatarPreview: {
-    marginTop: vs(8),
-    flexDirection: "row",
-    alignItems: "center",
-    gap: s(8),
-    backgroundColor: "#F8FAFC",
-    borderRadius: s(10),
-    padding: s(8),
-  },
-  avatarImage: {
-    width: s(44),
-    height: s(44),
-    borderRadius: s(22),
-    backgroundColor: "#E2E8F0",
-  },
-  avatarFileName: {
-    flex: 1,
-    color: "#334155",
-    fontSize: vs(10),
   },
 });

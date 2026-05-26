@@ -2,6 +2,8 @@ import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 import { BarChart } from 'react-native-gifted-charts'
 
+const formatMillions = (value) => `${(Number(value || 0) / 1000000).toFixed(2)}M`
+
 const RevenueByTypeChart = ({ items = [] }) => {
   const colors = {
     transport: '#F59E0B',
@@ -16,10 +18,10 @@ const RevenueByTypeChart = ({ items = [] }) => {
   }
 
   const data = items.map((item) => ({
-    value: Number(item?.revenue || 0),
+    value: Number(item?.revenue || 0) / 1000000,
     label: labels[item?.type] || item?.type || 'Other',
     frontColor: colors[item?.type] || '#94A3B8',
-    topLabelComponent: () => <Text style={styles.topLabel}>{item?.revenue || 0}</Text>,
+    topLabelComponent: () => <Text style={styles.topLabel}>{formatMillions(item?.revenue)}</Text>,
   }))
 
   return (
@@ -36,6 +38,7 @@ const RevenueByTypeChart = ({ items = [] }) => {
         yAxisColor="#E5E7EB"
         yAxisTextStyle={{ color: '#64748B', fontSize: 10 }}
         xAxisLabelTextStyle={{ color: '#64748B', fontSize: 12, fontWeight: '500' }}
+        yAxisLabelSuffix="M"
         noOfSections={5}
       />
     </View>

@@ -38,22 +38,27 @@ const formatBasePrice = (item) => {
   return number.toLocaleString("vi-VN");
 };
 
-const mapServiceListItem = (item, type) => ({
-  id: String(item.id),
-  name: item.name,
-  description: item.description,
-  star_rating: item.star_rating,
-  base_price: item.base_price,
-  base_price_display: formatBasePrice(item),
-  city: item.city,
-  category: item.category,
-  type,
-  empty_slot: item.empty_slot,
-  time_start: item.time_start,
-  is_active: item.is_active,
-  created_at: item.created_at,
-  updated_at: item.updated_at,
-});
+const mapServiceListItem = (item, type) => {
+  const image = item?.images?.[0]?.image;
+  return {
+    id: String(item.id),
+    name: item.name,
+    description: item.description,
+    star_rating: item.star_rating,
+    base_price: item.base_price,
+    base_price_display: formatBasePrice(item),
+    city: item.city,
+    category: item.category,
+    type,
+    tour_package: item.tour_package,
+    image,
+    empty_slot: item.empty_slot,
+    time_start: item.time_start,
+    is_active: item.is_active,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+  };
+};
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
@@ -69,6 +74,7 @@ export const fetchPlaces = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
+  if (params.provider) queryParams.append('provider', params.provider);
 
   const url = queryParams.toString()
     ? `${endpoints.tours}?${queryParams}`
@@ -268,13 +274,38 @@ export const fetchTransports = async (params = {}) => {
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
 };
 
+const buildServicePayload = (payload = {}) => {
+  if (!payload.image) return payload;
+
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    if (key === 'image') {
+      formData.append('image', {
+        uri: value.uri,
+        name: value.fileName || value.name || 'service.jpg',
+        type: value.mimeType || value.type || 'image/jpeg',
+      });
+      return;
+    }
+    if (Array.isArray(value) || typeof value === 'object') {
+      formData.append(key, JSON.stringify(value));
+      return;
+    }
+    formData.append(key, value);
+  });
+  return formData;
+};
+
 export const createService = async ({ token, user, type, payload }) => {
   if (!token) throw new Error("Missing token");
   if (user?.is_verified_provider !== true) throw new Error(UNVERIFIED_PROVIDER_ERROR);
   const endpoint = SERVICE_ENDPOINTS[type];
   if (!endpoint) throw new Error("Invalid service type");
 
-  const res = await authApis(token).post(endpoint, payload);
+  const body = buildServicePayload(payload);
+  const config = payload?.image ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined;
+  const res = await authApis(token).post(endpoint, body, config);
   return res?.data;
 };
 
@@ -285,7 +316,9 @@ export const updateService = async ({ token, user, type, id, payload }) => {
   const endpoint = SERVICE_ENDPOINTS[type];
   if (!endpoint) throw new Error("Invalid service type");
 
-  const res = await authApis(token).put(`${endpoint}${id}/`, payload);
+  const body = buildServicePayload(payload);
+  const config = payload?.image ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined;
+  const res = await authApis(token).put(`${endpoint}${id}/`, body, config);
   return res?.data;
 };
 

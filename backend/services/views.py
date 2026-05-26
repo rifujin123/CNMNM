@@ -98,6 +98,8 @@ class TravelTourViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         now = timezone.now()
 
+        params = self.request.query_params
+
         available_future_seats = SeatStatus.objects.filter(
             route__transport=OuterRef('pk'),
             route__departure_time__gte=now,
@@ -107,13 +109,19 @@ class TravelTourViewSet(viewsets.ModelViewSet):
 
         queryset = TravelTour.objects.filter(
             is_active=True,
-            time_start__gte=timezone.now(),
-            empty_slot__gt=0,
         ).annotate(
             popularity=Count('bookings', distinct=True)
         )
-        
-        params = self.request.query_params
+
+        is_provider_own = (
+            self.request.user.is_authenticated
+            and params.get('provider') == str(self.request.user.id)
+        )
+        if not is_provider_own:
+            queryset = queryset.filter(
+                time_start__gte=now,
+                empty_slot__gt=0,
+            )
 
         search_query = params.get('q')
         if search_query:

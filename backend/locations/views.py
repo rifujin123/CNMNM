@@ -6,18 +6,18 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 
 class CountryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Country.objects.all()
+    queryset = Country.objects.order_by('name')
     serializer_class = CountryReadSerializer
     permission_classes = [AllowAny]
     
     @action(detail=True, methods=['get'])
     def cities(self, request, pk=None):
         country = self.get_object()
-        cities = country.cities.all()
+        cities = country.cities.order_by('name')
         serializer = CityReadSerializer(cities, many=True)
         return Response(serializer.data)
 
 class CityViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = City.objects.all()
+    queryset = City.objects.order_by('name')
     serializer_class = CityReadSerializer
     permission_classes = [AllowAny]

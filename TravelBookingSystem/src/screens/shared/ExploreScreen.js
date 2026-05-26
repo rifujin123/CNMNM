@@ -1,22 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ScrollView } from "react-native";
+import { FlatList, Text, StyleSheet } from "react-native";
 import AppHeader from "../../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../../components/SearchBar";
-import ItemSection from "../../components/ItemSection";
-import CategoryChips from "../../components/CategoryChips";
+import ItemListCard from "../../components/ItemListCard";
 import { useNavigation } from "@react-navigation/native";
 import usePullRefresh from "../../../hooks/usePullRefresh";
 import useWishlist from "../../hooks/useWishlist";
 import { useAuth } from "../../../context/AuthContext";
-import { fetchCategories, fetchPlaces, fetchHotels, fetchTransports } from "../../api/services";
-import { commonStyles as styles } from "../../styles/commonStyles";
+import { fetchPlaces, fetchHotels, fetchTransports } from "../../api/services";
+import { commonStyles } from "../../styles/commonStyles";
 
 const ExploreScreen = () => {
-  const [categories, setCategories] = useState([]);
-  const [places, setPlaces] = useState([]);
-  const [hotels, setHotels] = useState([]);
-  const [transports, setTransports] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState([]);
   const navigation = useNavigation();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const { token } = useAuth();
@@ -26,20 +23,29 @@ const ExploreScreen = () => {
   };
 
   const loadData = useCallback(async () => {
-    const [cats, pls, htls, trns] = await Promise.all([
-      fetchCategories(),
-      fetchPlaces(),
-      fetchHotels(),
-      fetchTransports(),
+    const query = searchQuery.trim();
+
+    if (!query) {
+      setResults([]);
+      return;
+    }
+
+    const params = { q: query };
+    const [places, hotels, transports] = await Promise.all([
+      fetchPlaces(params),
+      fetchHotels(params),
+      fetchTransports(params),
     ]);
-    setCategories(cats);
-    setPlaces(pls);
-    setHotels(htls);
-    setTransports(trns);
-  }, []);
+
+    setResults([...places, ...hotels, ...transports]);
+  }, [searchQuery]);
 
   useEffect(() => {
-    loadData();
+    const timeout = setTimeout(() => {
+
+      loadData();
+    }, 500);
+    return () => clearTimeout(timeout);
   }, [loadData]);
 
   const { refreshControl } = usePullRefresh(loadData);
@@ -51,69 +57,54 @@ const ExploreScreen = () => {
     });
   };
 
-  const handleCategoryPress = (category) => {
-    navigation.navigate("CategoryList", { category });
-  };
+  const renderItem = ({ item }) => (
+    <ItemListCard
+      item={item}
+      onPress={() => onPressItem(item)}
+      isWishlist={isWishlisted(item?.id)}
+      onWishlistToggle={token ? toggleWishlist : undefined}
+      onRequireLogin={onRequireLogin}
+    />
+  );
+
+  const query = searchQuery.trim();
 
   return (
-    <SafeAreaView style={styles.tabScreen}>
-      <ScrollView
-        style={styles.tabContent}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={commonStyles.tabScreen}>
+      <FlatList
+        data={results}
+        keyExtractor={(item) => `${item.type}-${item.id}`}
+        renderItem={renderItem}
         refreshControl={refreshControl}
-      >
-        <AppHeader title="Explore" />
-        <SearchBar placeholder="Search cities, places, hotels" />
-        <CategoryChips
-          categories={categories}
-          onChipPress={handleCategoryPress}
-        />
-        <ItemSection
-          title="Recommended For You"
-          items={places}
-          onPress={onPressItem}
-          isWishlisted={isWishlisted}
-          onWishlistToggle={token ? toggleWishlist : undefined}
-          onRequireLogin={onRequireLogin}
-          onSeeAllPress={() =>
-            navigation.navigate("SeeAll", {
-              title: "Recommended For You",
-              items: places,
-            })
-          }
-        />
-        <ItemSection
-          title="Hotels"
-          items={hotels}
-          onPress={onPressItem}
-          isWishlisted={isWishlisted}
-          onWishlistToggle={token ? toggleWishlist : undefined}
-          onRequireLogin={onRequireLogin}
-          onSeeAllPress={() =>
-            navigation.navigate("SeeAll", {
-              title: "Hotels",
-              items: hotels,
-            })
-          }
-        />
-        <ItemSection
-          title="Transport"
-          items={transports}
-          onPress={onPressItem}
-          isWishlisted={isWishlisted}
-          onWishlistToggle={token ? toggleWishlist : undefined}
-          onRequireLogin={onRequireLogin}
-          onSeeAllPress={() =>
-            navigation.navigate("SeeAll", {
-              title: "Transport",
-              items: transports,
-            })
-          }
-        />
-      </ScrollView>
+        contentContainerStyle={commonStyles.tabContent}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            <AppHeader title="Explore" />
+            <SearchBar
+              placeholder="Search tours, hotels, transport"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </>
+        }
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {query ? "No results found." : ""}
+          </Text>
+        }
+      />
     </SafeAreaView>
   );
 };
 
 export default ExploreScreen;
 
+const styles = StyleSheet.create({
+  emptyText: {
+    marginTop: 24,
+    color: "#64748B",
+    fontSize: 14,
+    textAlign: "center",
+  },
+});
