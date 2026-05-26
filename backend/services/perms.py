@@ -56,5 +56,5 @@ class ServiceOwnerOrAdmin(permissions.IsAuthenticated):
 class BookingOwner(permissions.IsAuthenticated):
     def has_object_permission(self,request,view,booking):
         return super().has_permission(request,view) and (
-            request.user.is_staff or booking.service.provider_id == reuqest.user.id
+            request.user.is_staff or booking.service.provider_id == request.user.id
         )

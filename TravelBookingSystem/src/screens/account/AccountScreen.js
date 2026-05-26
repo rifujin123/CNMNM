@@ -1,5 +1,4 @@
 import {
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -7,7 +6,7 @@ import {
 } from "react-native";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { vs, s } from "react-native-size-matters";
+import { vs } from "react-native-size-matters";
 import Octicons from "@expo/vector-icons/Octicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Feather from "@expo/vector-icons/Feather";
@@ -15,10 +14,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 
-import AppHeader from "../components/AppHeader";
-import UserAvatar from "../components/UserAvatar";
-import { useAuth } from "../../context/AuthContext";
-import Apis, { endpoints } from "../../configs/Apis";
+import AppHeader from "../../components/AppHeader";
+import { accountStyles } from "../../styles/accountStyles";
+import UserAvatar from "../../components/UserAvatar";
+import { useAuth } from "../../../context/AuthContext";
+import Apis, { endpoints } from "../../../configs/Apis";
 
 const AccountScreen = () => {
   const { user, token, clearAuth } = useAuth();
@@ -161,131 +161,7 @@ const AccountScreen = () => {
 
 export default AccountScreen;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-  content: {
-    paddingHorizontal: s(18),
-  },
-  contentContainer: {
-    paddingBottom: vs(24),
-  },
 
-  profileCard: {
-    marginTop: vs(10),
-    padding: s(14),
-    borderRadius: s(18),
-    backgroundColor: "#FFFFFF",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: s(10),
-  },
-  profileLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: s(12),
-    flex: 1,
-  },
-  profileText: {
-    flex: 1,
-    gap: vs(2),
-  },
-  name: {
-    fontSize: vs(16),
-    lineHeight: vs(20),
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  meta: {
-    fontSize: vs(12),
-    lineHeight: vs(16),
-    color: "#64748B",
-  },
-  editPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: s(6),
-    paddingHorizontal: s(10),
-    paddingVertical: vs(8),
-    borderRadius: s(999),
-    backgroundColor: "rgba(15,23,42,0.06)",
-  },
-  editText: {
-    fontSize: vs(12),
-    fontWeight: "700",
-    color: "#0F172A",
-  },
+const styles = accountStyles;
 
-  sectionShell: {
-    marginTop: vs(12),
-    borderRadius: s(18),
-    backgroundColor: "#FFFFFF",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-    overflow: "hidden",
-  },
-  row: {
-    paddingHorizontal: s(14),
-    paddingVertical: vs(12),
-    flexDirection: "row",
-    alignItems: "center",
-    gap: s(12),
-  },
-  iconWrap: {
-    width: s(36),
-    height: s(36),
-    borderRadius: s(12),
-    backgroundColor: "#F1F5F9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rowText: {
-    flex: 1,
-    gap: vs(2),
-  },
-  rowTitle: {
-    fontSize: vs(13),
-    lineHeight: vs(18),
-    fontWeight: "800",
-    color: "#0F172A",
-  },
-  rowSub: {
-    fontSize: vs(12),
-    lineHeight: vs(16),
-    color: "#64748B",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#E2E8F0",
-    marginLeft: s(14 + 36 + 12),
-  },
-
-  logoutButton: {
-    marginTop: vs(14),
-    borderRadius: s(18),
-    paddingVertical: vs(12),
-    paddingHorizontal: s(14),
-    backgroundColor: "#FEF2F2",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: s(10),
-  },
-  logoutText: {
-    fontSize: vs(13),
-    lineHeight: vs(18),
-    fontWeight: "900",
-    color: "#991B1B",
-    letterSpacing: 0.2,
-  },
-});
 

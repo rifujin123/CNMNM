@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useCancelPayment, usePayment } from "../hooks/usePayments";
+import { useCancelPayment, usePayment } from "../../hooks/usePayments";
 
 const COLORS = {
   primary: "#0D9488",

@@ -1,9 +1,9 @@
 import React from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import ItemListCard from "../components/ItemListCard";
-import { useAuth } from "../../context/AuthContext";
-import useWishlist from "../hooks/useWishlist";
+import ItemListCard from "../../components/ItemListCard";
+import { useAuth } from "../../../context/AuthContext";
+import useWishlist from "../../hooks/useWishlist";
 
 export default function SeeAllScreen({ route }) {
   const { title = "All Tours", items = [] } = route.params ?? {};

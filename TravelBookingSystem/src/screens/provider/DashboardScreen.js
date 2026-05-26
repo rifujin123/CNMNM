@@ -1,14 +1,14 @@
 import { StyleSheet, View, ScrollView, Text } from 'react-native'
 import React, { useMemo, useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import AppHeader from '../components/AppHeader'
-import TimeRangeFilter from '../components/TimeRangeFilter'
-import CategoryFilterChips from '../components/CategoryFilterChips'
-import DashboardSummaryGrid from '../components/DashboardSummaryGrid'
-import RevenueLineChart from '../components/RevenueLineChart'
-import RevenueByTypeChart from '../components/RevenueByTypeChart'
-import { useDashboardStats } from '../hooks/useDashboardStats'
-import { useAuth } from '../../context/AuthContext'
+import AppHeader from '../../components/AppHeader'
+import TimeRangeFilter from '../../components/TimeRangeFilter'
+import CategoryFilterChips from '../../components/CategoryFilterChips'
+import DashboardSummaryGrid from '../../components/DashboardSummaryGrid'
+import RevenueLineChart from '../../components/RevenueLineChart'
+import RevenueByTypeChart from '../../components/RevenueByTypeChart'
+import { useDashboardStats } from '../../hooks/useDashboardStats'
+import { useAuth } from '../../../context/AuthContext'
 
 const DashboardScreen = () => {
   const { user } = useAuth()

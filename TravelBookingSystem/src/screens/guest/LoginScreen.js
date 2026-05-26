@@ -10,15 +10,15 @@
 } from "react-native";
 import React, { useState } from "react";
 import { s, vs } from "react-native-size-matters";
-import LoginTabs from "../components/LoginTabs";
+import LoginTabs from "../../components/LoginTabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import LoginRoleSelector from "../components/LoginRoleSelector";
-import GoogleLoginCard from "../components/GoogleLoginCard";
+import LoginRoleSelector from "../../components/LoginRoleSelector";
+import GoogleLoginCard from "../../components/GoogleLoginCard";
 import { useNavigation } from "@react-navigation/native";
-import Apis, { authApis, endpoints } from "../../configs/Apis";
-import { useAuth } from "../../context/AuthContext";
-import OAuthConfig from "../config/OAuthConfig";
-import { pickSingleImage } from "../utils/pickImage";
+import Apis, { authApis, endpoints } from "../../../configs/Apis";
+import { useAuth } from "../../../context/AuthContext";
+import OAuthConfig from "../../config/OAuthConfig";
+import { pickSingleImage } from "../../utils/pickImage";
 
 const LoginScreen = () => {
   const navigation = useNavigation();

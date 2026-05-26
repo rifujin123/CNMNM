@@ -3,11 +3,11 @@ import ProviderTabs from "./src/navigations/ProviderTabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
-import LoginScreen from "./src/screens/LoginScreen";
-import AccountNotLoggedInScreen from "./src/screens/AccountNotLoggedInScreen";
+import LoginScreen from "./src/screens/guest/LoginScreen";
+import AccountNotLoggedInScreen from "./src/screens/guest/AccountNotLoggedInScreen";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { WishlistProvider } from "./context/WishlistContext";
-import TripDetailScreen from "./src/screens/TripDetailScreen";
+import TripDetailScreen from "./src/screens/shared/TripDetailScreen";
 import AccountStack from "./src/navigations/AccountStack";
 
 const Stack = createNativeStackNavigator();

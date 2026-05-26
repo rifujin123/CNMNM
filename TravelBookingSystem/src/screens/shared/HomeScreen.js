@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { StyleSheet, ScrollView } from "react-native";
-import AppHeader from "../components/AppHeader";
+import { ScrollView } from "react-native";
+import AppHeader from "../../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
-import SearchBar from "../components/SearchBar";
-import PromoBanner from "../components/PromoBanner";
-import CategoryChips from "../components/CategoryChips";
-import ItemSection from "../components/ItemSection";
+import SearchBar from "../../components/SearchBar";
+import PromoBanner from "../../components/PromoBanner";
+import CategoryChips from "../../components/CategoryChips";
+import ItemSection from "../../components/ItemSection";
 import { useNavigation } from "@react-navigation/native";
-import { useAuth } from "../../context/AuthContext";
-import usePullRefresh from "../../hooks/usePullRefresh";
-import useWishlist from "../hooks/useWishlist";
-import { fetchCategories, fetchPlaces } from "../api/services";
+import { useAuth } from "../../../context/AuthContext";
+import usePullRefresh from "../../../hooks/usePullRefresh";
+import useWishlist from "../../hooks/useWishlist";
+import { fetchCategories, fetchPlaces } from "../../api/services";
+import { commonStyles as styles } from "../../styles/commonStyles";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -49,9 +50,9 @@ const HomeScreen = () => {
   const { refreshControl } = usePullRefresh(loadData);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.tabScreen}>
       <ScrollView
-        style={styles.content}
+        style={styles.tabContent}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
       >
@@ -99,14 +100,3 @@ const HomeScreen = () => {
 
 export default HomeScreen;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-});

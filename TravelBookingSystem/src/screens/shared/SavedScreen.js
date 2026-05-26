@@ -9,14 +9,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import CategoryChips from "../components/CategoryChips";
-import ItemListCard from "../components/ItemListCard";
-import AppHeader from "../components/AppHeader";
+import CategoryChips from "../../components/CategoryChips";
+import ItemListCard from "../../components/ItemListCard";
+import AppHeader from "../../components/AppHeader";
 import { scale } from "react-native-size-matters";
-import usePullRefresh from "../../hooks/usePullRefresh";
+import usePullRefresh from "../../../hooks/usePullRefresh";
 import { useNavigation } from "@react-navigation/native";
-import { useAuth } from "../../context/AuthContext";
-import { useWishlist } from "../../context/WishlistContext";
+import { useAuth } from "../../../context/AuthContext";
+import { useWishlist } from "../../../context/WishlistContext";
 
 const categories = ["All", "Tour", "Hotel", "Transport"];
 

@@ -8,13 +8,13 @@ import {
   Text,
   View,
 } from "react-native";
-import AppHeader from "../components/AppHeader";
+import AppHeader from "../../components/AppHeader";
 import { scale } from "react-native-size-matters";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import TripSumaryCard from "../components/TripSumaryCard";
-import { useAuth } from "../../context/AuthContext";
-import { useBookings } from "../hooks/useBookings";
+import TripSumaryCard from "../../components/TripSumaryCard";
+import { useAuth } from "../../../context/AuthContext";
+import { useBookings } from "../../hooks/useBookings";
 
 const getTripGroupStatus = (bookingStatus) => {
   if (["pending", "confirmed"].includes(bookingStatus)) return "upcoming";

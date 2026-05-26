@@ -2,10 +2,10 @@ import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, Pressable, FlatList, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ItemListCard from "../components/ItemListCard";
-import { useAuth } from "../../context/AuthContext";
-import useWishlist from "../hooks/useWishlist";
-import { fetchHotels, fetchPlaces, fetchTransports } from "../api/services";
+import ItemListCard from "../../components/ItemListCard";
+import { useAuth } from "../../../context/AuthContext";
+import useWishlist from "../../hooks/useWishlist";
+import { fetchHotels, fetchPlaces, fetchTransports } from "../../api/services";
 
 export default function CategoryListScreen({ route, navigation }) {
   const { category } = route.params ?? {};

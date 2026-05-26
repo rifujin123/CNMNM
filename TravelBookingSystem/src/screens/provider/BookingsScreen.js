@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6'
-import AppHeader from '../components/AppHeader'
+import AppHeader from '../../components/AppHeader'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const MOCK_BOOKINGS = [

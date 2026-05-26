@@ -13,15 +13,15 @@ import { scale } from "react-native-size-matters";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import TripChips from "../components/TripChips";
-import TripTypeChips from "../components/TripTypeChip";
-import TripSumaryCard from "../components/TripSumaryCard";
+import TripChips from "../../components/TripChips";
+import TripTypeChips from "../../components/TripTypeChip";
+import TripSumaryCard from "../../components/TripSumaryCard";
 import {
   useBookings,
   useCancelBooking,
   useCreatePayment,
-} from "../hooks/useBookings";
-import { usePayments } from "../hooks/usePayments";
+} from "../../hooks/useBookings";
+import { usePayments } from "../../hooks/usePayments";
 
 const tabs = ["upcoming", "completed", "cancelled"];
 
