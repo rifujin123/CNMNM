@@ -20,22 +20,8 @@ const SERVICE_DETAIL_ENDPOINTS = {
   [SERVICE_TYPES.transport]: endpoints.transports,
 };
 
-const normalizeServiceType = (type) => {
-  const normalized = String(type || "").toLowerCase();
-  return SERVICE_DETAIL_ENDPOINTS[normalized] ? normalized : SERVICE_TYPES.tour;
-};
-
 const formatBasePrice = (item) => {
-  if (item?.base_price_display) return item.base_price_display;
-
-  const value = item?.base_price;
-  const number = Number(value);
-
-  if (value === null || value === undefined || Number.isNaN(number)) {
-    return "N/A";
-  }
-
-  return number.toLocaleString("vi-VN");
+  return Number(item.base_price).toLocaleString("vi-VN");
 };
 
 const mapServiceListItem = (item, type) => {
@@ -62,12 +48,12 @@ const mapServiceListItem = (item, type) => {
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
-  return res?.data?.results ?? res?.data ?? [];
+  return res?.data?.results ?? [];
 };
 
 export const fetchCities = async () => {
   const res = await Apis.get(endpoints.cities);
-  return res?.data?.results ?? res?.data ?? [];
+  return res?.data?.results ?? [];
 };
 
 export const fetchPlaces = async (params = {}) => {
@@ -87,11 +73,11 @@ export const fetchPlaces = async (params = {}) => {
 
 export const fetchPlaceDetail = async (id, serviceType = SERVICE_TYPES.tour) => {
   if (!id) return null;
-  const type = normalizeServiceType(serviceType);
-  const endpoint = SERVICE_DETAIL_ENDPOINTS[type];
+  const endpoint = SERVICE_DETAIL_ENDPOINTS[serviceType];
+  if (!endpoint) throw new Error("Invalid service type");
   const res = await Apis.get(`${endpoint}${id}/`);
   const data = res?.data ?? null;
-  return data ? { ...data, type } : null;
+  return data ? { ...data, type: serviceType } : null;
 };
 
 export const addWishlist = async ({ token, serviceId, tourId }) => {
@@ -115,7 +101,7 @@ export const fetchWishlist = async ({ token }) => {
   const res = await authApis(token).get(endpoints.wishlist);
   const items = res?.data?.results ?? [];
   return items
-    .map((item) => item.service?.id ?? item.service_id ?? item.travel_tour?.id ?? item.tour_id ?? item.tour?.id ?? item.tour)
+    .map((item) => item.service.id)
     .filter(Boolean)
     .map(String);
 };
@@ -125,7 +111,7 @@ export const fetchWishListItems = async ({ token }) => {
   const res = await authApis(token).get(endpoints.wishlist);
   const items = res?.data?.results ?? [];
   return items
-    .map((item) => item.service ?? item.travel_tour)
+    .map((item) => item.service)
     .filter(Boolean)
     .map((item) => ({
       ...item,
@@ -250,13 +236,14 @@ export const fetchHotels = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
+  if (params.provider) queryParams.append('provider', params.provider);
 
   const url = queryParams.toString()
     ? `${endpoints.hotels}?${queryParams}`
     : endpoints.hotels;
 
   const res = await Apis.get(url);
-  const items = res?.data?.results ?? res?.data ?? [];
+  const items = res?.data?.results ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.hotel));
 };
 
@@ -264,36 +251,52 @@ export const fetchTransports = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
+  if (params.provider) queryParams.append('provider', params.provider);
 
   const url = queryParams.toString()
     ? `${endpoints.transports}?${queryParams}`
     : endpoints.transports;
 
   const res = await Apis.get(url);
-  const items = res?.data?.results ?? res?.data ?? [];
+  const items = res?.data?.results ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
+};
+
+const appendIfPresent = (formData, key, value) => {
+  if (value !== undefined && value !== null && value !== '') {
+    formData.append(key, value);
+  }
+};
+
+const appendImage = (formData, image) => {
+  if (!image) return;
+  formData.append('image', {
+    uri: image.uri,
+    name: image.fileName,
+    type: image.mimeType,
+  });
 };
 
 const buildServicePayload = (payload = {}) => {
   if (!payload.image) return payload;
 
   const formData = new FormData();
-  Object.entries(payload).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return;
-    if (key === 'image') {
-      formData.append('image', {
-        uri: value.uri,
-        name: value.fileName || value.name || 'service.jpg',
-        type: value.mimeType || value.type || 'image/jpeg',
-      });
-      return;
-    }
-    if (Array.isArray(value) || typeof value === 'object') {
-      formData.append(key, JSON.stringify(value));
-      return;
-    }
-    formData.append(key, value);
-  });
+  appendIfPresent(formData, 'name', payload.name);
+  appendIfPresent(formData, 'description', payload.description);
+  appendIfPresent(formData, 'city', payload.city);
+  appendIfPresent(formData, 'base_price', payload.base_price);
+  appendIfPresent(formData, 'time_start', payload.time_start);
+  appendIfPresent(formData, 'empty_slot', payload.empty_slot);
+  appendIfPresent(formData, 'address_detail', payload.address_detail);
+  appendIfPresent(formData, 'brand_name', payload.brand_name);
+  appendIfPresent(formData, 'license_plate', payload.license_plate);
+  if (payload.tour_packages) {
+    formData.append('tour_packages', JSON.stringify(payload.tour_packages));
+  }
+  if (payload.routes) {
+    formData.append('routes', JSON.stringify(payload.routes));
+  }
+  appendImage(formData, payload.image);
   return formData;
 };
 

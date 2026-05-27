@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import AppHeader from '../../components/AppHeader'
 import usePullRefresh from '../../../hooks/usePullRefresh'
 import SearchBar from '../../components/SearchBar'
-import CategoryFilterChips from '../../components/CategoryFilterChips'
 import ServiceCard from '../../components/ServiceCard'
 import AddServiceModal from '../../components/AddServiceModal'
 import { Ionicons } from '@expo/vector-icons'
@@ -116,7 +115,6 @@ const ServicesScreen = () => {
       <ScrollView style={commonStyles.tabContent} refreshControl={refreshControl}>
         <AppHeader title="Services" />
         <SearchBar placeholder="Search services" />
-        <CategoryFilterChips />
         {error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>

@@ -204,12 +204,9 @@ export default function ItemDetailScreen() {
 
   const selectedPrice = useMemo(() => {
     if (serviceType === "tour") {
-      return (
-        selectedPackage?.total_price_display ||
-        selectedPackage?.price_display ||
-        place?.base_price_display ||
-        formatMoney(place?.base_price)
-      );
+      return selectedPackage
+        ? formatMoney(selectedPackage.total_price)
+        : place?.base_price_display || formatMoney(place?.base_price);
     }
 
     if (serviceType === "hotel") {
@@ -309,7 +306,7 @@ export default function ItemDetailScreen() {
               </View>
 
               <Text style={styles.optionPrice}>
-                Total: {pkg.total_price_display || formatMoney(pkg.total_price)}
+                Total: {formatMoney(pkg.total_price)}
               </Text>
             </Pressable>
           );

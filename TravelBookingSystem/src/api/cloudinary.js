@@ -5,36 +5,14 @@ function buildCloudinaryUploadUrl(cloudName) {
   return `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 }
 
-/**
- * Backend contract (server must implement this):
- * POST CLOUDINARY_SIGN_ENDPOINT
- * body: { folder?: string }
- * response: { timestamp, signature, apiKey, cloudName, folder }
- *
- * All Cloudinary params (apiKey, cloudName, folder) return from backend,
- * app stores ZERO Cloudinary credentials.
- */
 export async function getCloudinarySignature({ folder } = {}) {
   const res = await Apis.post(CLOUDINARY_SIGN_ENDPOINT, { folder });
   return res?.data;
 }
 
-function normalizeCloudinaryResponse(data) {
-  if (!data) return null;
-  return {
-    publicId: data.public_id,
-    secureUrl: data.secure_url,
-    width: data.width,
-    height: data.height,
-    format: data.format,
-    raw: data,
-  };
-}
-
 export async function uploadImageToCloudinary({ uri, fileName, mimeType }) {
   if (!uri) throw new Error("Missing uri");
 
-  // Always use folder from sign response - never override from caller
   const sig = await getCloudinarySignature();
   const timestamp = sig?.timestamp;
   const signature = sig?.signature;
@@ -69,5 +47,5 @@ export async function uploadImageToCloudinary({ uri, fileName, mimeType }) {
     throw new Error(msg);
   }
 
-  return normalizeCloudinaryResponse(json);
+  return json;
 }

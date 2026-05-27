@@ -51,7 +51,6 @@ class PackageSerializer(serializers.ModelSerializer):
 class TourPackageSimpleReadSerializer(serializers.ModelSerializer):
     price_display = serializers.SerializerMethodField()
     total_price = serializers.SerializerMethodField()
-    total_price_display = serializers.SerializerMethodField()
 
     def get_price_display(self, obj):
         return f"{obj.price:,.0f}"
@@ -59,12 +58,9 @@ class TourPackageSimpleReadSerializer(serializers.ModelSerializer):
     def get_total_price(self, obj):
         return obj.price + obj.tour.base_price
 
-    def get_total_price_display(self, obj):
-        return f"{obj.price + obj.tour.base_price:,.0f}"
-
     class Meta:
         model = TourPackage
-        fields = ['id', 'name', 'price', 'price_display', 'total_price', 'total_price_display']
+        fields = ['id', 'name', 'price', 'price_display', 'total_price']
 
 class TourPackageDetailReadSerializer(TourPackageSimpleReadSerializer):
     packages = PackageSerializer(many=True)

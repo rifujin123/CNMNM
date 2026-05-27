@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUserRole } from "../src/utils/authRole";
+import { authApis, endpoints } from "../configs/Apis";
 
 const AuthContext = createContext(null);
 
@@ -15,6 +16,15 @@ export function AuthProvider({ children }) {
 
   const isLoggedIn = Boolean(token && user);
 
+  const getCurrentUser = async (accessToken) => {
+    try {
+      const res = await authApis(accessToken).get(endpoints.currentUser);
+      return res?.data ?? null;
+    } catch (e) {
+      return null;
+    }
+  };
+
   useEffect(() => {
     bootstrapAuth();
   }, []);
@@ -27,10 +37,16 @@ export function AuthProvider({ children }) {
       ]);
 
       if (storedToken && storedUser) {
-        const userData = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(userData);
-        setRole(getUserRole(userData));
+        const userData = await getCurrentUser(storedToken);
+        if (userData) {
+          setToken(storedToken);
+          setUser(userData);
+          setRole(getUserRole(userData));
+          await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+        } else {
+          await AsyncStorage.removeItem(AUTH_ACCESS_TOKEN_KEY);
+          await AsyncStorage.removeItem(AUTH_USER_KEY);
+        }
       }
     } catch (e) {
       console.error("Auth bootstrap error:", e);

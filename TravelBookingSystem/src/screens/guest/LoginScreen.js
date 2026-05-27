@@ -32,6 +32,8 @@ const LoginScreen = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [taxCode, setTaxCode] = useState("");
@@ -130,7 +132,7 @@ const LoginScreen = () => {
     setLoading(true);
     setError("");
     try {
-      if (!username.trim() || !password.trim() || !email.trim()) {
+      if (!username.trim() || !password.trim() || !email.trim() || !firstName.trim() || !lastName.trim()) {
         setError("Please fill in all required fields");
         return;
       }
@@ -166,6 +168,8 @@ const LoginScreen = () => {
         const formData = new FormData();
         formData.append("username", username.trim());
         formData.append("email", email.trim());
+        formData.append("first_name", firstName.trim());
+        formData.append("last_name", lastName.trim());
         formData.append("password", password);
         formData.append("avatar", avatar);
         formData.append("is_provider", "true");
@@ -181,6 +185,8 @@ const LoginScreen = () => {
         const formData = new FormData();
         formData.append("username", username.trim());
         formData.append("email", email.trim());
+        formData.append("first_name", firstName.trim());
+        formData.append("last_name", lastName.trim());
         formData.append("password", password);
         formData.append("avatar", avatar);
         formData.append("is_provider", "false");
@@ -196,6 +202,8 @@ const LoginScreen = () => {
 
       setUsername("");
       setEmail("");
+      setFirstName("");
+      setLastName("");
       setPassword("");
       setConfirmPassword("");
       setBusinessName("");
@@ -290,6 +298,18 @@ const LoginScreen = () => {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="First name"
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Last name"
+            value={lastName}
+            onChangeText={setLastName}
           />
           <TextInput
             style={styles.input}

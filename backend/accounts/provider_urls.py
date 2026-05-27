@@ -1,7 +1,13 @@
-from django.urls import path
-from . import views
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+
+from .views import ProviderAdminViewSet
+
+
+router = DefaultRouter()
+router.register(r'', ProviderAdminViewSet, basename='provider-admin')
+
 
 urlpatterns = [
-    path('pending/', views.PendingProviderListView.as_view()),
-    path('<int:provider_id>/verification/', views.ProviderVerificationView.as_view()),
+    path('', include(router.urls)),
 ]
