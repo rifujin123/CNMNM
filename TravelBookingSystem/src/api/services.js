@@ -99,7 +99,7 @@ export const removeWishlist = async ({ token, serviceId, tourId }) => {
 export const fetchWishlist = async ({ token }) => {
   if (!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = res?.data?.results ?? [];
+  const items = normalizeListItems(res?.data);
   return items
     .map((item) => item.service.id)
     .filter(Boolean)
@@ -109,7 +109,7 @@ export const fetchWishlist = async ({ token }) => {
 export const fetchWishListItems = async ({ token }) => {
   if(!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = res?.data?.results ?? [];
+  const items = normalizeListItems(res?.data);
   return items
     .map((item) => item.service)
     .filter(Boolean)
@@ -183,31 +183,6 @@ export const fetchPaymentDetail = async ({ token, paymentId }) => {
   if (!paymentId) return null;
 
   const res = await authApis(token).get(`${endpoints.payments}${paymentId}/`);
-  return res?.data ?? null;
-};
-
-export const confirmStaticQrPayment = async ({
-  token,
-  paymentId,
-  result = "success",
-  providerTransactionId,
-}) => {
-  if (!token) throw new Error("Missing token");
-  if (!paymentId) throw new Error("Missing paymentId");
-
-  const payload = {
-    result,
-  };
-
-  if (providerTransactionId) {
-    payload.provider_transaction_id = providerTransactionId;
-  }
-
-  const res = await authApis(token).post(
-    `${endpoints.payments}${paymentId}/static-qr-confirmation/`,
-    payload,
-  );
-
   return res?.data ?? null;
 };
 

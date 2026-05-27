@@ -6,6 +6,7 @@ from bookings.services import BookingService
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .pagination import BookingLimitOffsetPagination
+from django.utils import timezone
 
 
 class BookingViewSet(mixins.ListModelMixin, 
@@ -58,6 +59,12 @@ class BookingViewSet(mixins.ListModelMixin,
             return Booking.objects.none()
 
         params = self.request.query_params
+
+        booking_id = params.get("booking_id") or params.get("id")
+        if booking_id:
+            if not str(booking_id).isdigit():
+                return queryset.none()
+            queryset = queryset.filter(id=booking_id)
 
         booking_status = params.get("booking_status")
         if booking_status:
@@ -112,6 +119,38 @@ class BookingViewSet(mixins.ListModelMixin,
 
         return [permission() for permission in permission_classes]
     
+    def _expire_overdue_bookings(self, queryset):
+        overdue_ids = list(
+            queryset.filter(
+                booking_status=Booking.BookingStatus.PENDING,
+                payment_status=Booking.PaymentStatus.UNPAID,
+                expires_at__isnull=False,
+                expires_at__lte=timezone.now(),
+            ).values_list("id", flat=True)
+        )
+
+        for booking in (
+            Booking.objects
+            .select_related("service")
+            .prefetch_related("rooms", "seat_statuses")
+            .filter(id__in=overdue_ids)
+        ):
+            BookingService.expire_booking(booking)
+
+    def list(self, request, *args, **kwargs):
+        role_queryset = self.get_queryset()
+        self._expire_overdue_bookings(role_queryset)
+
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
         booking = self.get_object()

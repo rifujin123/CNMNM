@@ -145,7 +145,7 @@ export default function ItemDetailScreen() {
     return () => {
       active = false;
     };
-  }, [itemId]);
+  }, [itemId, serviceType]);
 
   useEffect(() => {
     if (place?.tour_package?.length > 0 && !selectedPackageId) {

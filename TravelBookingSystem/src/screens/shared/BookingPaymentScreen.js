@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -25,7 +26,6 @@ const COLORS = {
   danger: "#DC2626",
 };
 
-const ACTIVE_STATUSES = ["PENDING", "PROCESSING", "REVIEW"];
 const FAILED_STATUSES = ["FAILED", "CANCELLED", "EXPIRED"];
 
 const formatMoney = (value, currency = "VND") => {
@@ -166,10 +166,10 @@ export default function BookingPaymentScreen() {
     return payment?.metadata?.transfer_content || payment?.transaction_id || "N/A";
   }, [payment]);
 
+  const qrUrl = payment?.metadata?.qr_url || payment?.payment_url;
   const status = payment?.payment_status || "PROCESSING";
   const method = payment?.payment_method || "STATIC_QR";
   const isStaticQr = method === "STATIC_QR";
-  const isActive = ACTIVE_STATUSES.includes(status);
   const isFailed = FAILED_STATUSES.includes(status);
   const canCancelStaticQr = isStaticQr && ["PENDING", "PROCESSING"].includes(status);
   const badge = getPaymentBadge(status);
@@ -315,6 +315,31 @@ export default function BookingPaymentScreen() {
           </View>
         </View>
 
+        {isStaticQr ? (
+          <View style={styles.qrCard}>
+            <Text style={styles.qrTitle}>Scan to Pay</Text>
+
+            {qrUrl ? (
+              <Image
+                source={{ uri: qrUrl }}
+                style={styles.qrImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={styles.qrPlaceholder}>
+                <Ionicons name="qr-code-outline" size={52} color={COLORS.muted} />
+                <Text style={styles.qrPlaceholderText}>
+                  QR image is not available for this payment.
+                </Text>
+              </View>
+            )}
+
+            <Text style={styles.qrHint}>
+              Open your banking app and scan this QR code.
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.infoCard}>
           <InfoRow
             label="Amount"
@@ -360,12 +385,6 @@ export default function BookingPaymentScreen() {
           </Pressable>
         ) : null}
 
-        {isActive ? (
-          <Pressable style={styles.primaryButton} onPress={refetch}>
-            <Text style={styles.primaryButtonText}>Refresh Status</Text>
-          </Pressable>
-        ) : null}
-
         {canCancelStaticQr ? (
           <Pressable
             style={[
@@ -381,9 +400,11 @@ export default function BookingPaymentScreen() {
           </Pressable>
         ) : null}
 
-        <Pressable style={styles.secondaryButton} onPress={goToTrips}>
-          <Text style={styles.secondaryButtonText}>View My Trips</Text>
-        </Pressable>
+        {status !== "SUCCESS" ? (
+          <Pressable style={styles.secondaryButton} onPress={goToTrips}>
+            <Text style={styles.secondaryButtonText}>View My Trips</Text>
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -472,6 +493,52 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: "800",
+  },
+  qrCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 18,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 12,
+  },
+  qrTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.dark,
+    marginBottom: 12,
+  },
+  qrImage: {
+    width: 240,
+    height: 240,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+  },
+  qrPlaceholder: {
+    width: 240,
+    height: 240,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+  },
+  qrPlaceholderText: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.muted,
+    textAlign: "center",
+  },
+  qrHint: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.muted,
+    textAlign: "center",
   },
   infoCard: {
     backgroundColor: COLORS.white,

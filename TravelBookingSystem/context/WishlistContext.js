@@ -15,7 +15,6 @@ export function WishlistProvider({ children }) {
   const [isRefetching, setIsRefetching] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch wishlist on mount and when token changes
   useEffect(() => {
     if (authLoading) return;
     if (token && role === 'customer') {
@@ -43,9 +42,16 @@ export function WishlistProvider({ children }) {
       setSavedItems(items);
       await AsyncStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids));
     } catch (err) {
-      console.error('Load wishlist error:', err);
-      setError(err.message);
-      // Fallback to cached data
+        console.error('Load wishlist error:', err?.response?.status, err?.response?.data || err.message);
+        setError(err.message);
+
+        if (err?.response?.status === 401) {
+          setWishlistIds([]);
+          setSavedItems([]);
+          await AsyncStorage.removeItem(WISHLIST_STORAGE_KEY);
+          await clearAuth();
+          return;
+        }
       try {
         const cached = await AsyncStorage.getItem(WISHLIST_STORAGE_KEY);
         if (cached) {
@@ -108,19 +114,19 @@ export function WishlistProvider({ children }) {
   };
 
   const toggleWishlist = async (item) => {
-    const tourId = item?.id;
-    if (!tourId || !token) return;
+    const serviceId = item?.id;
+    if (!serviceId || !token) return;
 
     try {
-      if (isWishlisted(tourId)) {
-        await removeFromWishlist(tourId);
+      if (isWishlisted(serviceId)) {
+        await removeFromWishlist(serviceId);
       } else {
-        await addToWishlist(tourId);
+        await addToWishlist(item);
       }
     } catch (err) {
       console.error('Toggle wishlist error:', err);
     }
-  };
+};
 
   const value = {
     wishlistIds,

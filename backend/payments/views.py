@@ -2,14 +2,14 @@ from django.utils import timezone
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
 from .models import Payment
 from .payServices.payment_service import (
     PaymentLifecycleService,
     complete_static_qr_payment,
 )
-from .serializers import PaymentCreateSerializer, PaymentReadSerializer
+from .serializers import PaymentCreateSerializer, PaymentReadSerializer,AdminDashboardSerializer
 from .pagination import PaymentLimitOffsetPagination
+from .dashboard_service import AdminDashboardService
 
 
 class PaymentViewSet(
@@ -27,6 +27,11 @@ class PaymentViewSet(
 
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = PaymentLimitOffsetPagination
+
+    def get_permissions(self):
+        if self.action == "admin_dashboard":
+            return [permissions.IsAdminUser()]
+        return super().get_permissions()
 
     def _get_role_queryset(self):
         user = self.request.user
@@ -94,6 +99,9 @@ class PaymentViewSet(
     def get_serializer_class(self):
         if self.action == "create":
             return PaymentCreateSerializer
+        
+        if self.action == "admin_dashboard":
+            return AdminDashboardSerializer
 
         return PaymentReadSerializer
 
@@ -186,3 +194,10 @@ class PaymentViewSet(
 
         serializer = self.get_serializer(payment)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    
+    @action(detail=False, methods=["get"], url_path="admin-dashboard")
+    def admin_dashboard(self, request):
+        data = AdminDashboardService.get_admin_dashboard()
+        serializer = self.get_serializer(data)
+        return Response(serializer.data)

@@ -2,17 +2,14 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { cancelBooking, createBooking, createPayment, fetchBookings } from "../api/services";
 
-export const bookingKeys = {
-  all: ["bookings"],
-  list: (filters = {}) => [...bookingKeys.all, "list", filters],
-};
-
-export function useBookings(filters = {}) {
+export function useBookings(filters = {}, options = {}) {
   const { token } = useAuth();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
+
+  const refetchIntervalMs = options.refetchIntervalMs;
 
   const loadBookings = async (refresh = false) => {
     if (!token) {
@@ -26,10 +23,12 @@ export function useBookings(filters = {}) {
       const bookings = await fetchBookings({ token, filters });
       setData(bookings);
       return bookings;
+
     } catch (err) {
       console.error("Load bookings error:", err);
       setIsError(true);
       throw err;
+      
     } finally {
       setIsLoading(false);
       setIsRefetching(false);
@@ -37,8 +36,18 @@ export function useBookings(filters = {}) {
   };
 
   useEffect(() => {
-    loadBookings();
+    loadBookings().catch(() => {});
   }, [token, JSON.stringify(filters)]);
+
+  useEffect(() => {
+    if (!token || !refetchIntervalMs) return;
+
+    const interval = setInterval(() => {
+      loadBookings(true).catch(() => {});
+    }, refetchIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [token, JSON.stringify(filters), refetchIntervalMs]);
 
   return {
     data,

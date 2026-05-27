@@ -18,6 +18,7 @@ class ProviderProfile(models.Model):
 
     #business logic
     is_verified = models.BooleanField(default=False)
+    is_rejected = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
