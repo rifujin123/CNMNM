@@ -53,8 +53,8 @@ class HotelAdmin(admin.ModelAdmin):
 
 @admin.register(Transport)
 class TransportAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'provider', 'city', 'brand_name', 'vehicle_type', 'is_active']
-    list_filter = ['is_active', 'city', 'provider', 'vehicle_type']
+    list_display = ['id', 'name', 'provider', 'city', 'brand_name', 'is_active']
+    list_filter = ['is_active', 'city', 'provider']
     search_fields = ['name', 'brand_name', 'license_plate', 'provider__username']
 
 

@@ -2,10 +2,12 @@ import { StyleSheet, View } from 'react-native'
 import React from 'react'
 import DashboardSummaryCard from './DashboardSummaryCard'
 
+const formatMillions = (value) => `${(Number(value || 0) / 1000000).toFixed(2)}M`
+
 const DashboardSummaryGrid = ({ summary }) => {
-  const totalRevenue = summary?.total_revenue ?? '0.00'
+  const totalRevenue = formatMillions(summary?.total_revenue)
   const totalBookings = summary?.total_bookings ?? 0
-  const avgPerBooking = summary?.avg_per_booking ?? '0.00'
+  const avgPerBooking = formatMillions(summary?.avg_per_booking)
 
   return (
     <View style={styles.grid}>
@@ -26,11 +28,6 @@ const DashboardSummaryGrid = ({ summary }) => {
           title="Avg/Booking"
           value={avgPerBooking}
           accent="#10B981"
-        />
-        <DashboardSummaryCard
-          title="Range"
-          value={summary?.from_date ? 'Set' : 'None'}
-          accent="#F59E0B"
         />
       </View>
     </View>

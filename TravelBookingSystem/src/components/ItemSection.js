@@ -43,7 +43,7 @@ export default function ItemSection({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         decelerationRate={slidingCard ? "fast" : "normal"}
-        snapToInterval={slidingCard ? 182 : undefined}
+        snapToInterval={slidingCard ? 232 : undefined}
         snapToAlignment={slidingCard ? "start" : undefined}
         disableIntervalMomentum={slidingCard}
         ListEmptyComponent={null}

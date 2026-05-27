@@ -24,12 +24,8 @@ const RevenueLineChart = ({ items = [] }) => {
         yAxisTextStyle={{ color: '#64748B', fontSize: 10 }}
         xAxisLabelTextStyle={{ color: '#64748B', fontSize: 10 }}
         yAxisLabelSuffix="M"
-        showValuesAsDataPointsText
         dataPointsColor="#0D9488"
         dataPointsRadius={4}
-        dataPointsTextSize={9}
-        dataPointsTextWeight="600"
-        dataPointsTextOffset={-18}
       />
     </View>
   )

@@ -136,7 +136,6 @@ def seed_hotels(provider, cities, category):
 
 
 def seed_transports(provider, cities, category):
-    vehicle_types = ["Bus", "Van", "Limousine", "Train", "Flight"]
     transports = []
     for i in range(1, 6):
         city = cities[(i - 1) % len(cities)]
@@ -151,7 +150,6 @@ def seed_transports(provider, cities, category):
                 "category": category,
                 "brand_name": f"Seed Mobility {i}",
                 "license_plate": f"43A-10{i:02d}",
-                "vehicle_type": vehicle_types[(i - 1) % len(vehicle_types)],
             },
         )
         transports.append(transport)

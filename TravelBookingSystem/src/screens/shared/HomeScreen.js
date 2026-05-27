@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { ScrollView } from "react-native";
 import AppHeader from "../../components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
-import SearchBar from "../../components/SearchBar";
 import PromoBanner from "../../components/PromoBanner";
 import CategoryChips from "../../components/CategoryChips";
 import ItemSection from "../../components/ItemSection";
@@ -10,7 +9,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../../context/AuthContext";
 import usePullRefresh from "../../../hooks/usePullRefresh";
 import useWishlist from "../../hooks/useWishlist";
-import { fetchCategories, fetchPlaces } from "../../api/services";
+import { fetchCategories, fetchPlaces, fetchHotels, fetchTransports } from "../../api/services";
 import { commonStyles as styles } from "../../styles/commonStyles";
 
 const HomeScreen = () => {
@@ -18,17 +17,22 @@ const HomeScreen = () => {
 
   const [categories, setCategories] = useState([]);
   const [places, setPlaces] = useState([]);
-
+  const [hotels, setHotels] = useState([]);
+  const [transports, setTransports] = useState([]);
   const { token, user } = useAuth();
   const { isWishlisted, toggleWishlist } = useWishlist();
 
   const loadData = useCallback(async () => {
-    const [cats, pls] = await Promise.all([
+    const [cats, pls, hls, tps] = await Promise.all([
       fetchCategories(),
       fetchPlaces(),
+      fetchHotels(),
+      fetchTransports(),
     ]);
     setCategories(cats);
     setPlaces(pls);
+    setHotels(hls);
+    setTransports(tps);
   }, []);
 
   useEffect(() => {
@@ -60,25 +64,10 @@ const HomeScreen = () => {
         <AppHeader
           title={`Hello, ${user?.first_name?.trim() || user?.username || "Guest"}`}
         />
-        <SearchBar placeholder="Search for a destination" />
         <PromoBanner />
         <CategoryChips
           categories={categories}
           onChipPress={handleCategoryPress}
-        />
-        <ItemSection
-          title="Nearby Places"
-          items={places}
-          onPress={onPressItem}
-          isWishlisted={isWishlisted}
-          onWishlistToggle={token ? toggleWishlist : undefined}
-          onRequireLogin={onRequireLogin}
-          onSeeAllPress={() =>
-            navigation.navigate("SeeAll", {
-              title: "Nearby Places",
-              items: places,
-            })
-          }
         />
         <ItemSection
           title="Recommended For You"
@@ -91,6 +80,48 @@ const HomeScreen = () => {
             navigation.navigate("SeeAll", {
               title: "Recommended For You",
               items: places,
+            })
+          }
+        />
+              <ItemSection
+          title="Tours"
+          items={places}
+          onPress={onPressItem}
+          isWishlisted={isWishlisted}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
+          onSeeAllPress={() =>
+            navigation.navigate("SeeAll", {
+              title: "Tours",
+              items: places,
+            })
+          }
+        />
+              <ItemSection
+          title="Hotels"
+          items={hotels}
+          onPress={onPressItem}
+          isWishlisted={isWishlisted}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
+          onSeeAllPress={() =>
+            navigation.navigate("SeeAll", {
+              title: "Hotels",
+              items: hotels,
+            })
+          }
+        />
+              <ItemSection
+          title="Transport"
+          items={transports}
+          onPress={onPressItem}
+          isWishlisted={isWishlisted}
+          onWishlistToggle={token ? toggleWishlist : undefined}
+          onRequireLogin={onRequireLogin}
+          onSeeAllPress={() =>
+            navigation.navigate("SeeAll", {
+              title: "Transport",
+              items: transports,
             })
           }
         />

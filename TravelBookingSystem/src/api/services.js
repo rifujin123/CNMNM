@@ -38,49 +38,27 @@ const formatBasePrice = (item) => {
   return number.toLocaleString("vi-VN");
 };
 
-const normalizeListItems = (data) => {
-  if (Array.isArray(data)) return data;
-  return data?.results ?? [];
+const mapServiceListItem = (item, type) => {
+  const image = item?.images?.[0]?.image;
+  return {
+    id: String(item.id),
+    name: item.name,
+    description: item.description,
+    star_rating: item.star_rating,
+    base_price: item.base_price,
+    base_price_display: formatBasePrice(item),
+    city: item.city,
+    category: item.category,
+    type,
+    tour_package: item.tour_package,
+    image,
+    empty_slot: item.empty_slot,
+    time_start: item.time_start,
+    is_active: item.is_active,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+  };
 };
-
-const buildQueryString = (params = {}) => {
-  const queryParams = new URLSearchParams();
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (key === "token") return;
-    if (value === undefined || value === null || value === "") return;
-    queryParams.append(key, value);
-  });
-
-  return queryParams.toString();
-};
-
-const fetchServiceList = async ({ endpoint, type, params = {} }) => {
-  const { token, ...filters } = params;
-  const queryString = buildQueryString(filters);
-  const url = queryString ? `${endpoint}?${queryString}` : endpoint;
-  const client = token ? authApis(token) : Apis;
-  const res = await client.get(url);
-  const items = normalizeListItems(res?.data);
-  return items.map((item) => mapServiceListItem(item, type));
-};
-
-const mapServiceListItem = (item, type) => ({
-  id: String(item.id),
-  name: item.name,
-  description: item.description,
-  star_rating: item.star_rating,
-  base_price: item.base_price,
-  base_price_display: formatBasePrice(item),
-  city: item.city,
-  category: item.category,
-  type,
-  empty_slot: item.empty_slot,
-  time_start: item.time_start,
-  is_active: item.is_active,
-  created_at: item.created_at,
-  updated_at: item.updated_at,
-});
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
@@ -93,11 +71,18 @@ export const fetchCities = async () => {
 };
 
 export const fetchPlaces = async (params = {}) => {
-  return fetchServiceList({
-    endpoint: endpoints.tours,
-    type: SERVICE_TYPES.tour,
-    params,
-  });
+  const queryParams = new URLSearchParams();
+  if (params.category) queryParams.append('category', params.category);
+  if (params.q) queryParams.append('q', params.q);
+  if (params.provider) queryParams.append('provider', params.provider);
+
+  const url = queryParams.toString()
+    ? `${endpoints.tours}?${queryParams}`
+    : endpoints.tours;
+
+  const res = await Apis.get(url);
+  const items = res?.data?.results ?? [];
+  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.tour));
 };
 
 export const fetchPlaceDetail = async (id, serviceType = SERVICE_TYPES.tour) => {
@@ -252,13 +237,38 @@ export const fetchTransports = async (params = {}) => {
   });
 };
 
+const buildServicePayload = (payload = {}) => {
+  if (!payload.image) return payload;
+
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    if (key === 'image') {
+      formData.append('image', {
+        uri: value.uri,
+        name: value.fileName || value.name || 'service.jpg',
+        type: value.mimeType || value.type || 'image/jpeg',
+      });
+      return;
+    }
+    if (Array.isArray(value) || typeof value === 'object') {
+      formData.append(key, JSON.stringify(value));
+      return;
+    }
+    formData.append(key, value);
+  });
+  return formData;
+};
+
 export const createService = async ({ token, user, type, payload }) => {
   if (!token) throw new Error("Missing token");
   if (user?.is_verified_provider !== true) throw new Error(UNVERIFIED_PROVIDER_ERROR);
   const endpoint = SERVICE_ENDPOINTS[type];
   if (!endpoint) throw new Error("Invalid service type");
 
-  const res = await authApis(token).post(endpoint, payload);
+  const body = buildServicePayload(payload);
+  const config = payload?.image ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined;
+  const res = await authApis(token).post(endpoint, body, config);
   return res?.data;
 };
 
@@ -269,7 +279,9 @@ export const updateService = async ({ token, user, type, id, payload }) => {
   const endpoint = SERVICE_ENDPOINTS[type];
   if (!endpoint) throw new Error("Invalid service type");
 
-  const res = await authApis(token).put(`${endpoint}${id}/`, payload);
+  const body = buildServicePayload(payload);
+  const config = payload?.image ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined;
+  const res = await authApis(token).put(`${endpoint}${id}/`, body, config);
   return res?.data;
 };
 

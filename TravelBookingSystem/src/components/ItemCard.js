@@ -5,11 +5,12 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Entypo from "@expo/vector-icons/Entypo";
 
 const FALLBACK_IMAGE_URI =
-  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80";
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80";
 
 const getPlaceImageUri = (item) => {
   const candidates = [
     item?.image,
+    item?.images?.[0]?.image,
     item?.image_url,
     item?.thumbnail,
     item?.thumbnail_url,
@@ -43,7 +44,7 @@ function ItemCard({ item, onPress, isWishlist, onWishlistToggle, onRequireLogin 
         <Image source={{ uri: imageUri }} style={styles.thumb} resizeMode="cover" />
       </Pressable>
       <Pressable onPress={onPress} style={styles.content}>
-        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
         <View style={styles.ratingLocationRow}>
           <Text style={styles.rating}>
             <FontAwesome name="star" size={16} color="#F59E0B" />
@@ -79,8 +80,8 @@ export default ItemCard;
 
 const styles = StyleSheet.create({
   card: {
-    width: 180,
-    height: 190,
+    width: 220,
+    height: 230,
     borderRadius: 22,
     backgroundColor: "#FFFFFF",
     padding: 12,
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
   },
   thumb: {
     width: "100%",
-    height: 96,
+    height: 112,
     borderRadius: 12,
   },
   wishlistButton: {
@@ -111,7 +112,9 @@ const styles = StyleSheet.create({
   },
   name: {
     marginTop: 12,
+    minHeight: 38,
     fontSize: 14,
+    lineHeight: 19,
     fontWeight: "700",
     color: "#0F172A",
   },

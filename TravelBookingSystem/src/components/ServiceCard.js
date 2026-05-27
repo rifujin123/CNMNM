@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
+const FALLBACK = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80";
+
 const { width } = Dimensions.get("window");
 
 const COLORS = {
@@ -68,7 +70,7 @@ const ServiceCard = ({
   return (
     <TouchableOpacity activeOpacity={0.9} style={styles.card}>
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item?.image_url }} style={styles.image} />
+        <Image source={{ uri: item?.image || FALLBACK }} style={styles.image} />
         <View style={styles.typeBadge}>
           <MaterialCommunityIcons
             name={getServiceIcon(item?.type)}

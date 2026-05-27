@@ -159,6 +159,8 @@ class TravelTourViewSet(viewsets.ModelViewSet):
         params = self.request.query_params
         show_all = should_show_all_services(self.request)
 
+        params = self.request.query_params
+
         available_future_seats = SeatStatus.objects.filter(
             route__transport=OuterRef('pk'),
             route__departure_time__gte=now,
@@ -166,23 +168,21 @@ class TravelTourViewSet(viewsets.ModelViewSet):
             booking__isnull=True,
         )
 
-        if show_all:
-            queryset = TravelTour.objects.all()
-        else:
-            queryset = TravelTour.objects.filter(
-                is_active=True,
-                time_start__gte=timezone.now(),
-                empty_slot__gt=0,
-            )
-
-        queryset = queryset.annotate(
+        queryset = TravelTour.objects.filter(
+            is_active=True,
+        ).annotate(
             popularity=Count('bookings', distinct=True)
         )
 
-        if show_all:
-            queryset = apply_active_filter(queryset, params)
-
-        queryset = apply_service_id_filter(queryset, params)
+        is_provider_own = (
+            self.request.user.is_authenticated
+            and params.get('provider') == str(self.request.user.id)
+        )
+        if not is_provider_own:
+            queryset = queryset.filter(
+                time_start__gte=now,
+                empty_slot__gt=0,
+            )
 
         search_query = params.get('q')
         if search_query:

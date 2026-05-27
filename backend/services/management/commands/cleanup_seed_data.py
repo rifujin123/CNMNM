@@ -100,7 +100,6 @@ class Command(BaseCommand):
 
         checks = [
             (Q(brand_name__isnull=True) | Q(brand_name=""), "brand_name missing"),
-            (Q(vehicle_type__isnull=True) | Q(vehicle_type=""), "vehicle_type missing"),
         ]
 
         for query, reason in checks:

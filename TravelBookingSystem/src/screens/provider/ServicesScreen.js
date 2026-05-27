@@ -4,13 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import AppHeader from '../../components/AppHeader'
 import usePullRefresh from '../../../hooks/usePullRefresh'
 import SearchBar from '../../components/SearchBar'
-import StatsBar from '../../components/StatsBar'
 import CategoryFilterChips from '../../components/CategoryFilterChips'
 import ServiceCard from '../../components/ServiceCard'
 import AddServiceModal from '../../components/AddServiceModal'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../../../context/AuthContext'
 import { fetchPlaces, fetchHotels, fetchTransports, createService, updateService, deleteService } from '../../api/services'
+import { commonStyles } from '../../styles/commonStyles'
 
 
 const ServicesScreen = () => {
@@ -94,7 +94,7 @@ const ServicesScreen = () => {
 
   if (loading && services.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={commonStyles.tabScreen}>
         <AppHeader title="Services" />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#0D9488" />
@@ -106,7 +106,7 @@ const ServicesScreen = () => {
 
   if (!isVerifiedProvider) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={commonStyles.tabScreen}>
         <AppHeader title="Services" />
         <View style={styles.centerContainer}>
           <Ionicons name="shield-checkmark-outline" size={64} color="#94A3B8" />
@@ -120,11 +120,10 @@ const ServicesScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} refreshControl={refreshControl}>
+    <SafeAreaView style={commonStyles.tabScreen}>
+      <ScrollView style={commonStyles.tabContent} refreshControl={refreshControl}>
         <AppHeader title="Services" />
         <SearchBar placeholder="Search services" />
-        <StatsBar />
         <CategoryFilterChips />
         {error ? (
           <View style={styles.errorContainer}>
@@ -175,18 +174,7 @@ const ServicesScreen = () => {
 export default ServicesScreen
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
+  
   centerContainer: {
     flex: 1,
     justifyContent: 'center',

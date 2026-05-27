@@ -1,4 +1,5 @@
 from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate, TruncMonth
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -46,9 +47,9 @@ class ProviderStatsViewSet(viewsets.ViewSet):
             )
 
         queryset = Booking.objects.filter(
-            created_at__gte=from_date,
-            created_at__lte=to_date,
-            payment__payment_status="paid",
+            created_date__gte=from_date,
+            created_date__lte=to_date,
+            payments__payment_status="SUCCESS",
         )
 
         if not user.is_staff:
@@ -111,6 +112,35 @@ class ProviderStatsViewSet(viewsets.ViewSet):
             .order_by("-revenue")[:10]
         )
 
+        if period == "year":
+            revenue_series = [
+                {
+                    "date": item["period_date"].isoformat(),
+                    "label": item["period_date"].strftime("%b"),
+                    "value": item["value"] or 0,
+                }
+                for item in (
+                    queryset.annotate(period_date=TruncMonth("created_date"))
+                    .values("period_date")
+                    .annotate(value=Sum("total_price"))
+                    .order_by("period_date")
+                )
+            ]
+        else:
+            revenue_series = [
+                {
+                    "date": item["period_date"].isoformat(),
+                    "label": item["period_date"].strftime("%d/%m"),
+                    "value": item["value"] or 0,
+                }
+                for item in (
+                    queryset.annotate(period_date=TruncDate("created_date"))
+                    .values("period_date")
+                    .annotate(value=Sum("total_price"))
+                    .order_by("period_date")
+                )
+            ]
+
         data = {
             "summary": {
                 "total_revenue": total_revenue,
@@ -121,6 +151,7 @@ class ProviderStatsViewSet(viewsets.ViewSet):
             },
             "by_service_type": by_type,
             "top_services": list(top_services),
+            "revenue_series": revenue_series,
         }
 
         serializer = RevenueStatsSerializer(data)
@@ -144,7 +175,7 @@ class ProviderStatsViewSet(viewsets.ViewSet):
 
         bookings = Booking.objects.filter(
             service=service,
-            payment__payment_status="paid",
+            payments__payment_status="SUCCESS",
         )
 
         total_bookings = bookings.count()

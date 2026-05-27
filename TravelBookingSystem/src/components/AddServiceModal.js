@@ -6,12 +6,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
   TextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { commonStyles } from '../styles/commonStyles';
 import { fetchCities } from '../api/services';
+import { pickSingleImage } from '../utils/pickImage';
 import ServiceTypeSelector from './serviceForm/ServiceTypeSelector';
 import DateTimeField from './serviceForm/DateTimeField';
 import CityPicker from './serviceForm/CityPicker';
@@ -27,9 +30,11 @@ const createEmptyForm = () => ({
   address_detail: '',
   brand_name: '',
   license_plate: '',
-  vehicle_type: '',
+  image: null,
+  oldImage: '',
   time_start: '',
   empty_slot: '',
+  tour_packages: [{ name: '', price: '' }],
 });
 
 const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => {
@@ -60,9 +65,16 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
         address_detail: editingItem.address_detail || '',
         brand_name: editingItem.brand_name || '',
         license_plate: editingItem.license_plate || '',
-        vehicle_type: editingItem.vehicle_type || '',
+        image: null,
+        oldImage: editingItem.image || '',
         time_start: editingItem.time_start || '',
         empty_slot: String(editingItem.empty_slot || ''),
+        tour_packages: editingItem.tour_package?.length
+          ? editingItem.tour_package.map((pkg) => ({
+              name: pkg.name || '',
+              price: String(pkg.price || ''),
+            }))
+          : [{ name: '', price: '' }],
       });
       setError('');
       return;
@@ -77,6 +89,39 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const updateTourPackage = (index, field, value) => {
+    setFormData((prev) => {
+      const next = [...prev.tour_packages];
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, tour_packages: next };
+    });
+  };
+
+  const addTourPackage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      tour_packages: [...prev.tour_packages, { name: '', price: '' }],
+    }));
+  };
+
+  const removeTourPackage = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      tour_packages: prev.tour_packages.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const image = await pickSingleImage();
+      if (image) {
+        updateField('image', image);
+      }
+    } catch (err) {
+      setError('Photo library permission required');
+    }
+  };
+
   const validateForm = () => {
     if (!formData.name.trim()) return 'Name required';
     if (!formData.description.trim()) return 'Description required';
@@ -86,15 +131,18 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
     if (serviceType === 'tour') {
       if (!formData.time_start) return 'Time start required';
       if (!formData.empty_slot) return 'Empty slot required';
+      for (const pkg of formData.tour_packages) {
+        if (!pkg.name.trim()) return 'Package name required';
+        if (!pkg.price) return 'Package price required';
+      }
     }
 
     if (serviceType === 'hotel' && !formData.address_detail.trim()) {
       return 'Address required';
     }
 
-    if (serviceType === 'transport') {
-      if (!formData.brand_name.trim()) return 'Brand name required';
-      if (!formData.vehicle_type.trim()) return 'Vehicle type required';
+    if (serviceType === 'transport' && !formData.brand_name.trim()) {
+      return 'Brand name required';
     }
 
     return '';
@@ -106,8 +154,36 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
       setError(msg);
       return;
     }
+    let submitData = {
+      name: formData.name,
+      description: formData.description,
+      city: formData.city,
+      base_price: formData.base_price,
+    };
+    if (formData.image) {
+      submitData.image = formData.image;
+    }
+
+    if (serviceType === 'tour') {
+      submitData.time_start = formData.time_start;
+      submitData.empty_slot = formData.empty_slot;
+      submitData.tour_packages = formData.tour_packages.map((pkg) => ({
+        name: pkg.name.trim(),
+        price: pkg.price,
+        packages: [],
+      }));
+    }
+
+    if (serviceType === 'hotel') {
+      submitData.address_detail = formData.address_detail;
+    }
+
+    if (serviceType === 'transport') {
+      submitData.brand_name = formData.brand_name;
+      submitData.license_plate = formData.license_plate;
+    }
     setError('');
-    onSubmit?.(serviceType, formData, editingItem);
+    onSubmit?.(serviceType, submitData, editingItem);
   };
 
   const handleClose = () => {
@@ -159,6 +235,24 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
               />
             </View>
 
+            <View style={styles.field}>
+              <Text style={styles.label}>Image</Text>
+              <TouchableOpacity style={commonStyles.uploadButton} onPress={handlePickImage}>
+                <Ionicons name="image-outline" size={20} color="#1D4ED8" />
+                <Text style={commonStyles.uploadButtonText}>
+                  {formData.image ? 'Change Image' : 'Upload Image'}
+                </Text>
+              </TouchableOpacity>
+              {(formData.image || formData.oldImage) && (
+                <View style={commonStyles.uploadPreview}>
+                  <Image source={{ uri: formData.image?.uri || formData.oldImage }} style={commonStyles.uploadPreviewImage} />
+                  <Text style={commonStyles.uploadPreviewText} numberOfLines={1}>
+                    {formData.image?.fileName || formData.image?.name || 'Current image'}
+                  </Text>
+                </View>
+              )}
+            </View>
+
             <CityPicker value={formData.city} onChange={(val) => updateField('city', val)} cities={cities} />
 
             <View style={styles.field}>
@@ -178,6 +272,9 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
                 updateField={updateField}
                 showDatePicker={showDatePicker}
                 setShowDatePicker={setShowDatePicker}
+                updateTourPackage={updateTourPackage}
+                addTourPackage={addTourPackage}
+                removeTourPackage={removeTourPackage}
               />
             )}
 
