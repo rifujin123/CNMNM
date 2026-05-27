@@ -1,12 +1,11 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-
-import AdminDashboardScreen from "../screens/AdminDashboardScreen";
-import AdminServicesScreen from "../screens/AdminServicesScreen";
-import AdminProvidersScreen from "../screens/AdminProvidersScreen";
-import AdminPaymentsScreen from "../screens/AdminPaymentsScreen";
-import AdminBookingsScreen from "../screens/AdminBookingsScreen";
+import AdminDashboardScreen from "../screens/admin/AdminDashboardScreen";
+import AdminServicesScreen from "../screens/admin/AdminServicesScreen";
+import AdminProvidersScreen from "../screens/admin/AdminProvidersScreen";
+import AdminPaymentsScreen from "../screens/admin/AdminPaymentsScreen";
+import AdminBookingsScreen from "../screens/admin/AdminBookingsScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -73,7 +72,6 @@ export default function AdminTabs() {
           ),
         }}
       />
-
     </Tab.Navigator>
   );
 }

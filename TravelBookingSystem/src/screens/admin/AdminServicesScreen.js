@@ -13,12 +13,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import AppHeader from "../components/AppHeader";
-import { useAuth } from "../../context/AuthContext";
+import AppHeader from "../../components/AppHeader";
+import { useAuth } from "../../../context/AuthContext";
 import {
   fetchAdminServices,
   updateAdminServiceActive,
-} from "../api/admin";
+} from "../../api/admin";
 
 const SERVICE_TYPES = [
   { key: "all", label: "All" },
@@ -50,7 +50,10 @@ export default function AdminServicesScreen() {
   const [services, setServices] = useState([]);
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
   const [serviceId, setServiceId] = useState("");
+  const [appliedServiceId, setAppliedServiceId] = useState("");
+
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoadingKey, setActionLoadingKey] = useState("");
@@ -68,7 +71,7 @@ export default function AdminServicesScreen() {
         type: typeFilter,
         filters: {
           ...getStatusFilterParams(statusFilter),
-          ...(serviceId.trim() ? { service_id: serviceId.trim() } : {}),
+          ...(appliedServiceId.trim() ? { service_id: appliedServiceId.trim() } : {}),
         },
       });
 
@@ -83,7 +86,7 @@ export default function AdminServicesScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [token, typeFilter, statusFilter, serviceId]);
+  }, [token, typeFilter, statusFilter, appliedServiceId]);
 
   useEffect(() => {
     loadServices();
@@ -165,7 +168,7 @@ export default function AdminServicesScreen() {
             keyboardType="numeric"
           />
 
-          <Pressable style={styles.filterButton} onPress={() => loadServices(true)}>
+          <Pressable style={styles.filterButton} onPress={() => setAppliedServiceId(serviceId.trim())}>
             <Ionicons name="filter-outline" size={18} color="#FFFFFF" />
             <Text style={styles.filterButtonText}>Apply Filters</Text>
           </Pressable>

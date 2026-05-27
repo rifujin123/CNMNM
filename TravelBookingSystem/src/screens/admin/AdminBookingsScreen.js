@@ -14,12 +14,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import AppHeader from "../components/AppHeader";
-import { useAuth } from "../../context/AuthContext";
+import AppHeader from "../../components/AppHeader";
+import { useAuth } from "../../../context/AuthContext";
 import {
   fetchAdminBookings,
   refundBooking,
-} from "../api/admin";
+} from "../../api/admin";
 
 const formatMoney = (value) => {
   const number = Number(value || 0);
@@ -52,6 +52,7 @@ export default function AdminBookingsScreen() {
   const [selectedBooking, setSelectedBooking] = useState(null);
 
   const [bookingId, setBookingId] = useState("");
+  const [appliedBookingId, setAppliedBookingId] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -60,9 +61,9 @@ export default function AdminBookingsScreen() {
 
   const buildFilters = () => {
     const filters = {};
-
-    if (bookingId.trim()) filters.booking_id = bookingId.trim();
-
+    if (appliedBookingId.trim()) {
+      filters.booking_id = appliedBookingId.trim();
+    }
     return filters;
   };
 
@@ -89,7 +90,7 @@ export default function AdminBookingsScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [token, bookingId]);
+  }, [token, appliedBookingId]);
 
   useEffect(() => {
     loadBookings();
@@ -167,7 +168,7 @@ export default function AdminBookingsScreen() {
 
           <Pressable
             style={styles.filterButton}
-            onPress={() => loadBookings(true)}
+            onPress={() => setAppliedBookingId(bookingId.trim())}
           >
             <Ionicons name="filter-outline" size={18} color="#FFFFFF" />
             <Text style={styles.filterButtonText}>Apply Filters</Text>

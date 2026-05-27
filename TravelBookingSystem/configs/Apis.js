@@ -23,6 +23,7 @@ export const endpoints = {
   providerStats: "/api/provider/stats/",
   bookingRefund: (bookingId) => `/api/bookings/${bookingId}/refund/`,
   confirmStaticQrPayment: (paymentId) => `/api/payments/${paymentId}/confirm_static_qr_payment/`,
+  adminDashboard: "/api/payments/admin-dashboard/",
 };
 
 export const authApis = (token) =>

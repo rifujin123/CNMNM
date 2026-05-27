@@ -36,8 +36,8 @@ const HomeScreen = () => {
   }, [loadData]);
 
   const onPressItem = (item) => {
-    const detailScreen = item?.type === "hotel" ? "HotelDetail" : "ItemDetail";
-    navigation.navigate(detailScreen, { itemId: item?.id, serviceType: item?.type });
+    const serviceType = item?.type || item?.service_type || "tour";
+    navigation.navigate("ItemDetail", { itemId: item?.id, serviceType });
   };
 
   const onRequireLogin = () => {

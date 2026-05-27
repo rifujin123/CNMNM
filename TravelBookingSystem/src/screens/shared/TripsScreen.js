@@ -1,21 +1,21 @@
 import React, { useMemo, useState } from "react";
 import {ActivityIndicator,FlatList,Pressable,StatusBar,StyleSheet,Text,View,} from "react-native";
-import AppHeader from "../components/AppHeader";
+import AppHeader from "../../components/AppHeader";
 import { scale } from "react-native-size-matters";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import TripSumaryCard from "../components/TripSumaryCard";
-import { useAuth } from "../../context/AuthContext";
-import { useBookings } from "../hooks/useBookings";
-import GuestHero from "../components/GuestHero";
-import TripChips from "../components/TripChips";
-import CategoryFilterChips from "../components/CategoryFilterChips";
+import TripSumaryCard from "../../components/TripSumaryCard";
+import { useAuth } from "../../../context/AuthContext";
+import { useBookings } from "../../hooks/useBookings";
+import GuestHero from "../../components/GuestHero";
+import TripChips from "../../components/TripChips";
+import CategoryFilterChips from "../../components/CategoryFilterChips";
 
 
 const statusTabs = ["upcoming", "completed", "cancelled"];
 const statusGroups = {
-  upcoming: ["pending", "confirmed"],
-  completed: ["completed"],
+  upcoming: ["pending"],
+  completed: ["completed", "confirmed"],
   cancelled: ["cancelled", "expired", "payment_failed", "refunded"],
 };
 
@@ -27,8 +27,8 @@ const getServiceType = (booking) =>
 const getTripGroupStatus = (bookingStatus) => {
   const status = normalize(bookingStatus);
 
-  if (["pending", "confirmed"].includes(status)) return "upcoming";
-  if (status === "completed") return "completed";
+  if (status === "pending") return "upcoming";
+  if (["confirmed", "completed"].includes(status)) return "completed";
 
   return "cancelled";
 };
@@ -83,7 +83,7 @@ const TripsScreen = () => {
     isError,
     refetch,
     isRefetching,
-  } = useBookings();
+  } = useBookings({}, { refetchIntervalMs: 15000});
 
   const filteredBookings = useMemo(() => {
     const activeStatus = statusTabs[activeStatusIndex] || "upcoming";

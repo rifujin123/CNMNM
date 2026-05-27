@@ -10,7 +10,6 @@ const normalizeListResponse = (data) => {
       raw: data,
     };
   }
-
   return {
     items: data?.results ?? [],
     count: data?.count ?? data?.results?.length ?? 0,
@@ -53,7 +52,6 @@ const fetchServicePages = async ({ token, endpoint, params, type }) => {
     nextUrl = data.next;
     nextParams = undefined;
   }
-
   return {
     items,
     count,
@@ -64,8 +62,6 @@ const fetchServicePages = async ({ token, endpoint, params, type }) => {
 };
 
 
-
-// ========================== Lấy Dữ Liệu Cho Admin ==========================
 export const fetchAdminBookings = async ({ token, filters = {} }) => {
   requireToken(token);
   const res = await authApis(token).get(endpoints.bookings, {
@@ -125,7 +121,6 @@ export const confirmStaticQrPayment = async ({
 
   return res?.data ?? null;
 };
-// ==========================================================================
 
 
 export const refundBooking = async ({ token, bookingId }) => {
@@ -198,13 +193,34 @@ export const updateAdminServiceActive = async ({
   return res?.data ?? null;
 };
 
-
 export const fetchAdminCategories = async ({ token, filters = {} }) => {
   requireToken(token);
   const res = await authApis(token).get(endpoints.categories, {
     params: filters,
   });
   return normalizeListResponse(res?.data);
+};
+
+export const fetchAdminDashboard = async ({ token }) => {
+  requireToken(token);
+
+  const res = await authApis(token).get(endpoints.adminDashboard);
+  return res?.data ?? {
+    summary: {
+      paid_revenue: "0.00",
+      success_payment_count: 0,
+      pending_payment_count: 0,
+      total_bookings: 0,
+      pending_provider_count: 0,
+      total_services: 0,
+      active_service_count: 0,
+      inactive_service_count: 0,
+    },
+    booking_status_counts: {},
+    payment_status_counts: {},
+    revenue_by_service_type: [],
+    recent_pending_payments: [],
+  };
 };
 
 export const createCategory = async ({ token, payload }) => {

@@ -8,8 +8,6 @@ from django.conf import settings
 from datetime import timedelta
 
 class BookingService:
-
-    # ============================ Xác định service ============================
     @classmethod
     def get_service_type(cls, service):
         if hasattr(service, 'traveltour'):
@@ -20,11 +18,9 @@ class BookingService:
 
         if hasattr(service, 'transport'):
             return 'transport', service.transport
-
+        
         return 'base', service
 
-
-    # ============================ Validation ============================
     @classmethod
     def validate_booking_options(cls, data):
         service = data.get('service')
@@ -103,7 +99,6 @@ class BookingService:
         return service_type, concrete_service
 
 
-    # ============================ Tính tổng tiền ============================
     @classmethod
     def calculate_total_price(cls, data):
         service = data.get('service')
@@ -126,7 +121,6 @@ class BookingService:
         return service.base_price * quantity
 
 
-    # ============================ Tạo Booking ============================
     @classmethod
     def create_booking(cls, user, data):
         with transaction.atomic():
@@ -161,7 +155,6 @@ class BookingService:
             return booking
         
 
-    # ============================ Quản lý tồn kho ============================
     @classmethod
     def restore_inventory(cls, booking):
         service_type, concrete_service = cls.get_service_type(booking.service)
@@ -233,10 +226,7 @@ class BookingService:
             booking=booking
         )
     
-    # ==========================================================================
 
-
-    # ========================= Quản lý Booking Status =========================
     @classmethod
     def confirm_booking(cls, booking):
         with transaction.atomic():
@@ -377,3 +367,5 @@ class BookingService:
             booking.booking_status = Booking.BookingStatus.EXPIRED
             booking.save(update_fields=['booking_status', 'updated_date'])
             return booking
+        
+    

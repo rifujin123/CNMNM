@@ -26,8 +26,8 @@ import { usePayments } from "../../hooks/usePayments";
 const tabs = ["upcoming", "completed", "cancelled"];
 
 const statusGroups = {
-  upcoming: ["pending", "confirmed"],
-  completed: ["completed"],
+  upcoming: ["pending"],
+  completed: ["completed", "confirmed"],
   cancelled: ["cancelled", "expired", "payment_failed", "refunded"],
 };
 
@@ -319,9 +319,13 @@ const TripDetailScreen = () => {
     }
 
     const isPendingBooking = normalize(selectedBooking.booking_status) === "pending";
+    const isRefundedBooking = normalize(selectedBooking.booking_status) === "refunded" || normalize(selectedBooking.payment_status) === "refunded";
+
     const canCancel = isPendingBooking;
-    const canPay =
+    const canOpenPayment = Boolean(currentPayment) && !isRefundedBooking;
+    const canCreatePayment =
       isPendingBooking && normalize(selectedBooking.payment_status) === "unpaid";
+
     const payButtonText = currentPayment ? "View Payment" : "Pay Now";
 
     return (
@@ -353,7 +357,7 @@ const TripDetailScreen = () => {
             value={formatDateTime(selectedBooking.created_date)}
           />
 
-          {canPay ? (
+          {canOpenPayment || canCreatePayment ? (
             <Pressable
               style={[
                 styles.primaryButton,

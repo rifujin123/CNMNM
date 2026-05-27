@@ -13,12 +13,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import AppHeader from "../components/AppHeader";
-import { useAuth } from "../../context/AuthContext";
+import AppHeader from "../../components/AppHeader";
+import { useAuth } from "../../../context/AuthContext";
 import {
   fetchAdminPayments,
   confirmStaticQrPayment,
-} from "../api/admin";
+} from "../../api/admin";
 
 const formatMoney = (value, currency = "VND") => {
   const number = Number(value || 0);
@@ -45,6 +45,7 @@ export default function AdminPaymentsScreen() {
 
   const [payments, setPayments] = useState([]);
   const [bookingFilter, setBookingFilter] = useState("");
+  const [appliedBookingFilter, setAppliedBookingFilter] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -54,7 +55,7 @@ export default function AdminPaymentsScreen() {
   const buildFilters = () => {
     const filters = {};
 
-    if (bookingFilter.trim()) filters.booking = bookingFilter.trim();
+    if (appliedBookingFilter.trim()) filters.booking = appliedBookingFilter.trim();
 
     return filters;
   };
@@ -82,7 +83,7 @@ export default function AdminPaymentsScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [token, bookingFilter]);
+  }, [token, appliedBookingFilter]);
 
   useEffect(() => {
     loadPayments();
@@ -189,7 +190,7 @@ export default function AdminPaymentsScreen() {
             keyboardType="numeric"
           />
 
-          <Pressable style={styles.filterButton} onPress={() => loadPayments(true)}>
+          <Pressable style={styles.filterButton} onPress={() => setAppliedBookingFilter(bookingFilter.trim())}>
             <Ionicons name="filter-outline" size={18} color="#FFFFFF" />
             <Text style={styles.filterButtonText}>Apply Filters</Text>
           </Pressable>

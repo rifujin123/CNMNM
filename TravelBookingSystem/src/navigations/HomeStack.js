@@ -35,7 +35,6 @@ export default function HomeStack() {
         })}
       />
       <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
-      <Stack.Screen name="HotelDetail" component={HotelDetailScreen} />
       <Stack.Screen name="BookingCheckout" component={BookingCheckoutScreen} />
       <Stack.Screen name="BookingPayment" component={BookingPaymentScreen} />
     </Stack.Navigator>

@@ -45,11 +45,10 @@ const ExploreScreen = () => {
   const { refreshControl } = usePullRefresh(loadData);
 
   const onPressItem = (item) => {
-    const detailScreen = item?.type === "hotel" ? "HotelDetail" : "ItemDetail";
-
-    navigation.navigate(detailScreen, {
+    const serviceType = item?.type || item?.service_type || "tour";
+    navigation.navigate("ItemDetail", {
       itemId: item?.id,
-      serviceType: item?.type,
+      serviceType,
     });
   };
 

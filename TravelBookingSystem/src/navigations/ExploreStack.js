@@ -13,7 +13,6 @@ export default function ExploreStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ExploreMain" component={ExploreScreen} />
       <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
-      <Stack.Screen name="HotelDetail" component={HotelDetailScreen} />
       <Stack.Screen
         name="CategoryList"
         component={CategoryListScreen}

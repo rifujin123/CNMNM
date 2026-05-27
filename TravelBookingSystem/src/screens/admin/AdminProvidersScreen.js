@@ -13,12 +13,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import AppHeader from "../components/AppHeader";
-import { useAuth } from "../../context/AuthContext";
+import AppHeader from "../../components/AppHeader";
+import { useAuth } from "../../../context/AuthContext";
 import {
   fetchPendingProviders,
   verifyProvider,
-} from "../api/admin";
+} from "../../api/admin";
 
 export default function AdminProvidersScreen() {
   const { token } = useAuth();

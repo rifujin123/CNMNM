@@ -19,7 +19,7 @@ import Apis, { authApis, endpoints } from "../../../configs/Apis";
 import { useAuth } from "../../../context/AuthContext";
 import OAuthConfig from "../../config/OAuthConfig";
 import { pickSingleImage } from "../../utils/pickImage";
-import { getUserRole } from "../utils/authRole";
+import { getUserRole } from "../../utils/authRole";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
