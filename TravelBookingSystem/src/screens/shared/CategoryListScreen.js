@@ -32,7 +32,6 @@ export default function CategoryListScreen({ route, navigation }) {
           fetchHotels(params),
           fetchTransports(params),
         ]);
-
         if (active) {
           setTours(tourData);
           setHotels(hotelData);

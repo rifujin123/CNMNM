@@ -155,6 +155,12 @@ class Comment(models.Model):
     user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='comments')
     travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, related_name='comments')
     content = models.TextField()
+    rating = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'travel_tour'], name='uniq_comment_user_travel_tour'),
+        ]
 
 class Wishlist(models.Model):
     user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='wishlists')

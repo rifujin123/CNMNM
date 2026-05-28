@@ -1,6 +1,24 @@
 import { StyleSheet } from "react-native";
 import { s, vs } from "react-native-size-matters";
 
+export const tokens = {
+  colors: {
+    primary: "#0D9488",
+    primarySoft: "#ECFDF5",
+    warning: "#F59E0B",
+    text: "#0F172A",
+    textMuted: "#64748B",
+    textSecondary: "#475569",
+    iconMuted: "#94A3B8",
+    border: "#E2E8F0",
+    background: "#F8FAFC",
+    white: "#FFFFFF",
+    overlayDark: "rgba(0,0,0,0.45)",
+  },
+  radius: { md: 12, lg: 14, round: 21 },
+  fontWeights: { semibold: "600", bold: "700", extraBold: "800", black: "900" },
+};
+
 export const commonStyles = StyleSheet.create({
   tabScreen: {
     flex: 1,

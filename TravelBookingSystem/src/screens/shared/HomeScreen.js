@@ -7,7 +7,7 @@ import CategoryChips from "../../components/CategoryChips";
 import ItemSection from "../../components/ItemSection";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../../context/AuthContext";
-import usePullRefresh from "../../../hooks/usePullRefresh";
+import usePullRefresh from "../../hooks/usePullRefresh";
 import useWishlist from "../../hooks/useWishlist";
 import { fetchCategories, fetchPlaces, fetchHotels, fetchTransports } from "../../api/services";
 import { commonStyles as styles } from "../../styles/commonStyles";

@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import SearchBar from "../../components/SearchBar";
 import ItemListCard from "../../components/ItemListCard";
 import { useNavigation } from "@react-navigation/native";
-import usePullRefresh from "../../../hooks/usePullRefresh";
+import usePullRefresh from "../../hooks/usePullRefresh";
 import useWishlist from "../../hooks/useWishlist";
 import { useAuth } from "../../../context/AuthContext";
 import { fetchPlaces, fetchHotels, fetchTransports } from "../../api/services";

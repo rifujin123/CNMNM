@@ -1,12 +1,7 @@
 import Apis, { authApis, endpoints } from "../../configs/Apis";
+import { formatBasePrice, SERVICE_TYPES } from "../utils/format";
 
 const UNVERIFIED_PROVIDER_ERROR = "Provider account is not verified";
-
-const SERVICE_TYPES = {
-  tour: "tour",
-  hotel: "hotel",
-  transport: "transport",
-};
 
 const SERVICE_ENDPOINTS = {
   [SERVICE_TYPES.tour]: endpoints.tours,
@@ -18,10 +13,6 @@ const SERVICE_DETAIL_ENDPOINTS = {
   [SERVICE_TYPES.tour]: endpoints.tours,
   [SERVICE_TYPES.hotel]: endpoints.hotels,
   [SERVICE_TYPES.transport]: endpoints.transports,
-};
-
-const formatBasePrice = (item) => {
-  return Number(item.base_price).toLocaleString("vi-VN");
 };
 
 const mapServiceListItem = (item, type) => {
@@ -46,6 +37,21 @@ const mapServiceListItem = (item, type) => {
   };
 };
 
+export const fetchTourComments = async ({ tourId, token }) => {
+  if (!tourId) return [];
+  const client = token ? authApis(token) : Apis;
+  const res = await client.get(endpoints.tourComments(tourId));
+  return res?.data ?? [];
+};
+
+export const addTourComment = async ({ tourId, token, content, rating }) => {
+  if (!tourId) throw new Error("Missing tourId");
+  if (!token) throw new Error("Missing token");
+  const res = await authApis(token).post(endpoints.tourComments(tourId), { content, rating });
+  return res?.data ?? null;
+};
+
+
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
   return res?.data?.results ?? [];
@@ -56,19 +62,31 @@ export const fetchCities = async () => {
   return res?.data?.results ?? [];
 };
 
-export const fetchPlaces = async (params = {}) => {
+export const fetchPlaces = async (params = {}, options = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
   if (params.provider) queryParams.append('provider', params.provider);
+  if (params.page) queryParams.append('page', params.page);
 
   const url = queryParams.toString()
     ? `${endpoints.tours}?${queryParams}`
     : endpoints.tours;
 
   const res = await Apis.get(url);
-  const items = res?.data?.results ?? [];
-  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.tour));
+  const data = res?.data ?? {};
+  const items = data?.results ?? [];
+  const mappedItems = items.map((item) => mapServiceListItem(item, SERVICE_TYPES.tour));
+
+  if (options.includePagination) {
+    return {
+      items: mappedItems,
+      next: data.next,
+      count: data.count,
+    };
+  }
+
+  return mappedItems;
 };
 
 export const fetchPlaceDetail = async (id, serviceType = SERVICE_TYPES.tour) => {
@@ -99,7 +117,7 @@ export const removeWishlist = async ({ token, serviceId, tourId }) => {
 export const fetchWishlist = async ({ token }) => {
   if (!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = normalizeListItems(res?.data);
+  const items = res?.data?.results ?? [];
   return items
     .map((item) => item.service.id)
     .filter(Boolean)
@@ -109,7 +127,7 @@ export const fetchWishlist = async ({ token }) => {
 export const fetchWishListItems = async ({ token }) => {
   if(!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = normalizeListItems(res?.data);
+  const items = res?.data?.results ?? [];
   return items
     .map((item) => item.service)
     .filter(Boolean)
@@ -207,34 +225,58 @@ export const fetchDashboardStats = async ({ token, filters = {} }) => {
 };
 
 
-export const fetchHotels = async (params = {}) => {
+export const fetchHotels = async (params = {}, options = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
   if (params.provider) queryParams.append('provider', params.provider);
+  if (params.page) queryParams.append('page', params.page);
 
   const url = queryParams.toString()
     ? `${endpoints.hotels}?${queryParams}`
     : endpoints.hotels;
 
   const res = await Apis.get(url);
-  const items = res?.data?.results ?? [];
-  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.hotel));
+  const data = res?.data ?? {};
+  const items = data?.results ?? [];
+  const mappedItems = items.map((item) => mapServiceListItem(item, SERVICE_TYPES.hotel));
+
+  if (options.includePagination) {
+    return {
+      items: mappedItems,
+      next: data.next,
+      count: data.count,
+    };
+  }
+
+  return mappedItems;
 };
 
-export const fetchTransports = async (params = {}) => {
+export const fetchTransports = async (params = {}, options = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
   if (params.provider) queryParams.append('provider', params.provider);
+  if (params.page) queryParams.append('page', params.page);
 
   const url = queryParams.toString()
     ? `${endpoints.transports}?${queryParams}`
     : endpoints.transports;
 
   const res = await Apis.get(url);
-  const items = res?.data?.results ?? [];
-  return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
+  const data = res?.data ?? {};
+  const items = data?.results ?? [];
+  const mappedItems = items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
+
+  if (options.includePagination) {
+    return {
+      items: mappedItems,
+      next: data.next,
+      count: data.count,
+    };
+  }
+
+  return mappedItems;
 };
 
 const appendIfPresent = (formData, key, value) => {

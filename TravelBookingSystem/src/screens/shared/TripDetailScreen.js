@@ -22,6 +22,7 @@ import {
   useCreatePayment,
 } from "../../hooks/useBookings";
 import { usePayments } from "../../hooks/usePayments";
+import { formatDateTime, formatMoney, getCityName } from "../../utils/format";
 
 const tabs = ["upcoming", "completed", "cancelled"];
 
@@ -51,33 +52,6 @@ const formatDate = (value) => {
     month: "2-digit",
     year: "numeric",
   });
-};
-
-const formatDateTime = (value) => {
-  if (!value) return "N/A";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const formatMoney = (value) => {
-  const number = Number(value || 0);
-  if (Number.isNaN(number)) return String(value || "0");
-  return `${number.toLocaleString("vi-VN")} VND`;
-};
-
-const getCityName = (service) => {
-  if (!service?.city) return "Unknown location";
-  if (typeof service.city === "string") return service.city;
-  return service.city.name || "Unknown location";
 };
 
 const getServiceType = (booking) =>

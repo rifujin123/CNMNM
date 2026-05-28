@@ -3,6 +3,14 @@ import {ActivityIndicator,Alert,Pressable,SafeAreaView,ScrollView,StyleSheet,Tex
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useCreateBooking, useCreatePayment } from "../../hooks/useBookings";
+import {
+  formatDateTime,
+  formatMoney,
+  getCityName,
+  getRouteLabel,
+  SERVICE_LABELS,
+  toNumber,
+} from "../../utils/format";
 
 const COLORS = {
   primary: "#0D9488",
@@ -17,59 +25,6 @@ const COLORS = {
 const PAYMENT_METHODS = [
   { label: "Static QR", value: "STATIC_QR", icon: "qr-code-outline" },
 ];
-
-const SERVICE_LABELS = {
-  tour: "Tour",
-  hotel: "Hotel",
-  transport: "Transport",
-};
-
-const normalizeServiceType = (value) => {
-  const type = String(value || "").toLowerCase();
-  return SERVICE_LABELS[type] ? type : "tour";
-};
-
-const toNumber = (value) => {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    const normalized = value.replace(/,/g, "");
-    const parsed = Number(normalized);
-    return Number.isNaN(parsed) ? 0 : parsed;
-  }
-  return 0;
-};
-
-const formatMoney = (value) => {
-  const number = toNumber(value);
-  return `${number.toLocaleString("vi-VN")} VND`;
-};
-
-const formatDateTime = (value) => {
-  if (!value) return "N/A";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const getCityName = (service) => {
-  if (!service?.city) return "Unknown location";
-  if (typeof service.city === "string") return service.city;
-  return service.city.name || "Unknown location";
-};
-
-const getRouteLabel = (route) => {
-  const fromCity = route?.from_city?.name || "Unknown";
-  const toCity = route?.to_city?.name || "Unknown";
-  return `${fromCity} to ${toCity}`;
-};
 
 const getErrorText = (value) => {
   if (!value) return null;
@@ -100,7 +55,7 @@ export default function BookingCheckoutScreen() {
 
   const {
     service,
-    serviceType: routeServiceType,
+    serviceType,
     selectedPackage,
     selectedRoom,
     selectedRoute,
@@ -108,7 +63,6 @@ export default function BookingCheckoutScreen() {
     quantity: initialQuantity = 1,
   } = route.params ?? {};
 
-  const serviceType = normalizeServiceType(routeServiceType || service?.type);
   const serviceLabel = SERVICE_LABELS[serviceType];
   const [quantity, setQuantity] = useState(Number(initialQuantity) || 1);
 

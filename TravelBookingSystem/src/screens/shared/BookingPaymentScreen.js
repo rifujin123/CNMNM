@@ -13,6 +13,7 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useCancelPayment, usePayment } from "../../hooks/usePayments";
+import { formatDateTime, formatMoney } from "../../utils/format";
 
 const COLORS = {
   primary: "#0D9488",
@@ -27,26 +28,6 @@ const COLORS = {
 };
 
 const FAILED_STATUSES = ["FAILED", "CANCELLED", "EXPIRED"];
-
-const formatMoney = (value, currency = "VND") => {
-  const number = Number(value || 0);
-  return `${number.toLocaleString("vi-VN")} ${currency}`;
-};
-
-const formatDateTime = (value) => {
-  if (!value) return "N/A";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 const getMethodLabel = (method) => {
   if (method === "STATIC_QR") return "Static QR";
