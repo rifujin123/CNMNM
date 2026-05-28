@@ -187,10 +187,11 @@ class TravelTourWriteSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username')
+    username = serializers.CharField(source='user.username', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
     class Meta:
         model = Comment
-        fields = ['id','username','content']
+        fields = ['id','user_id','username','content','rating']
 
 class WishlistSerializer(serializers.ModelSerializer):
     service_id = serializers.IntegerField(write_only=True, required=False)

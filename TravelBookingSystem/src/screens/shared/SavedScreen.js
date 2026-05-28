@@ -5,7 +5,7 @@ import CategoryFilterChips from "../../components/CategoryFilterChips";
 import ItemListCard from "../../components/ItemListCard";
 import AppHeader from "../../components/AppHeader";
 import { scale } from "react-native-size-matters";
-import usePullRefresh from "../../../hooks/usePullRefresh";
+import usePullRefresh from "../../hooks/usePullRefresh";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../../context/AuthContext";
 import { useWishlist } from "../../../context/WishlistContext";

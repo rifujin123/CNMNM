@@ -2,7 +2,7 @@ import { StyleSheet, View, ScrollView, TouchableOpacity, Alert, ActivityIndicato
 import React, { useState, useEffect } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AppHeader from '../../components/AppHeader'
-import usePullRefresh from '../../../hooks/usePullRefresh'
+import usePullRefresh from '../../hooks/usePullRefresh'
 import SearchBar from '../../components/SearchBar'
 import ServiceCard from '../../components/ServiceCard'
 import AddServiceModal from '../../components/AddServiceModal'

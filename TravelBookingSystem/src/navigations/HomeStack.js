@@ -3,6 +3,7 @@ import HomeScreen from "../screens/shared/HomeScreen";
 import CategoryListScreen from "../screens/shared/CategoryListScreen";
 import ItemDetailScreen from "../screens/shared/ItemDetailScreen";
 import SeeAllScreen from "../screens/shared/SeeAllScreen";
+import RatingScreen from "../screens/shared/RatingScreen";
 import BookingCheckoutScreen from "../screens/shared/BookingCheckoutScreen";
 import BookingPaymentScreen from "../screens/shared/BookingPaymentScreen";
 
@@ -35,6 +36,11 @@ export default function HomeStack() {
         })}
       />
       <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+      <Stack.Screen
+        name="RatingScreen"
+        component={RatingScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="BookingCheckout" component={BookingCheckoutScreen} />
       <Stack.Screen name="BookingPayment" component={BookingPaymentScreen} />
     </Stack.Navigator>
