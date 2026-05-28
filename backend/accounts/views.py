@@ -115,8 +115,8 @@ class ProviderAdminViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'], url_path='pending')
     def pending(self, request):
-        queryset = User.objects.filter(is_provider=True, is_approved=False).order_by('-date_joined')
-        return Response(UserReadSerializer(queryset, many=True).data, status=status.HTTP_200_OK)
+        queryset = User.objects.filter(is_provider=True, is_approved=False).exclude(provider_profile__is_rejected=True).select_related("provider_profile").order_by('-date_joined')
+        return Response(PendingProviderReadSerializer(queryset, many=True).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['patch'], url_path='verification')
     def verification(self, request, pk=None):

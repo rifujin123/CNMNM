@@ -1,15 +1,39 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {ActivityIndicator,RefreshControl,ScrollView,StyleSheet,Text,View,} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import AppHeader from "../../components/AppHeader";
 import { useAuth } from "../../../context/AuthContext";
 import { fetchAdminDashboard } from "../../api/admin";
+import StatCard from "../../components/AdminDashboard/StatCard";
+import SectionTitle from "../../components/AdminDashboard/SectionTitle";
+import StatusRow from "../../components/AdminDashboard/StatusRow";
 
-
-const formatMoney = (value) => {
+const formatMoney = (value, currency = "VND") => {
   const number = Number(value || 0);
-  return `${number.toLocaleString("vi-VN")} VND`;
+  return `${number.toLocaleString("vi-VN")} ${currency}`;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatStatusLabel = (value) => {
+  return String(value || "unknown").replace(/_/g, " ");
+};
+
+const getCountEntries = (counts = {}) => {
+  return Object.entries(counts);
 };
 
 export default function AdminDashboardScreen() {
@@ -63,6 +87,9 @@ export default function AdminDashboardScreen() {
   }, [loadDashboard]);
 
   const summary = stats.summary || {};
+  const bookingStatusEntries = getCountEntries(stats.booking_status_counts);
+  const paymentStatusEntries = getCountEntries(stats.payment_status_counts);
+  const recentPendingPayments = stats.recent_pending_payments || [];
 
   if (isLoading) {
     return (
@@ -137,36 +164,53 @@ export default function AdminDashboardScreen() {
           />
         ))}
 
+        <SectionTitle title="Booking Status" />
+        {bookingStatusEntries.length === 0 ? (
+          <Text style={styles.muted}>No booking status data.</Text>
+        ) : (
+          bookingStatusEntries.map(([status, count]) => (
+            <StatusRow
+              key={status}
+              label={formatStatusLabel(status)}
+              value={count}
+            />
+          ))
+        )}
+
+        <SectionTitle title="Payment Status" />
+        {paymentStatusEntries.length === 0 ? (
+          <Text style={styles.muted}>No payment status data.</Text>
+        ) : (
+          paymentStatusEntries.map(([status, count]) => (
+            <StatusRow
+              key={status}
+              label={formatStatusLabel(status)}
+              value={count}
+            />
+          ))
+        )}
+
+        <SectionTitle title="Recent Pending Payments" />
+        {recentPendingPayments.length === 0 ? (
+          <Text style={styles.muted}>No pending payments.</Text>
+        ) : (
+          recentPendingPayments.map((payment) => (
+            <View key={payment.id} style={styles.listCard}>
+              <Text style={styles.listTitle}>Payment #{payment.id}</Text>
+              <Text style={styles.listMeta}>Booking #{payment.booking}</Text>
+              <Text style={styles.listMeta}>
+                {payment.payment_status} - {formatDateTime(payment.created_at)}
+              </Text>
+              <Text style={styles.listValue}>
+                {formatMoney(payment.amount, payment.currency)}
+              </Text>
+            </View>
+          ))
+        )}
+
 
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function StatCard({ icon, title, value }) {
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardIconBox}>
-        <Ionicons name={icon} size={34} color="#2563EB" />
-      </View>
-      <View style={styles.cardTextBox}>
-        <Text style={styles.cardValue}>{value}</Text>
-        <Text style={styles.cardTitle}>{title}</Text>
-      </View>
-    </View>
-  );
-}
-
-function SectionTitle({ title }) {
-  return <Text style={styles.sectionTitle}>{title}</Text>;
-}
-
-function StatusRow({ label, value }) {
-  return (
-    <View style={styles.statusRow}>
-      <Text style={styles.statusLabel}>{label}</Text>
-      <Text style={styles.statusValue}>{value}</Text>
-    </View>
   );
 }
 
@@ -177,63 +221,28 @@ const styles = StyleSheet.create({
   muted: {color: "#64748B",},
   error: {marginTop: 12,color: "#DC2626",fontWeight: "700",},
   grid: {marginTop: 16,flexDirection: "row",flexWrap: "wrap",gap: 12,},
-  card: {width: "100%",minHeight: 96,backgroundColor: "#FFFFFF",borderRadius: 12,padding: 14,borderWidth: 1,borderColor: "#E2E8F0",flexDirection: "row",alignItems: "center",gap: 14,},
-  cardIconBox: {width: 58,height: 58,borderRadius: 14,backgroundColor: "#DBEAFE",alignItems: "center",justifyContent: "center",},
-  cardTextBox: {flex: 1,},
-  cardValue: {fontSize: 21,fontWeight: "900",color: "#0F172A",},
-  cardTitle: {marginTop: 4,fontSize: 13,color: "#64748B",fontWeight: "700",},
-  sectionTitle: {
-  marginTop: 22,
-  marginBottom: 10,
-  fontSize: 16,
-  fontWeight: "900",
-  color: "#0F172A",
-},
-statusRow: {
-  minHeight: 46,
-  backgroundColor: "#FFFFFF",
-  borderRadius: 10,
-  paddingHorizontal: 14,
-  marginBottom: 8,
-  borderWidth: 1,
-  borderColor: "#E2E8F0",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-},
-statusLabel: {
-  textTransform: "capitalize",
-  fontSize: 14,
-  fontWeight: "700",
-  color: "#334155",
-},
-statusValue: {
-  fontSize: 14,
-  fontWeight: "900",
-  color: "#2563EB",
-},
-listCard: {
-  marginBottom: 10,
-  padding: 14,
-  borderRadius: 10,
-  backgroundColor: "#FFFFFF",
-  borderWidth: 1,
-  borderColor: "#E2E8F0",
-},
-listTitle: {
-  fontSize: 15,
-  fontWeight: "900",
-  color: "#0F172A",
-},
-listMeta: {
-  marginTop: 4,
-  fontSize: 13,
-  color: "#64748B",
-},
-listValue: {
-  marginTop: 6,
-  fontSize: 14,
-  fontWeight: "800",
-  color: "#0F172A",
-},
+  listCard: {
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  listTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#0F172A",
+  },
+  listMeta: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#64748B",
+  },
+  listValue: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
 });
