@@ -23,45 +23,6 @@ const requireToken = (token) => {
   if (!token) throw new Error("Missing admin token");
 };
 
-const SERVICE_ENDPOINTS = {
-  tour: endpoints.tours,
-  hotel: endpoints.hotels,
-  transport: endpoints.transports,
-};
-
-const normalizeServiceItem = (item, type) => ({
-  ...item,
-  service_type: type,
-});
-
-const fetchServicePages = async ({ token, endpoint, params, type }) => {
-  let nextUrl = endpoint;
-  let nextParams = params;
-  let items = [];
-  let count = 0;
-
-  while (nextUrl) {
-    const res = await authApis(token).get(nextUrl, { params: nextParams });
-    const data = normalizeListResponse(res?.data);
-
-    items = [
-      ...items,
-      ...data.items.map((item) => normalizeServiceItem(item, type)),
-    ];
-    count = data.count || items.length;
-    nextUrl = data.next;
-    nextParams = undefined;
-  }
-  return {
-    items,
-    count,
-    next: null,
-    previous: null,
-    raw: items,
-  };
-};
-
-
 export const fetchAdminBookings = async ({ token, filters = {} }) => {
   requireToken(token);
   const res = await authApis(token).get(endpoints.bookings, {
@@ -128,68 +89,6 @@ export const refundBooking = async ({ token, bookingId }) => {
   if (!bookingId) throw new Error("Missing bookingId");
 
   const res = await authApis(token).post(endpoints.bookingRefund(bookingId));
-  return res?.data ?? null;
-};
-
-export const fetchAdminServices = async ({
-  token,
-  type = "all",
-  filters = {},
-}) => {
-  requireToken(token);
-
-  const params = {
-    admin: "true",
-    ordering: "newest",
-    ...filters,
-  };
-
-  if (type !== "all") {
-    const endpoint = SERVICE_ENDPOINTS[type];
-    if (!endpoint) throw new Error("Invalid service type");
-
-    return fetchServicePages({ token, endpoint, params, type });
-  }
-
-  const responses = await Promise.all(
-    Object.entries(SERVICE_ENDPOINTS).map(async ([serviceType, endpoint]) => {
-      const data = await fetchServicePages({
-        token,
-        endpoint,
-        params,
-        type: serviceType,
-      });
-
-      return data.items;
-    }),
-  );
-
-  const items = responses.flat();
-
-  return {
-    items,
-    count: items.length,
-    next: null,
-    previous: null,
-    raw: items,
-  };
-};
-
-export const updateAdminServiceActive = async ({
-  token,
-  type,
-  serviceId,
-  isActive,
-}) => {
-  requireToken(token);
-  if (!SERVICE_ENDPOINTS[type]) throw new Error("Invalid service type");
-  if (!serviceId) throw new Error("Missing serviceId");
-
-  const res = await authApis(token).patch(
-    `${SERVICE_ENDPOINTS[type]}${serviceId}/`,
-    { is_active: Boolean(isActive) },
-  );
-
   return res?.data ?? null;
 };
 
