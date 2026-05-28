@@ -42,6 +42,7 @@ export default function MyTabs() {
         name="TripTab"
         component={TripStack}
         options={{
+          popToTopOnBlur: true,
           tabBarIcon: () => (
             <Ionicons name="calendar-outline" size={24} color="black" />
           ),
@@ -51,6 +52,7 @@ export default function MyTabs() {
         name="Saved"
         component={SaveStack}
         options={{
+          popToTopOnBlur: true,
           tabBarIcon: () => (
             <Ionicons name="bookmark-outline" size={24} color="black" />
           ),
