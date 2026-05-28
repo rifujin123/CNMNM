@@ -11,7 +11,6 @@ class StaticQrPaymentService:
         static_qr_metadata = build_static_qr_metadata(payment)
 
         payment.payment_status = Payment.PaymentStatus.PROCESSING
-        payment.provider_transaction_id = f"STATICQR-{payment.booking_id}"
         payment.payment_url = static_qr_metadata["qr_url"]
         payment.metadata = {
             **(payment.metadata or {}),
@@ -20,7 +19,6 @@ class StaticQrPaymentService:
         payment.save(
             update_fields=[
                 "payment_status",
-                "provider_transaction_id",
                 "payment_url",
                 "metadata",
                 "updated_at",
@@ -73,8 +71,14 @@ class StaticQrPaymentService:
         payment.payment_status = Payment.PaymentStatus.SUCCESS
         payment.paid_at = timezone.now()
 
+        update_fields = ["payment_status", "paid_at", "metadata", "updated_at"]
+
         if provider_transaction_id:
             payment.provider_transaction_id = provider_transaction_id
+            update_fields.append("provider_transaction_id")
+        elif str(payment.provider_transaction_id or "").startswith("STATICQR-"):
+            payment.provider_transaction_id = None
+            update_fields.append("provider_transaction_id")
 
         payment.metadata = {
             **(payment.metadata or {}),
@@ -83,9 +87,6 @@ class StaticQrPaymentService:
             "paid_amount": str(payment.amount),
         }
 
-        update_fields = ["payment_status", "paid_at", "metadata", "updated_at"]
-        if provider_transaction_id:
-            update_fields.append("provider_transaction_id")
         payment.save(update_fields=update_fields)
 
         BookingService.confirm_booking(payment.booking)

@@ -5,7 +5,7 @@ from .models import User, ProviderProfile
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
-    # Flat fields — multipart/form-data easier to send with files than nested JSON
+
     provider_business_name = serializers.CharField(
         write_only=True, required=False, allow_blank=True
     )
@@ -100,6 +100,38 @@ class UserReadSerializer(serializers.ModelSerializer):
             'is_verified_provider',
         ]
 
+
+class ProviderProfileReadSerializer(serializers.ModelSerializer):
+    business_license_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProviderProfile
+        fields = [
+            "business_name",
+            "tax_code",
+            "business_license",
+            "business_license_url",
+            "is_verified",
+            "is_rejected",
+            "created_at",
+        ]
+
+    def get_business_license_url(self, obj):
+        request = self.context.get("request")
+        if not obj.business_license:
+            return None
+
+        url = obj.business_license.url
+        return request.build_absolute_uri(url) if request else url
+
+
+class PendingProviderReadSerializer(UserReadSerializer):
+    provider_profile = ProviderProfileReadSerializer(read_only=True)
+
+    class Meta(UserReadSerializer.Meta):
+        fields = UserReadSerializer.Meta.fields + [
+            "provider_profile",
+        ]
 
 class MeUpdateSerializer(serializers.ModelSerializer):
     class Meta:

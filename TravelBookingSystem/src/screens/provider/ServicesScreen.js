@@ -4,13 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import AppHeader from '../../components/AppHeader'
 import usePullRefresh from '../../../hooks/usePullRefresh'
 import SearchBar from '../../components/SearchBar'
-import StatsBar from '../../components/StatsBar'
-import CategoryFilterChips from '../../components/CategoryFilterChips'
 import ServiceCard from '../../components/ServiceCard'
 import AddServiceModal from '../../components/AddServiceModal'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../../../context/AuthContext'
 import { fetchPlaces, fetchHotels, fetchTransports, createService, updateService, deleteService } from '../../api/services'
+import { commonStyles } from '../../styles/commonStyles'
 
 
 const ServicesScreen = () => {
@@ -23,14 +22,22 @@ const ServicesScreen = () => {
   const [error, setError] = useState('')
 
   const loadServices = async () => {
-    if (!token) return
+    if (!token || !isVerifiedProvider) {
+      setServices([])
+      return
+    }
     setLoading(true)
     setError('')
     try {
+      const ownServiceParams = {
+        token,
+        mine: true,
+        ordering: 'newest',
+      }
       const [tours, hotels, transports] = await Promise.all([
-        fetchPlaces({ token }),
-        fetchHotels({ token }),
-        fetchTransports({ token }),
+        fetchPlaces(ownServiceParams),
+        fetchHotels(ownServiceParams),
+        fetchTransports(ownServiceParams),
       ])
       setServices([...tours, ...hotels, ...transports])
     } catch (err) {
@@ -43,7 +50,7 @@ const ServicesScreen = () => {
 
   useEffect(() => {
     loadServices()
-  }, [token])
+  }, [token, isVerifiedProvider])
 
   const { refreshControl } = usePullRefresh(loadServices)
 
@@ -86,7 +93,7 @@ const ServicesScreen = () => {
 
   if (loading && services.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={commonStyles.tabScreen}>
         <AppHeader title="Services" />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#0D9488" />
@@ -98,7 +105,7 @@ const ServicesScreen = () => {
 
   if (!isVerifiedProvider) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={commonStyles.tabScreen}>
         <AppHeader title="Services" />
         <View style={styles.centerContainer}>
           <Ionicons name="shield-checkmark-outline" size={64} color="#94A3B8" />
@@ -112,25 +119,31 @@ const ServicesScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} refreshControl={refreshControl}>
+    <SafeAreaView style={commonStyles.tabScreen}>
+      <ScrollView style={commonStyles.tabContent} refreshControl={refreshControl}>
         <AppHeader title="Services" />
         <SearchBar placeholder="Search services" />
-        <StatsBar />
-        <CategoryFilterChips />
         {error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
-        {services.map((service) => (
-          <ServiceCard
-            key={`${service.type}-${service.id}`}
-            item={service}
-            onEdit={handleEditService}
-            onDelete={handleDeleteService}
-          />
-        ))}
+        {services.length === 0 && !loading && !error ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="briefcase-outline" size={44} color="#94A3B8" />
+            <Text style={styles.emptyTitle}>No services yet</Text>
+            <Text style={styles.emptySubtitle}>Tap add to create your first tour, hotel, or transport service.</Text>
+          </View>
+        ) : (
+          services.map((service) => (
+            <ServiceCard
+              key={`${service.type}-${service.id}`}
+              item={service}
+              onEdit={handleEditService}
+              onDelete={handleDeleteService}
+            />
+          ))
+        )}
       </ScrollView>
 
       <View style={styles.fabContainer}>
@@ -159,18 +172,7 @@ const ServicesScreen = () => {
 export default ServicesScreen
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
+  
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -194,6 +196,12 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    gap: 10,
   },
   errorContainer: {
     backgroundColor: '#FEE2E2',

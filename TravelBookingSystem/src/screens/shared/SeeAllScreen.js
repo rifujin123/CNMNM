@@ -12,7 +12,11 @@ export default function SeeAllScreen({ route }) {
   const { isWishlisted, toggleWishlist } = useWishlist();
 
   const onPressItem = (item) => {
-    navigation.navigate("ItemDetail", { ItemId: item?.id, serviceType: item?.type });
+    const serviceType = item?.type || item?.service_type || "tour";
+    navigation.navigate("ItemDetail", {
+      itemId: item?.id,
+      serviceType,
+    });
   };
 
   const onRequireLogin = () => {

@@ -97,7 +97,6 @@ class RoomType(models.Model):
 class Transport(BaseService):
     brand_name = models.CharField(max_length=255)
     license_plate = models.CharField(max_length=100, blank = True, null = True)
-    vehicle_type = models.CharField(max_length=100)
 
     @property
     def total_seats(self):

@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
+const FALLBACK = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80";
+
 const { width } = Dimensions.get("window");
 
 const COLORS = {
@@ -30,6 +32,7 @@ const ServiceCard = ({
   onDelete,
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const rating = Number(item?.star_rating ?? item?.rating);
 
   const getServiceIcon = (type) => {
     switch (type?.toLowerCase()) {
@@ -67,7 +70,7 @@ const ServiceCard = ({
   return (
     <TouchableOpacity activeOpacity={0.9} style={styles.card}>
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item?.image_url }} style={styles.image} />
+        <Image source={{ uri: item?.image || FALLBACK }} style={styles.image} />
         <View style={styles.typeBadge}>
           <MaterialCommunityIcons
             name={getServiceIcon(item?.type)}
@@ -100,7 +103,7 @@ const ServiceCard = ({
           <View style={styles.stat}>
             <Ionicons name="star" size={14} color={COLORS.secondary} />
             <Text style={styles.statText}>
-              {Number(item?.rating).toFixed(1)}
+              {Number.isFinite(rating) ? rating.toFixed(1) : "N/A"}
             </Text>
           </View>
           <View style={styles.dot} />
@@ -156,6 +159,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 8,
+    backgroundColor: "rgba(15, 23, 42, 0.76)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,

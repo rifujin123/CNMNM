@@ -20,55 +20,47 @@ const SERVICE_DETAIL_ENDPOINTS = {
   [SERVICE_TYPES.transport]: endpoints.transports,
 };
 
-const normalizeServiceType = (type) => {
-  const normalized = String(type || "").toLowerCase();
-  return SERVICE_DETAIL_ENDPOINTS[normalized] ? normalized : SERVICE_TYPES.tour;
-};
-
 const formatBasePrice = (item) => {
-  if (item?.base_price_display) return item.base_price_display;
-
-  const value = item?.base_price;
-  const number = Number(value);
-
-  if (value === null || value === undefined || Number.isNaN(number)) {
-    return "N/A";
-  }
-
-  return number.toLocaleString("vi-VN");
+  return Number(item.base_price).toLocaleString("vi-VN");
 };
 
-const mapServiceListItem = (item, type) => ({
-  id: String(item.id),
-  name: item.name,
-  description: item.description,
-  star_rating: item.star_rating,
-  base_price: item.base_price,
-  base_price_display: formatBasePrice(item),
-  city: item.city,
-  category: item.category,
-  type,
-  empty_slot: item.empty_slot,
-  time_start: item.time_start,
-  is_active: item.is_active,
-  created_at: item.created_at,
-  updated_at: item.updated_at,
-});
+const mapServiceListItem = (item, type) => {
+  const image = item?.images?.[0]?.image;
+  return {
+    id: String(item.id),
+    name: item.name,
+    description: item.description,
+    star_rating: item.star_rating,
+    base_price: item.base_price,
+    base_price_display: formatBasePrice(item),
+    city: item.city,
+    category: item.category,
+    type,
+    tour_package: item.tour_package,
+    image,
+    empty_slot: item.empty_slot,
+    time_start: item.time_start,
+    is_active: item.is_active,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+  };
+};
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
-  return res?.data?.results ?? res?.data ?? [];
+  return res?.data?.results ?? [];
 };
 
 export const fetchCities = async () => {
   const res = await Apis.get(endpoints.cities);
-  return res?.data?.results ?? res?.data ?? [];
+  return res?.data?.results ?? [];
 };
 
 export const fetchPlaces = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
+  if (params.provider) queryParams.append('provider', params.provider);
 
   const url = queryParams.toString()
     ? `${endpoints.tours}?${queryParams}`
@@ -81,11 +73,11 @@ export const fetchPlaces = async (params = {}) => {
 
 export const fetchPlaceDetail = async (id, serviceType = SERVICE_TYPES.tour) => {
   if (!id) return null;
-  const type = normalizeServiceType(serviceType);
-  const endpoint = SERVICE_DETAIL_ENDPOINTS[type];
+  const endpoint = SERVICE_DETAIL_ENDPOINTS[serviceType];
+  if (!endpoint) throw new Error("Invalid service type");
   const res = await Apis.get(`${endpoint}${id}/`);
   const data = res?.data ?? null;
-  return data ? { ...data, type } : null;
+  return data ? { ...data, type: serviceType } : null;
 };
 
 export const addWishlist = async ({ token, serviceId, tourId }) => {
@@ -107,9 +99,9 @@ export const removeWishlist = async ({ token, serviceId, tourId }) => {
 export const fetchWishlist = async ({ token }) => {
   if (!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = res?.data?.results ?? [];
+  const items = normalizeListItems(res?.data);
   return items
-    .map((item) => item.service?.id ?? item.service_id ?? item.travel_tour?.id ?? item.tour_id ?? item.tour?.id ?? item.tour)
+    .map((item) => item.service.id)
     .filter(Boolean)
     .map(String);
 };
@@ -117,9 +109,9 @@ export const fetchWishlist = async ({ token }) => {
 export const fetchWishListItems = async ({ token }) => {
   if(!token) return [];
   const res = await authApis(token).get(endpoints.wishlist);
-  const items = res?.data?.results ?? [];
+  const items = normalizeListItems(res?.data);
   return items
-    .map((item) => item.service ?? item.travel_tour)
+    .map((item) => item.service)
     .filter(Boolean)
     .map((item) => ({
       ...item,
@@ -194,31 +186,6 @@ export const fetchPaymentDetail = async ({ token, paymentId }) => {
   return res?.data ?? null;
 };
 
-export const confirmStaticQrPayment = async ({
-  token,
-  paymentId,
-  result = "success",
-  providerTransactionId,
-}) => {
-  if (!token) throw new Error("Missing token");
-  if (!paymentId) throw new Error("Missing paymentId");
-
-  const payload = {
-    result,
-  };
-
-  if (providerTransactionId) {
-    payload.provider_transaction_id = providerTransactionId;
-  }
-
-  const res = await authApis(token).post(
-    `${endpoints.payments}${paymentId}/static-qr-confirmation/`,
-    payload,
-  );
-
-  return res?.data ?? null;
-};
-
 export const cancelPayment = async ({ token, paymentId }) => {
   if (!token) throw new Error("Missing token");
   if (!paymentId) throw new Error("Missing paymentId");
@@ -244,13 +211,14 @@ export const fetchHotels = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
+  if (params.provider) queryParams.append('provider', params.provider);
 
   const url = queryParams.toString()
     ? `${endpoints.hotels}?${queryParams}`
     : endpoints.hotels;
 
   const res = await Apis.get(url);
-  const items = res?.data?.results ?? res?.data ?? [];
+  const items = res?.data?.results ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.hotel));
 };
 
@@ -258,14 +226,53 @@ export const fetchTransports = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.category) queryParams.append('category', params.category);
   if (params.q) queryParams.append('q', params.q);
+  if (params.provider) queryParams.append('provider', params.provider);
 
   const url = queryParams.toString()
     ? `${endpoints.transports}?${queryParams}`
     : endpoints.transports;
 
   const res = await Apis.get(url);
-  const items = res?.data?.results ?? res?.data ?? [];
+  const items = res?.data?.results ?? [];
   return items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
+};
+
+const appendIfPresent = (formData, key, value) => {
+  if (value !== undefined && value !== null && value !== '') {
+    formData.append(key, value);
+  }
+};
+
+const appendImage = (formData, image) => {
+  if (!image) return;
+  formData.append('image', {
+    uri: image.uri,
+    name: image.fileName,
+    type: image.mimeType,
+  });
+};
+
+const buildServicePayload = (payload = {}) => {
+  if (!payload.image) return payload;
+
+  const formData = new FormData();
+  appendIfPresent(formData, 'name', payload.name);
+  appendIfPresent(formData, 'description', payload.description);
+  appendIfPresent(formData, 'city', payload.city);
+  appendIfPresent(formData, 'base_price', payload.base_price);
+  appendIfPresent(formData, 'time_start', payload.time_start);
+  appendIfPresent(formData, 'empty_slot', payload.empty_slot);
+  appendIfPresent(formData, 'address_detail', payload.address_detail);
+  appendIfPresent(formData, 'brand_name', payload.brand_name);
+  appendIfPresent(formData, 'license_plate', payload.license_plate);
+  if (payload.tour_packages) {
+    formData.append('tour_packages', JSON.stringify(payload.tour_packages));
+  }
+  if (payload.routes) {
+    formData.append('routes', JSON.stringify(payload.routes));
+  }
+  appendImage(formData, payload.image);
+  return formData;
 };
 
 export const createService = async ({ token, user, type, payload }) => {
@@ -274,7 +281,9 @@ export const createService = async ({ token, user, type, payload }) => {
   const endpoint = SERVICE_ENDPOINTS[type];
   if (!endpoint) throw new Error("Invalid service type");
 
-  const res = await authApis(token).post(endpoint, payload);
+  const body = buildServicePayload(payload);
+  const config = payload?.image ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined;
+  const res = await authApis(token).post(endpoint, body, config);
   return res?.data;
 };
 
@@ -285,7 +294,9 @@ export const updateService = async ({ token, user, type, id, payload }) => {
   const endpoint = SERVICE_ENDPOINTS[type];
   if (!endpoint) throw new Error("Invalid service type");
 
-  const res = await authApis(token).put(`${endpoint}${id}/`, payload);
+  const body = buildServicePayload(payload);
+  const config = payload?.image ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined;
+  const res = await authApis(token).put(`${endpoint}${id}/`, body, config);
   return res?.data;
 };
 

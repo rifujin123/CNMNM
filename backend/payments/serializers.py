@@ -121,3 +121,28 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
             instance,
             context=self.context,
         ).data
+
+
+class AdminDashboardSummarySerializer(serializers.Serializer):
+    paid_revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
+    success_payment_count = serializers.IntegerField()
+    pending_payment_count = serializers.IntegerField()
+    total_bookings = serializers.IntegerField()
+    pending_provider_count = serializers.IntegerField()
+    total_services = serializers.IntegerField()
+    active_service_count = serializers.IntegerField()
+    inactive_service_count = serializers.IntegerField()
+
+
+class RevenueByServiceTypeSerializer(serializers.Serializer):
+    type = serializers.CharField()
+    revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
+    bookings = serializers.IntegerField()
+
+
+class AdminDashboardSerializer(serializers.Serializer):
+    summary = AdminDashboardSummarySerializer()
+    booking_status_counts = serializers.DictField(child=serializers.IntegerField())
+    payment_status_counts = serializers.DictField(child=serializers.IntegerField())
+    revenue_by_service_type = RevenueByServiceTypeSerializer(many=True)
+    recent_pending_payments = serializers.ListField()

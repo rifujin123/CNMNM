@@ -17,6 +17,65 @@ from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 
 
+TRUE_QUERY_VALUES = {'1', 'true', 'yes', 'y', 'on'}
+FALSE_QUERY_VALUES = {'0', 'false', 'no', 'n', 'off'}
+
+
+def query_param_to_bool(value):
+    if value is None:
+        return None
+    normalized = str(value).strip().lower()
+    if normalized in TRUE_QUERY_VALUES:
+        return True
+    if normalized in FALSE_QUERY_VALUES:
+        return False
+    return None
+
+
+def is_admin_service_request(request):
+    user = request.user
+    return bool(
+        query_param_to_bool(request.query_params.get('admin'))
+        and user
+        and user.is_authenticated
+        and user.is_staff
+    )
+
+
+def is_provider_own_service_request(request):
+    user = request.user
+    return bool(
+        query_param_to_bool(request.query_params.get('mine'))
+        and user
+        and user.is_authenticated
+        and getattr(user, 'is_provider', False)
+    )
+
+
+def should_show_all_services(request):
+    return is_admin_service_request(request) or is_provider_own_service_request(request)
+
+
+def apply_active_filter(queryset, params):
+    active_value = query_param_to_bool(params.get('is_active'))
+    if active_value is None:
+        return queryset
+    return queryset.filter(is_active=active_value)
+
+
+def apply_service_id_filter(queryset, params):
+    service_id = params.get('service_id') or params.get('id')
+    if service_id:
+        queryset = queryset.filter(id=service_id)
+    return queryset
+
+
+def apply_request_provider_scope(queryset, request):
+    if is_provider_own_service_request(request) and not request.user.is_staff:
+        return queryset.filter(provider=request.user)
+    return queryset
+
+
 def get_service_category_or_raise(name):
     category = Category.objects.filter(name__iexact=name).first()
     if not category:
@@ -97,6 +156,10 @@ class TravelTourViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         now = timezone.now()
+        params = self.request.query_params
+        show_all = should_show_all_services(self.request)
+
+        params = self.request.query_params
 
         available_future_seats = SeatStatus.objects.filter(
             route__transport=OuterRef('pk'),
@@ -107,13 +170,19 @@ class TravelTourViewSet(viewsets.ModelViewSet):
 
         queryset = TravelTour.objects.filter(
             is_active=True,
-            time_start__gte=timezone.now(),
-            empty_slot__gt=0,
         ).annotate(
             popularity=Count('bookings', distinct=True)
         )
-        
-        params = self.request.query_params
+
+        is_provider_own = (
+            self.request.user.is_authenticated
+            and params.get('provider') == str(self.request.user.id)
+        )
+        if not is_provider_own:
+            queryset = queryset.filter(
+                time_start__gte=now,
+                empty_slot__gt=0,
+            )
 
         search_query = params.get('q')
         if search_query:
@@ -135,6 +204,8 @@ class TravelTourViewSet(viewsets.ModelViewSet):
         provider_id = params.get('provider')
         if provider_id:
             queryset = queryset.filter(provider_id=provider_id)
+
+        queryset = apply_request_provider_scope(queryset, self.request)
 
         min_price = params.get('min_price')
         if min_price:
@@ -237,24 +308,39 @@ class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.annotate(popularity=Count('bookings'))
 
     def get_queryset(self):
-        queryset = Hotel.objects.filter(
-            is_active=True,
-        ).annotate(
+        params = self.request.query_params
+        show_all = should_show_all_services(self.request)
+
+        if show_all:
+            queryset = Hotel.objects.all()
+        else:
+            queryset = Hotel.objects.filter(is_active=True)
+
+        queryset = queryset.annotate(
             popularity=Count('bookings', distinct=True),
             available_room_count=Count(
                 'rooms',
                 filter=Q(rooms__is_available=True),
                 distinct=True,
             ),
-        ).filter(
-            available_room_count__gt=0
         )
 
-        params = self.request.query_params
+        if show_all:
+            queryset = apply_active_filter(queryset, params)
+        else:
+            queryset = queryset.filter(available_room_count__gt=0)
+
+        queryset = apply_service_id_filter(queryset, params)
 
         category_id = params.get('category')
         if category_id:
             queryset = queryset.filter(category_id=category_id)
+
+        provider_id = params.get('provider')
+        if provider_id:
+            queryset = queryset.filter(provider_id=provider_id)
+
+        queryset = apply_request_provider_scope(queryset, self.request)
 
         search_query = params.get('q')
         if search_query:
@@ -304,6 +390,8 @@ class TransportViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         now = timezone.now()
+        params = self.request.query_params
+        show_all = should_show_all_services(self.request)
 
         available_future_seats = SeatStatus.objects.filter(
             route__transport=OuterRef('pk'),
@@ -312,20 +400,32 @@ class TransportViewSet(viewsets.ModelViewSet):
             booking__isnull=True,
         )
 
-        queryset = Transport.objects.filter(
-            is_active=True,
-        ).annotate(
+        if show_all:
+            queryset = Transport.objects.all()
+        else:
+            queryset = Transport.objects.filter(is_active=True)
+
+        queryset = queryset.annotate(
             popularity=Count('bookings', distinct=True),
             has_available_future_seat=Exists(available_future_seats),
-        ).filter(
-            has_available_future_seat=True
         )
-        
-        params = self.request.query_params
+
+        if show_all:
+            queryset = apply_active_filter(queryset, params)
+        else:
+            queryset = queryset.filter(has_available_future_seat=True)
+
+        queryset = apply_service_id_filter(queryset, params)
 
         category_id = params.get('category')
         if category_id:
             queryset = queryset.filter(category_id=category_id)
+
+        provider_id = params.get('provider')
+        if provider_id:
+            queryset = queryset.filter(provider_id=provider_id)
+
+        queryset = apply_request_provider_scope(queryset, self.request)
 
         search_query = params.get('q')
         if search_query:

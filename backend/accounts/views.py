@@ -5,9 +5,9 @@ import cloudinary.utils
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAdminUser
+from rest_framework import viewsets
+from rest_framework.decorators import action
 
 from .models import User
 from .serializers import (
@@ -16,14 +16,23 @@ from .serializers import (
     ProviderApprovalSerializer,
     RegisterSerializer,
     UserReadSerializer,
+    PendingProviderReadSerializer,
 )
 
 # Create your views here.
-class RegisterView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+class AccountViewSet(viewsets.ViewSet):
+    def get_permissions(self):
+        if self.action in ['register', 'cloudinary_sign']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
-    def post(self, request):
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='register',
+        authentication_classes=[],
+    )
+    def register(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -38,36 +47,32 @@ class RegisterView(APIView):
         )
 
 
-class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
+    @action(detail=False, methods=['post'], url_path='logout')
+    def logout(self, request):
         token = request.auth
         if not token:
             return Response({'detail': 'Không tìm thấy token.'}, status=status.HTTP_400_BAD_REQUEST)
         token = AccessToken.objects.filter(token=token).first()
+        if not token:
+            return Response({'detail': 'Không tìm thấy token.'}, status=status.HTTP_400_BAD_REQUEST)
         RefreshToken.objects.filter(access_token=token).delete()
         token.delete()
         return Response({'detail': 'Đăng xuất thành công.'}, status=status.HTTP_200_OK)
 
 
-class MeView(APIView):
-    permission_classes = [IsAuthenticated]
+    @action(detail=False, methods=['get', 'patch'], url_path='me')
+    def me(self, request):
+        if request.method == 'PATCH':
+            serializer = MeUpdateSerializer(request.user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(UserReadSerializer(request.user).data, status=status.HTTP_200_OK)
 
-    def get(self, request):
         return Response(UserReadSerializer(request.user).data, status=status.HTTP_200_OK)
 
-    def patch(self, request):
-        serializer = MeUpdateSerializer(request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(UserReadSerializer(request.user).data, status=status.HTTP_200_OK)
 
-
-class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
+    @action(detail=False, methods=['post'], url_path='me/change-password')
+    def change_password(self, request):
         serializer = ChangePasswordSerializer(
             data=request.data, context={"request": request}
         )
@@ -76,52 +81,14 @@ class ChangePasswordView(APIView):
         return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)
 
 
-class PendingProviderListView(ListAPIView):
-    permission_classes = [IsAdminUser]
-    serializer_class = UserReadSerializer
-
-    def get_queryset(self):
-        return User.objects.filter(is_provider=True, is_approved=False).order_by('-date_joined')
-
-
-class ProviderVerificationView(APIView):
-    permission_classes = [IsAdminUser]
-
-    def patch(self, request, provider_id):
-        provider = User.objects.filter(id=provider_id, is_provider=True).first()
-        if not provider:
-            return Response({'detail': 'Không tìm thấy nhà cung cấp.'}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = ProviderApprovalSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        approved = serializer.validated_data['approved']
-        reason = serializer.validated_data.get('reason', '')
-
-        provider.is_approved = approved
-        provider.save(update_fields=['is_approved'])
-
-        profile = getattr(provider, 'provider_profile', None)
-        if profile:
-            profile.is_verified = approved
-            profile.save(update_fields=['is_verified'])
-
-        return Response(
-            {
-                'provider_id': provider.id,
-                'approved': approved,
-                'reason': reason,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class CloudinarySignView(APIView):
-    """Sign upload params for Cloudinary (server-side signature)."""
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        folder = request.data.get('folder') or os.getenv('CLOUDINARY_FOLDER', 'travel_app_uploads')
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='cloudinary/sign',
+        authentication_classes=[],
+    )
+    def cloudinary_sign(self, request):
+        folder = request.data.get('folder')
         timestamp = int(time.time())
 
         # Sign only params frontend actually sends to Cloudinary
@@ -141,3 +108,39 @@ class CloudinarySignView(APIView):
             'cloudName': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
             'folder': folder,
         }, status=status.HTTP_200_OK)
+
+
+class ProviderAdminViewSet(viewsets.ViewSet):
+    permission_classes = [IsAdminUser]
+
+    @action(detail=False, methods=['get'], url_path='pending')
+    def pending(self, request):
+        queryset = User.objects.filter(is_provider=True, is_approved=False).order_by('-date_joined')
+        return Response(UserReadSerializer(queryset, many=True).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['patch'], url_path='verification')
+    def verification(self, request, pk=None):
+        provider = User.objects.filter(id=pk, is_provider=True).first()
+        if not provider:
+            return Response({'detail': 'Không tìm thấy nhà cung cấp.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProviderApprovalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        approved = serializer.validated_data['approved']
+
+        provider.is_approved = approved
+        provider.save(update_fields=['is_approved'])
+
+        profile = getattr(provider, 'provider_profile', None)
+        if profile:
+            profile.is_verified = approved
+            profile.is_rejected = not approved
+            profile.save(update_fields=['is_verified', 'is_rejected'])
+
+        return Response(
+            {
+                'provider_id': provider.id,
+                'approved': approved,
+            },
+            status=status.HTTP_200_OK,
+        )

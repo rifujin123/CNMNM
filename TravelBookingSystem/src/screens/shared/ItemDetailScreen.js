@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Image,
   Pressable,
   ScrollView,
@@ -15,9 +14,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { fetchPlaceDetail } from "../../api/services";
 import { useAuth } from "../../../context/AuthContext";
 import { useWishlist } from "../../../context/WishlistContext";
-import Entypo from "@expo/vector-icons/Entypo";
-const { width, height } = Dimensions.get("window");
-const IMG_HEIGHT = height * 0.45;
 const FALLBACK_IMAGE_URI =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80";
 
@@ -63,16 +59,7 @@ const formatDateTime = (value) => {
   });
 };
 
-const getImageUri = (item) => {
-  const candidates = [
-    item?.image,
-    item?.image_url,
-    item?.thumbnail,
-    item?.thumbnail_url,
-  ];
-
-  return candidates.find((uri) => typeof uri === "string" && uri.trim());
-};
+const getImageUri = (item) => item?.image || item?.images?.[0]?.image;
 
 const getCityName = (item) => item?.city?.name || "Unknown location";
 
@@ -144,7 +131,7 @@ export default function ItemDetailScreen() {
     const loadDetail = async () => {
       try {
         setIsLoading(true);
-        const data = await fetchPlaceDetail(itemId);
+        const data = await fetchPlaceDetail(itemId, serviceType);
         if (active) setPlace(data);
       } catch (err) {
         console.error("Fetch place detail error:", err);
@@ -158,7 +145,7 @@ export default function ItemDetailScreen() {
     return () => {
       active = false;
     };
-  }, [itemId]);
+  }, [itemId, serviceType]);
 
   useEffect(() => {
     if (place?.tour_package?.length > 0 && !selectedPackageId) {
@@ -217,12 +204,9 @@ export default function ItemDetailScreen() {
 
   const selectedPrice = useMemo(() => {
     if (serviceType === "tour") {
-      return (
-        selectedPackage?.total_price_display ||
-        selectedPackage?.price_display ||
-        place?.base_price_display ||
-        formatMoney(place?.base_price)
-      );
+      return selectedPackage
+        ? formatMoney(selectedPackage.total_price)
+        : place?.base_price_display || formatMoney(place?.base_price);
     }
 
     if (serviceType === "hotel") {
@@ -322,7 +306,7 @@ export default function ItemDetailScreen() {
               </View>
 
               <Text style={styles.optionPrice}>
-                Total: {pkg.total_price_display || formatMoney(pkg.total_price)}
+                Total: {formatMoney(pkg.total_price)}
               </Text>
             </Pressable>
           );
@@ -507,13 +491,13 @@ export default function ItemDetailScreen() {
           <View style={styles.infoBox}>
             <InfoRow label="Address" value={place?.address_detail || getCityName(place)} />
             <InfoRow label="Rooms" value={String(place?.total_rooms || availableRooms.length || 0)} />
+            <InfoRow label="Base Price" value={formatMoney(place?.base_price)} />
           </View>
         ) : null}
 
         {serviceType === "transport" ? (
           <View style={styles.infoBox}>
             <InfoRow label="Brand" value={place?.brand_name || "N/A"} />
-            <InfoRow label="Vehicle" value={place?.vehicle_type || "N/A"} />
             <InfoRow label="Seats" value={String(place?.total_seats || 0)} />
           </View>
         ) : null}

@@ -1,19 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   cancelPayment,
-  confirmStaticQrPayment,
   fetchPaymentDetail,
   fetchPayments,
 } from "../api/services";
 import { useAuth } from "../../context/AuthContext";
 
 const ACTIVE_PAYMENT_STATUSES = ["PENDING", "PROCESSING", "REVIEW"];
-
-export const paymentKeys = {
-  all: ["payments"],
-  list: (filters = {}) => [...paymentKeys.all, "list", filters],
-  detail: (paymentId) => [...paymentKeys.all, "detail", String(paymentId)],
-};
 
 export function usePayments(filters = {}) {
   const { token } = useAuth();
@@ -87,7 +80,6 @@ export function usePayment(paymentId, options = {}) {
     }
   }, [token, paymentId, options.enabled]);
 
-  // Polling for active payments
   useEffect(() => {
     if (!data || !ACTIVE_PAYMENT_STATUSES.includes(data.payment_status)) return;
 
@@ -114,27 +106,6 @@ export function useCancelPayment() {
     try {
       setIsPending(true);
       return await cancelPayment({ token, paymentId });
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  return { execute, isPending };
-}
-
-export function useConfirmStaticQrPayment() {
-  const { token } = useAuth();
-  const [isPending, setIsPending] = useState(false);
-
-  const execute = async ({ paymentId, result = "success", providerTransactionId }) => {
-    try {
-      setIsPending(true);
-      return await confirmStaticQrPayment({
-        token,
-        paymentId,
-        result,
-        providerTransactionId,
-      });
     } finally {
       setIsPending(false);
     }
