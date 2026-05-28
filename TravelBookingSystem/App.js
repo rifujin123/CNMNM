@@ -2,7 +2,6 @@ import MyTabs from "./src/navigations/BottomTabs";
 import ProviderTabs from "./src/navigations/ProviderTabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ActivityIndicator, View, StyleSheet } from "react-native";
 import LoginScreen from "./src/screens/guest/LoginScreen";
 import AccountNotLoggedInScreen from "./src/screens/guest/AccountNotLoggedInScreen";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -14,15 +13,7 @@ import AdminTabs from "./src/navigations/AdminTabs";
 const Stack = createNativeStackNavigator();
 
 function RootNavigator() {
-  const { authLoading, isLoggedIn, role } = useAuth();
-
-  if (authLoading) {
-    return (
-      <View style={styles.splash}>
-        <ActivityIndicator size="large" color="#2563EB" />
-      </View>
-    );
-  }
+  const { isLoggedIn, role } = useAuth();
 
   return (
     <NavigationContainer>
@@ -72,12 +63,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  splash: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-  },
-});

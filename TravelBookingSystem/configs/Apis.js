@@ -15,6 +15,7 @@ export const endpoints = {
   transports: "/api/services/transports/",
   promoBanners: "/api/services/promo-banners",
   wishlist: "/api/services/wishlist/",
+  tourComments: (tourId) => `/api/services/travel-tours/${tourId}/comments/`,
 
   providerPending: "/api/providers/pending/",
   providerVerification: (providerId) => `/api/providers/${providerId}/verification/`,

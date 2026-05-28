@@ -265,11 +265,11 @@ class TravelTourViewSet(viewsets.ModelViewSet):
         serializer.save(provider=self.request.user, category=category)
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'get_comments']:
+        if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         if self.action == 'comments' and self.request.method == 'GET':
             return [AllowAny()]
-        if self.action in ['add_comment', 'comments']:
+        if self.action == 'comments':
             return [IsAuthenticated()]
         if self.action in ['create']:
             return [IsApprovedProviderOrAdmin()]
@@ -283,6 +283,11 @@ class TravelTourViewSet(viewsets.ModelViewSet):
 
     def _create_comment(self, request, pk=None):
         travel_tour = self.get_object()
+        if travel_tour.comments.filter(user=request.user).exists():
+            return Response(
+                {'detail': 'You already reviewed this tour.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user, travel_tour=travel_tour)
@@ -293,17 +298,10 @@ class TravelTourViewSet(viewsets.ModelViewSet):
     def comments(self, request, pk=None):
         if request.method == 'GET':
             return self._list_comments(request, pk=pk)
+
         return self._create_comment(request, pk=pk)
 
-    @action(detail=True, methods=['get'])
-    def get_comments(self, request, pk=None):
-        return self._list_comments(request, pk=pk)
 
-    @action(detail=True, methods=['post'])
-    def add_comment(self, request, pk=None):
-        return self._create_comment(request, pk=pk)
-
-    
 class HotelViewSet(viewsets.ModelViewSet):
     queryset = Hotel.objects.annotate(popularity=Count('bookings'))
 
