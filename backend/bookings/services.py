@@ -22,6 +22,53 @@ class BookingService:
         return 'base', service
 
     @classmethod
+    def get_queryset_for_user(cls, queryset, user):
+        if user.is_staff or user.is_superuser:
+            return queryset
+
+        if user.is_provider and user.is_approved:
+            return queryset.filter(service__provider_id=user.id)
+
+        if user.is_customer:
+            return queryset.filter(user_id=user.id)
+
+        return Booking.objects.none()
+
+    @classmethod
+    def apply_query_filters(cls, queryset, params):
+        booking_id = params.get("booking_id") or params.get("id")
+        if booking_id:
+            if not str(booking_id).isdigit():
+                return queryset.none()
+            queryset = queryset.filter(id=booking_id)
+
+        booking_status = params.get("booking_status")
+        if booking_status:
+            queryset = queryset.filter(booking_status=booking_status)
+
+        service_id = params.get("service")
+        if service_id:
+            queryset = queryset.filter(service_id=service_id)
+
+        service_type = params.get("service_type")
+        if service_type == "tour":
+            queryset = queryset.filter(service__traveltour__isnull=False)
+        elif service_type == "hotel":
+            queryset = queryset.filter(service__hotel__isnull=False)
+        elif service_type == "transport":
+            queryset = queryset.filter(service__transport__isnull=False)
+
+        from_date = params.get("from_date")
+        if from_date:
+            queryset = queryset.filter(created_date__date__gte=from_date)
+
+        to_date = params.get("to_date")
+        if to_date:
+            queryset = queryset.filter(created_date__date__lte=to_date)
+
+        return queryset
+
+    @classmethod
     def validate_booking_options(cls, data):
         service = data.get('service')
 
@@ -154,6 +201,26 @@ class BookingService:
 
             return booking
         
+
+    @classmethod
+    def expire_overdue_bookings(cls, queryset):
+        overdue_ids = list(
+            queryset.filter(
+                booking_status=Booking.BookingStatus.PENDING,
+                payment_status=Booking.PaymentStatus.UNPAID,
+                expires_at__isnull=False,
+                expires_at__lte=timezone.now(),
+            ).values_list("id", flat=True)
+        )
+
+        for booking in (
+            Booking.objects
+            .select_related("service")
+            .prefetch_related("rooms", "seat_statuses")
+            .filter(id__in=overdue_ids)
+        ):
+            cls.expire_booking(booking)
+
 
     @classmethod
     def restore_inventory(cls, booking):

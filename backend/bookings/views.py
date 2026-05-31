@@ -40,61 +40,11 @@ class BookingViewSet(mixins.ListModelMixin,
     pagination_class = BookingLimitOffsetPagination
 
     def get_queryset(self):
-        user = self.request.user
+        queryset = BookingService.get_queryset_for_user(self.queryset, self.request.user)
 
-        if user.is_staff or user.is_superuser:
-            queryset = self.queryset
-
-        elif user.is_provider and user.is_approved:
-            queryset = self.queryset.filter(
-                service__provider_id=user.id
-            )
-
-        elif user.is_customer:
-            queryset = self.queryset.filter(
-                user_id=user.id
-            )
-
-        else:
-            return Booking.objects.none()
-
-        params = self.request.query_params
-
-        booking_id = params.get("booking_id") or params.get("id")
-        if booking_id:
-            if not str(booking_id).isdigit():
-                return queryset.none()
-            queryset = queryset.filter(id=booking_id)
-
-        booking_status = params.get("booking_status")
-        if booking_status:
-            queryset = queryset.filter(booking_status=booking_status)
-
-        service_id = params.get("service")
-        if service_id:
-            queryset = queryset.filter(service_id=service_id)
-
-        service_type = params.get("service_type")
-
-        if service_type == "tour":
-            queryset = queryset.filter(service__traveltour__isnull=False)
-
-        elif service_type == "hotel":
-            queryset = queryset.filter(service__hotel__isnull=False)
-
-        elif service_type == "transport":
-            queryset = queryset.filter(service__transport__isnull=False)
-
-        from_date = params.get("from_date")
-        if from_date:
-            queryset = queryset.filter(created_date__date__gte=from_date)
-
-        to_date = params.get("to_date")
-        if to_date:
-            queryset = queryset.filter(created_date__date__lte=to_date)
-
-        return queryset
+        return BookingService.apply_query_filters(queryset, self.request.query_params)
     
+
     def get_serializer_class(self):
         if self.action == 'create':
             return BookingCreateSerializer
@@ -119,57 +69,47 @@ class BookingViewSet(mixins.ListModelMixin,
 
         return [permission() for permission in permission_classes]
     
-    def _expire_overdue_bookings(self, queryset):
-        overdue_ids = list(
-            queryset.filter(
-                booking_status=Booking.BookingStatus.PENDING,
-                payment_status=Booking.PaymentStatus.UNPAID,
-                expires_at__isnull=False,
-                expires_at__lte=timezone.now(),
-            ).values_list("id", flat=True)
-        )
-
-        for booking in (
-            Booking.objects
-            .select_related("service")
-            .prefetch_related("rooms", "seat_statuses")
-            .filter(id__in=overdue_ids)
-        ):
-            BookingService.expire_booking(booking)
 
     def list(self, request, *args, **kwargs):
-        role_queryset = self.get_queryset()
-        self._expire_overdue_bookings(role_queryset)
+        role_queryset = BookingService.get_queryset_for_user(
+            self.queryset,
+            request.user
+        )
 
-        queryset = self.filter_queryset(self.get_queryset())
+        BookingService.expire_overdue_bookings(role_queryset)
+
+        queryset = self.filter_queryset(
+            self.get_queryset()
+        )
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(
+                page,
+                many=True
+            )
+            return self.get_paginated_response(
+                serializer.data
+            )
 
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(
+            queryset,
+            many=True
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
         booking = self.get_object()
         booking = BookingService.cancel_booking(booking)
-        serializer = BookingReadSerializer(
-            booking,
-            context=self.get_serializer_context()
-        )
-
+        serializer = self.get_serializer(booking)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         booking = self.get_object()
         booking = BookingService.complete_booking(booking)
-        serializer = BookingReadSerializer(
-            booking,
-            context=self.get_serializer_context()
-        )
+        serializer = self.get_serializer(booking)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -177,9 +117,6 @@ class BookingViewSet(mixins.ListModelMixin,
     def refund(self, request, pk=None):
         booking = self.get_object()
         booking = BookingService.refund_booking(booking)
-        serializer = BookingReadSerializer(
-            booking,
-            context=self.get_serializer_context()
-        )
+        serializer = self.get_serializer(booking)
 
         return Response(serializer.data, status=status.HTTP_200_OK)

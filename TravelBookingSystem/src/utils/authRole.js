@@ -1,10 +1,7 @@
 export const getUserRole = (user) => {
   if (!user) return 'guest';
 
-  if (user.is_staff === true || user.is_superuser === true) return "admin";
-  if (user.is_provider === true) return 'provider';
-  if (user.is_customer === true) return 'customer';
-  return 'guest';
+  return String(user.role || 'guest').toLowerCase();
 };
 
 export const isAuthenticated = (token, user) => {
