@@ -143,6 +143,77 @@ def complete_static_qr_payment(transaction_id, provider_transaction_id = None, r
 
 class PaymentLifecycleService:
     @classmethod
+    def get_queryset_for_user(cls, queryset, user):
+        if user.is_staff or user.is_superuser:
+            return queryset
+
+        if user.is_provider and user.is_approved:
+            return queryset.filter(booking__service__provider_id=user.id)
+
+        if user.is_customer:
+            return queryset.filter(user_id=user.id)
+
+        return Payment.objects.none()
+
+    @classmethod
+    def apply_query_filters(cls, queryset, params):
+        payment_id = params.get("payment_id") or params.get("id")
+        if payment_id:
+            if not str(payment_id).isdigit():
+                return queryset.none()
+            queryset = queryset.filter(id=payment_id)
+
+        payment_status = params.get("payment_status")
+        if payment_status:
+            queryset = queryset.filter(payment_status=payment_status)
+
+        payment_method = params.get("payment_method")
+        if payment_method:
+            queryset = queryset.filter(payment_method=payment_method)
+
+        booking_id = params.get("booking")
+        if booking_id:
+            queryset = queryset.filter(booking_id=booking_id)
+
+        from_date = params.get("from_date")
+        if from_date:
+            queryset = queryset.filter(created_at__date__gte=from_date)
+
+        to_date = params.get("to_date")
+        if to_date:
+            queryset = queryset.filter(created_at__date__lte=to_date)
+
+        return queryset
+
+    @classmethod
+    def expire_overdue_payments(cls, queryset):
+        overdue_ids = list(
+            queryset.filter(
+                payment_status__in=Payment.active_statuses(),
+                expires_at__isnull=False,
+                expires_at__lte=timezone.now(),
+            ).values_list("id", flat=True)
+        )
+
+        for payment in (
+            Payment.objects
+            .select_related("booking")
+            .filter(id__in=overdue_ids)
+        ):
+            cls.expire_payment(payment)
+
+    @classmethod
+    def expire_payment_if_needed(cls, payment):
+        if (
+            payment.expires_at
+            and payment.expires_at <= timezone.now()
+            and payment.payment_status in Payment.active_statuses()
+        ):
+            return cls.expire_payment(payment)
+
+        return payment
+
+    @classmethod
     def mark_success(
         cls,
         payment,

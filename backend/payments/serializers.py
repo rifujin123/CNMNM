@@ -6,7 +6,6 @@ from .payServices.payment_service import create_gateway_payment
 import uuid
 from django.db import transaction
 
-# import to Set expires_at
 from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone

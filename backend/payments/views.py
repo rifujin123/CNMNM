@@ -1,4 +1,3 @@
-from django.utils import timezone
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -33,68 +32,16 @@ class PaymentViewSet(
             return [permissions.IsAdminUser()]
         return super().get_permissions()
 
-    def _get_role_queryset(self):
-        user = self.request.user
-
-        if user.is_staff or user.is_superuser:
-            return self.queryset
-
-        if user.is_provider and user.is_approved:
-            return self.queryset.filter(
-                booking__service__provider_id=user.id
-            )
-
-        if user.is_customer:
-            return self.queryset.filter(
-                user_id=user.id
-            )
-
-        return Payment.objects.none()
-
-
-    def _apply_query_filters(self, queryset):
-        params = self.request.query_params
-
-        payment_status = params.get("payment_status")
-        if payment_status:
-            queryset = queryset.filter(payment_status=payment_status)
-
-        payment_method = params.get("payment_method")
-        if payment_method:
-            queryset = queryset.filter(payment_method=payment_method)
-
-        booking_id = params.get("booking")
-        if booking_id:
-            queryset = queryset.filter(booking_id=booking_id)
-
-        from_date = params.get("from_date")
-        if from_date:
-            queryset = queryset.filter(created_at__date__gte=from_date)
-
-        to_date = params.get("to_date")
-        if to_date:
-            queryset = queryset.filter(created_at__date__lte=to_date)
-
-        return queryset
-    
-    def _expire_overdue_payments(self, queryset):
-        overdue_ids = list(
-            queryset.filter(
-                payment_status__in=Payment.active_statuses(),
-                expires_at__isnull=False,
-                expires_at__lte=timezone.now(),
-            ).values_list("id", flat=True)
+    def get_queryset(self):
+        queryset = PaymentLifecycleService.get_queryset_for_user(
+            self.queryset,
+            self.request.user
         )
 
-        for payment in (
-            Payment.objects
-            .select_related("booking")
-            .filter(id__in=overdue_ids)
-        ):
-            PaymentLifecycleService.expire_payment(payment)
-
-    def get_queryset(self):
-        return self._apply_query_filters(self._get_role_queryset())
+        return PaymentLifecycleService.apply_query_filters(
+            queryset,
+            self.request.query_params
+        )
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -105,26 +52,20 @@ class PaymentViewSet(
 
         return PaymentReadSerializer
 
-    def _expire_payment_if_needed(self, payment):
-        if (
-            payment.expires_at
-            and payment.expires_at <= timezone.now()
-            and payment.payment_status in Payment.active_statuses()
-        ):
-            return PaymentLifecycleService.expire_payment(payment)
-
-        return payment
-
     def retrieve(self, request, *args, **kwargs):
         payment = self.get_object()
-        payment = self._expire_payment_if_needed(payment)
+        payment = PaymentLifecycleService.expire_payment_if_needed(payment)
 
         serializer = self.get_serializer(payment)
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
-        role_queryset = self._get_role_queryset()
-        self._expire_overdue_payments(role_queryset)
+        role_queryset = PaymentLifecycleService.get_queryset_for_user(
+            self.queryset,
+            request.user
+        )
+
+        PaymentLifecycleService.expire_overdue_payments(role_queryset)
 
         queryset = self.filter_queryset(self.get_queryset())
 
