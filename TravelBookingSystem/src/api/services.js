@@ -28,6 +28,14 @@ const mapServiceListItem = (item, type) => {
     category: item.category,
     type,
     tour_package: item.tour_package,
+    room_types: item.room_types,
+    rooms: item.rooms,
+    address_detail: item.address_detail,
+    brand_name: item.brand_name,
+    license_plate: item.license_plate,
+    routes: item.routes,
+    seat_types: item.seat_types,
+    availability: item.availability,
     image,
     empty_slot: item.empty_slot,
     time_start: item.time_start,
@@ -51,6 +59,35 @@ export const addTourComment = async ({ tourId, token, content, rating }) => {
   return res?.data ?? null;
 };
 
+const buildServiceListQuery = (params = {}, extraKeys = []) => {
+  const queryParams = new URLSearchParams();
+  const keys = [
+    'category',
+    'q',
+    'provider',
+    'page',
+    'mine',
+    'admin',
+    'is_active',
+    'ordering',
+    'min_price',
+    'max_price',
+    'min_star',
+    'max_star',
+    'service_id',
+    'id',
+    ...extraKeys,
+  ];
+
+  keys.forEach((key) => {
+    const value = params[key];
+    if (value !== undefined && value !== null && value !== '') {
+      queryParams.append(key, String(value));
+    }
+  });
+
+  return queryParams;
+};
 
 export const fetchCategories = async () => {
   const res = await Apis.get(endpoints.categories);
@@ -63,17 +100,18 @@ export const fetchCities = async () => {
 };
 
 export const fetchPlaces = async (params = {}, options = {}) => {
-  const queryParams = new URLSearchParams();
-  if (params.category) queryParams.append('category', params.category);
-  if (params.q) queryParams.append('q', params.q);
-  if (params.provider) queryParams.append('provider', params.provider);
-  if (params.page) queryParams.append('page', params.page);
+  const queryParams = buildServiceListQuery(params, [
+    'min_empty_slot',
+    'time_start_from',
+    'time_start_to',
+  ]);
+  const client = params.token ? authApis(params.token) : Apis;
 
   const url = queryParams.toString()
     ? `${endpoints.tours}?${queryParams}`
     : endpoints.tours;
 
-  const res = await Apis.get(url);
+  const res = await client.get(url);
   const data = res?.data ?? {};
   const items = data?.results ?? [];
   const mappedItems = items.map((item) => mapServiceListItem(item, SERVICE_TYPES.tour));
@@ -226,17 +264,14 @@ export const fetchDashboardStats = async ({ token, filters = {} }) => {
 
 
 export const fetchHotels = async (params = {}, options = {}) => {
-  const queryParams = new URLSearchParams();
-  if (params.category) queryParams.append('category', params.category);
-  if (params.q) queryParams.append('q', params.q);
-  if (params.provider) queryParams.append('provider', params.provider);
-  if (params.page) queryParams.append('page', params.page);
+  const queryParams = buildServiceListQuery(params);
+  const client = params.token ? authApis(params.token) : Apis;
 
   const url = queryParams.toString()
     ? `${endpoints.hotels}?${queryParams}`
     : endpoints.hotels;
 
-  const res = await Apis.get(url);
+  const res = await client.get(url);
   const data = res?.data ?? {};
   const items = data?.results ?? [];
   const mappedItems = items.map((item) => mapServiceListItem(item, SERVICE_TYPES.hotel));
@@ -253,17 +288,14 @@ export const fetchHotels = async (params = {}, options = {}) => {
 };
 
 export const fetchTransports = async (params = {}, options = {}) => {
-  const queryParams = new URLSearchParams();
-  if (params.category) queryParams.append('category', params.category);
-  if (params.q) queryParams.append('q', params.q);
-  if (params.provider) queryParams.append('provider', params.provider);
-  if (params.page) queryParams.append('page', params.page);
+  const queryParams = buildServiceListQuery(params);
+  const client = params.token ? authApis(params.token) : Apis;
 
   const url = queryParams.toString()
     ? `${endpoints.transports}?${queryParams}`
     : endpoints.transports;
 
-  const res = await Apis.get(url);
+  const res = await client.get(url);
   const data = res?.data ?? {};
   const items = data?.results ?? [];
   const mappedItems = items.map((item) => mapServiceListItem(item, SERVICE_TYPES.transport));
@@ -309,6 +341,9 @@ const buildServicePayload = (payload = {}) => {
   appendIfPresent(formData, 'license_plate', payload.license_plate);
   if (payload.tour_packages) {
     formData.append('tour_packages', JSON.stringify(payload.tour_packages));
+  }
+  if (payload.room_types) {
+    formData.append('room_types', JSON.stringify(payload.room_types));
   }
   if (payload.routes) {
     formData.append('routes', JSON.stringify(payload.routes));

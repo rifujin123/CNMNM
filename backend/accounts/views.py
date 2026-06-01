@@ -16,7 +16,6 @@ from .serializers import (
     ProviderApprovalSerializer,
     RegisterSerializer,
     UserReadSerializer,
-    PendingProviderReadSerializer,
 )
 
 # Create your views here.
@@ -91,7 +90,6 @@ class AccountViewSet(viewsets.ViewSet):
         folder = request.data.get('folder')
         timestamp = int(time.time())
 
-        # Sign only params frontend actually sends to Cloudinary
         params = {
             'timestamp': timestamp,
             'folder': folder,
@@ -127,6 +125,7 @@ class ProviderAdminViewSet(viewsets.ViewSet):
         serializer = ProviderApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         approved = serializer.validated_data['approved']
+        reason = serializer.validated_data.get('reason', '')
 
         provider.is_approved = approved
         provider.save(update_fields=['is_approved'])
@@ -134,13 +133,13 @@ class ProviderAdminViewSet(viewsets.ViewSet):
         profile = getattr(provider, 'provider_profile', None)
         if profile:
             profile.is_verified = approved
-            profile.is_rejected = not approved
-            profile.save(update_fields=['is_verified', 'is_rejected'])
+            profile.save(update_fields=['is_verified'])
 
         return Response(
             {
                 'provider_id': provider.id,
                 'approved': approved,
+                'reason': reason,
             },
             status=status.HTTP_200_OK,
         )

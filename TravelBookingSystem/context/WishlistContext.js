@@ -8,7 +8,7 @@ const WishlistContext = createContext(null);
 const WISHLIST_STORAGE_KEY = 'wishlist_ids';
 
 export function WishlistProvider({ children }) {
-  const { token, role, authLoading } = useAuth();
+  const { token, role, authLoading, clearAuth } = useAuth();
   const [wishlistIds, setWishlistIds] = useState([]);
   const [savedItems, setSavedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);

@@ -4,8 +4,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
-from django.db.models import Q
-from django.db.models import Count
+from django.db.models import Count, Exists, OuterRef, Q
 from .models import Category, TourPackage, TravelTour, Comment, Hotel, Transport, Package, PromoBanner, Wishlist, SeatStatus
 from .serializers import CategorySerializer, TourPackageDetailReadSerializer, TourPackageWriteSerializer, TravelTourReadDetailSerializer, TravelTourWriteSerializer, CommentSerializer, HotelDetailReadSerializer, HotelWriteSerializer, PackageSerializer, TransportWriteSerializer, TransportDetailReadSerializer, PromoBannerSerializer, WishlistSerializer
 from .perms import (
@@ -13,67 +12,7 @@ from .perms import (
     ServiceOwnerOrAdmin,
     TourPackageOwner,
 )
-from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
-
-
-TRUE_QUERY_VALUES = {'1', 'true', 'yes', 'y', 'on'}
-FALSE_QUERY_VALUES = {'0', 'false', 'no', 'n', 'off'}
-
-
-def query_param_to_bool(value):
-    if value is None:
-        return None
-    normalized = str(value).strip().lower()
-    if normalized in TRUE_QUERY_VALUES:
-        return True
-    if normalized in FALSE_QUERY_VALUES:
-        return False
-    return None
-
-
-def is_admin_service_request(request):
-    user = request.user
-    return bool(
-        query_param_to_bool(request.query_params.get('admin'))
-        and user
-        and user.is_authenticated
-        and user.is_staff
-    )
-
-
-def is_provider_own_service_request(request):
-    user = request.user
-    return bool(
-        query_param_to_bool(request.query_params.get('mine'))
-        and user
-        and user.is_authenticated
-        and getattr(user, 'is_provider', False)
-    )
-
-
-def should_show_all_services(request):
-    return is_admin_service_request(request) or is_provider_own_service_request(request)
-
-
-def apply_active_filter(queryset, params):
-    active_value = query_param_to_bool(params.get('is_active'))
-    if active_value is None:
-        return queryset
-    return queryset.filter(is_active=active_value)
-
-
-def apply_service_id_filter(queryset, params):
-    service_id = params.get('service_id') or params.get('id')
-    if service_id:
-        queryset = queryset.filter(id=service_id)
-    return queryset
-
-
-def apply_request_provider_scope(queryset, request):
-    if is_provider_own_service_request(request) and not request.user.is_staff:
-        return queryset.filter(provider=request.user)
-    return queryset
 
 
 def get_service_category_or_raise(name):
@@ -157,25 +96,35 @@ class TravelTourViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         now = timezone.now()
         params = self.request.query_params
-        show_all = should_show_all_services(self.request)
+        user = self.request.user
 
-        params = self.request.query_params
-
-        available_future_seats = SeatStatus.objects.filter(
-            route__transport=OuterRef('pk'),
-            route__departure_time__gte=now,
-            status=SeatStatus.Status.AVAILABLE,
-            booking__isnull=True,
+        admin_request = bool(
+            str(params.get('admin', '')).lower() in ['1', 'true', 'yes']
+            and user.is_authenticated
+            and user.is_staff
         )
+        own_request = bool(
+            str(params.get('mine', '')).lower() in ['1', 'true', 'yes']
+            and user.is_authenticated
+            and getattr(user, 'is_provider', False)
+        )
+        show_all = admin_request or own_request
 
-        queryset = TravelTour.objects.filter(
-            is_active=True,
-        ).annotate(
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return TravelTour.objects.all()
+
+        if show_all:
+            queryset = TravelTour.objects.all()
+        else:
+            queryset = TravelTour.objects.filter(is_active=True)
+
+        queryset = queryset.annotate(
             popularity=Count('bookings', distinct=True)
         )
 
         is_provider_own = (
-            self.request.user.is_authenticated
+            show_all
+            or user.is_authenticated
             and params.get('provider') == str(self.request.user.id)
         )
         if not is_provider_own:
@@ -205,7 +154,8 @@ class TravelTourViewSet(viewsets.ModelViewSet):
         if provider_id:
             queryset = queryset.filter(provider_id=provider_id)
 
-        queryset = apply_request_provider_scope(queryset, self.request)
+        if own_request and not user.is_staff:
+            queryset = queryset.filter(provider=user)
 
         min_price = params.get('min_price')
         if min_price:
@@ -307,7 +257,22 @@ class HotelViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         params = self.request.query_params
-        show_all = should_show_all_services(self.request)
+        user = self.request.user
+
+        admin_request = bool(
+            str(params.get('admin', '')).lower() in ['1', 'true', 'yes']
+            and user.is_authenticated
+            and user.is_staff
+        )
+        own_request = bool(
+            str(params.get('mine', '')).lower() in ['1', 'true', 'yes']
+            and user.is_authenticated
+            and getattr(user, 'is_provider', False)
+        )
+        show_all = admin_request or own_request
+
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return Hotel.objects.all()
 
         if show_all:
             queryset = Hotel.objects.all()
@@ -323,12 +288,17 @@ class HotelViewSet(viewsets.ModelViewSet):
             ),
         )
 
-        if show_all:
-            queryset = apply_active_filter(queryset, params)
-        else:
+        if show_all and params.get('is_active') is not None:
+            queryset = queryset.filter(
+                is_active=str(params.get('is_active')).lower() in ['1', 'true', 'yes']
+            )
+
+        if not show_all:
             queryset = queryset.filter(available_room_count__gt=0)
 
-        queryset = apply_service_id_filter(queryset, params)
+        service_id = params.get('service_id') or params.get('id')
+        if service_id:
+            queryset = queryset.filter(id=service_id)
 
         category_id = params.get('category')
         if category_id:
@@ -338,7 +308,8 @@ class HotelViewSet(viewsets.ModelViewSet):
         if provider_id:
             queryset = queryset.filter(provider_id=provider_id)
 
-        queryset = apply_request_provider_scope(queryset, self.request)
+        if own_request and not user.is_staff:
+            queryset = queryset.filter(provider=user)
 
         search_query = params.get('q')
         if search_query:
@@ -389,7 +360,22 @@ class TransportViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         now = timezone.now()
         params = self.request.query_params
-        show_all = should_show_all_services(self.request)
+        user = self.request.user
+
+        admin_request = bool(
+            str(params.get('admin', '')).lower() in ['1', 'true', 'yes']
+            and user.is_authenticated
+            and user.is_staff
+        )
+        own_request = bool(
+            str(params.get('mine', '')).lower() in ['1', 'true', 'yes']
+            and user.is_authenticated
+            and getattr(user, 'is_provider', False)
+        )
+        show_all = admin_request or own_request
+
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return Transport.objects.all()
 
         available_future_seats = SeatStatus.objects.filter(
             route__transport=OuterRef('pk'),
@@ -408,12 +394,17 @@ class TransportViewSet(viewsets.ModelViewSet):
             has_available_future_seat=Exists(available_future_seats),
         )
 
-        if show_all:
-            queryset = apply_active_filter(queryset, params)
-        else:
+        if show_all and params.get('is_active') is not None:
+            queryset = queryset.filter(
+                is_active=str(params.get('is_active')).lower() in ['1', 'true', 'yes']
+            )
+
+        if not show_all:
             queryset = queryset.filter(has_available_future_seat=True)
 
-        queryset = apply_service_id_filter(queryset, params)
+        service_id = params.get('service_id') or params.get('id')
+        if service_id:
+            queryset = queryset.filter(id=service_id)
 
         category_id = params.get('category')
         if category_id:
@@ -423,7 +414,8 @@ class TransportViewSet(viewsets.ModelViewSet):
         if provider_id:
             queryset = queryset.filter(provider_id=provider_id)
 
-        queryset = apply_request_provider_scope(queryset, self.request)
+        if own_request and not user.is_staff:
+            queryset = queryset.filter(provider=user)
 
         search_query = params.get('q')
         if search_query:
@@ -480,9 +472,6 @@ class WishlistViewSet(viewsets.ModelViewSet):
             'service',
             'service__city',
             'service__category',
-            'travel_tour',
-            'travel_tour__city',
-            'travel_tour__category',
         )
 
     def get_permissions(self):
@@ -493,17 +482,11 @@ class WishlistViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         service = serializer.validated_data.get('service')
-        travel_tour = serializer.validated_data.get('travel_tour')
 
         wishlist, created = Wishlist.objects.get_or_create(
             user=request.user,
             service=service,
-            defaults={'travel_tour': travel_tour},
         )
-
-        if travel_tour and wishlist.travel_tour_id is None:
-            wishlist.travel_tour = travel_tour
-            wishlist.save(update_fields=['travel_tour'])
 
         output = self.get_serializer(wishlist)
         return Response(
