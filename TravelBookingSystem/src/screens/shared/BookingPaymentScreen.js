@@ -51,6 +51,14 @@ const getPaymentBadge = (status) => {
     };
   }
 
+  if (status === "REFUNDED") {
+    return {
+      label: "Refunded",
+      backgroundColor: "#FEE2E2",
+      color: COLORS.danger,
+    };
+  }
+
   if (FAILED_STATUSES.includes(status)) {
     return {
       label: status,
@@ -87,6 +95,16 @@ const getStatusContent = (payment) => {
       text: "This payment needs admin review before your booking can be confirmed.",
       color: COLORS.warning,
       backgroundColor: "#FEF3C7",
+    };
+  }
+
+  if (status === "REFUNDED") {
+    return {
+      icon: "return-down-back-outline",
+      title: "Payment refunded",
+      text: "This payment has been refunded.",
+      color: COLORS.danger,
+      backgroundColor: "#FEE2E2",
     };
   }
 

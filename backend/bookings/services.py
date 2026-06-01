@@ -3,6 +3,7 @@ from bookings.models import Booking
 from services.models import TravelTour,Room,SeatStatus
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
+from payments.models import Payment
 
 from django.conf import settings
 from datetime import timedelta
@@ -405,6 +406,34 @@ class BookingService:
                 return booking
             
             cls.restore_inventory(booking)
+
+            payment = (
+                Payment.objects
+                .select_for_update()
+                .filter(
+                    booking=booking,
+                    payment_status=Payment.PaymentStatus.SUCCESS,
+                )
+                .order_by("-created_at")
+                .first()
+            )
+
+            if payment:
+                payment.payment_status = Payment.PaymentStatus.REFUNDED
+                payment.refund_amount = booking.total_price
+                payment.metadata = {
+                    **(payment.metadata or {}),
+                    "gateway_status": "refunded",
+                    "refunded_at": timezone.now().isoformat(),
+                }
+                payment.save(
+                    update_fields=[
+                        "payment_status",
+                        "refund_amount",
+                        "metadata",
+                        "updated_at",
+                    ]
+                )
 
             booking.booking_status = Booking.BookingStatus.REFUNDED
             booking.payment_status = Booking.PaymentStatus.REFUNDED

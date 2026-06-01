@@ -77,7 +77,6 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "end_date": end_date
         }
 
-    # =========================== Hotel Data ===========================
     def get_room_type(self, obj):
         if not obj.room_type:
             return None
@@ -105,7 +104,6 @@ class BookingReadSerializer(serializers.ModelSerializer):
             for room in obj.rooms.all()
         ]
 
-    # =========================== Transport Data ===========================
     def get_seat_type(self, obj):
         if not obj.seat_type:
             return None
@@ -143,7 +141,6 @@ class BookingReadSerializer(serializers.ModelSerializer):
             for seat_status in obj.seat_statuses.all()
         ]
     
-    # =========================== Tour_Package Data ===========================
     def get_tour_package(self, obj):
         if not obj.tour_package:
             return None
@@ -154,7 +151,6 @@ class BookingReadSerializer(serializers.ModelSerializer):
             "price": obj.tour_package.price
         }
     
-    # =========================== Payment Data ===========================
     def get_latest_payment(self, obj):
         payment = obj.payments.order_by("-created_at").first()
 
