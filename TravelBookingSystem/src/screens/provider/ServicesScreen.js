@@ -39,7 +39,11 @@ const ServicesScreen = () => {
         fetchHotels(ownServiceParams),
         fetchTransports(ownServiceParams),
       ])
-      setServices([...tours, ...hotels, ...transports])
+      setServices(
+        [...tours, ...hotels, ...transports].sort(
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        )
+      )
     } catch (err) {
       setError(err.message || 'Failed to load services')
       console.error('Load services error:', err)
@@ -67,9 +71,29 @@ const ServicesScreen = () => {
   const handleCreateService = async (type, data, editingItem) => {
     try {
       if (editingItem) {
-        await updateService({ token, user, type, id: editingItem.id, payload: data })
+        const updatedService = await updateService({ token, user, type, id: editingItem.id, payload: data })
+        if (updatedService?.id) {
+          setServices((current) =>
+            current.map((item) =>
+              String(item.id) === String(editingItem.id) && item.type === type
+                ? { ...item, ...updatedService, type }
+                : item
+            )
+          )
+        }
       } else {
-        await createService({ token, user, type, payload: data })
+        const createdService = await createService({ token, user, type, payload: data })
+        if (createdService?.id) {
+          setServices((current) => [
+            {
+              ...data,
+              ...createdService,
+              id: String(createdService.id),
+              type,
+            },
+            ...current,
+          ])
+        }
       }
       await loadServices()
       setModalVisible(false)

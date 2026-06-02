@@ -35,6 +35,13 @@ const createEmptyForm = () => ({
   time_start: '',
   empty_slot: '',
   tour_packages: [{ name: '', price: '' }],
+  room_types: [
+    {
+      name: '',
+      price: '',
+      rooms: [{ room_number: '', total_beds: '1', is_available: true }],
+    },
+  ],
 });
 
 const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => {
@@ -75,6 +82,19 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
               price: String(pkg.price || ''),
             }))
           : [{ name: '', price: '' }],
+        room_types: editingItem.room_types?.length
+          ? editingItem.room_types.map((roomType) => ({
+              name: roomType.name || '',
+              price: String(roomType.price || ''),
+              rooms: (editingItem.rooms || [])
+                .filter((room) => String(room.room_type?.id) === String(roomType.id))
+                .map((room) => ({
+                  room_number: room.room_number || '',
+                  total_beds: String(room.total_beds || '1'),
+                  is_available: room.is_available !== false,
+                })),
+            }))
+          : createEmptyForm().room_types,
       });
       setError('');
       return;
@@ -111,6 +131,68 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
     }));
   };
 
+  const updateRoomType = (index, field, value) => {
+    setFormData((prev) => {
+      const next = [...prev.room_types];
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, room_types: next };
+    });
+  };
+
+  const addRoomType = () => {
+    setFormData((prev) => ({
+      ...prev,
+      room_types: [
+        ...prev.room_types,
+        {
+          name: '',
+          price: '',
+          rooms: [{ room_number: '', total_beds: '1', is_available: true }],
+        },
+      ],
+    }));
+  };
+
+  const removeRoomType = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      room_types: prev.room_types.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateRoom = (roomTypeIndex, roomIndex, field, value) => {
+    setFormData((prev) => {
+      const roomTypes = [...prev.room_types];
+      const rooms = [...roomTypes[roomTypeIndex].rooms];
+      rooms[roomIndex] = { ...rooms[roomIndex], [field]: value };
+      roomTypes[roomTypeIndex] = { ...roomTypes[roomTypeIndex], rooms };
+      return { ...prev, room_types: roomTypes };
+    });
+  };
+
+  const addRoom = (roomTypeIndex) => {
+    setFormData((prev) => {
+      const roomTypes = [...prev.room_types];
+      const rooms = roomTypes[roomTypeIndex].rooms || [];
+      roomTypes[roomTypeIndex] = {
+        ...roomTypes[roomTypeIndex],
+        rooms: [...rooms, { room_number: '', total_beds: '1', is_available: true }],
+      };
+      return { ...prev, room_types: roomTypes };
+    });
+  };
+
+  const removeRoom = (roomTypeIndex, roomIndex) => {
+    setFormData((prev) => {
+      const roomTypes = [...prev.room_types];
+      roomTypes[roomTypeIndex] = {
+        ...roomTypes[roomTypeIndex],
+        rooms: roomTypes[roomTypeIndex].rooms.filter((_, i) => i !== roomIndex),
+      };
+      return { ...prev, room_types: roomTypes };
+    });
+  };
+
   const handlePickImage = async () => {
     try {
       const image = await pickSingleImage();
@@ -137,8 +219,17 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
       }
     }
 
-    if (serviceType === 'hotel' && !formData.address_detail.trim()) {
-      return 'Address required';
+    if (serviceType === 'hotel') {
+      if (!formData.address_detail.trim()) return 'Address required';
+      for (const roomType of formData.room_types) {
+        if (!roomType.name.trim()) return 'Room type name required';
+        if (!roomType.price) return 'Room type price required';
+        if (!roomType.rooms?.length) return 'At least one room required';
+        for (const room of roomType.rooms) {
+          if (!room.room_number.trim()) return 'Room number required';
+          if (!room.total_beds) return 'Total beds required';
+        }
+      }
     }
 
     if (serviceType === 'transport' && !formData.brand_name.trim()) {
@@ -176,6 +267,15 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
 
     if (serviceType === 'hotel') {
       submitData.address_detail = formData.address_detail;
+      submitData.room_types = formData.room_types.map((roomType) => ({
+        name: roomType.name.trim(),
+        price: roomType.price,
+        rooms: roomType.rooms.map((room) => ({
+          room_number: room.room_number.trim(),
+          total_beds: Number(room.total_beds),
+          is_available: room.is_available !== false,
+        })),
+      }));
     }
 
     if (serviceType === 'transport') {
@@ -278,7 +378,18 @@ const AddServiceModal = ({ visible, onClose, onSubmit, editingItem = null }) => 
               />
             )}
 
-            {serviceType === 'hotel' && <HotelFields formData={formData} updateField={updateField} />}
+            {serviceType === 'hotel' && (
+              <HotelFields
+                formData={formData}
+                updateField={updateField}
+                updateRoomType={updateRoomType}
+                addRoomType={addRoomType}
+                removeRoomType={removeRoomType}
+                updateRoom={updateRoom}
+                addRoom={addRoom}
+                removeRoom={removeRoom}
+              />
+            )}
 
             {serviceType === 'transport' && <TransportFields formData={formData} updateField={updateField} />}
           </ScrollView>

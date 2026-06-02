@@ -163,14 +163,24 @@ class Comment(models.Model):
         ]
 
 class Wishlist(models.Model):
-    user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='wishlists')
-    service = models.ForeignKey('BaseService', on_delete=models.CASCADE, related_name='saved_by')
-    travel_tour = models.ForeignKey('TravelTour', on_delete=models.CASCADE, null=True, blank=True, related_name='wishlisted_by')
+    user = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='wishlists'
+    )
+    service = models.ForeignKey(
+        'BaseService',
+        on_delete=models.CASCADE,
+        related_name='saved_by'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['user', 'service'], name='uniq_wishlist_user_service'),
+            models.UniqueConstraint(
+                fields=['user', 'service'],
+                name='uniq_wishlist_user_service'
+            ),
         ]
         ordering = ['-created_at']
 
