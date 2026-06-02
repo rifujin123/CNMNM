@@ -101,9 +101,6 @@ class PaymentViewSet(
         serializer = PaymentReadSerializer(payment, context=self.get_serializer_context())
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"], url_path="static-qr-confirmation", url_name="static-qr-confirmation")
-    def static_qr_confirmation(self, request, pk=None):
-        return self._confirm_static_qr(request, pk=pk)
 
     @action(detail=True, methods=["post"], url_path="confirm_static_qr_payment", url_name="confirm-static-qr")
     def confirm_static_qr_payment(self, request, pk=None):
@@ -136,7 +133,6 @@ class PaymentViewSet(
         serializer = self.get_serializer(payment)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    
     @action(detail=False, methods=["get"], url_path="admin-dashboard")
     def admin_dashboard(self, request):
         data = AdminDashboardService.get_admin_dashboard()

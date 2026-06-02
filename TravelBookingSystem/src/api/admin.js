@@ -92,14 +92,6 @@ export const refundBooking = async ({ token, bookingId }) => {
   return res?.data ?? null;
 };
 
-export const fetchAdminCategories = async ({ token, filters = {} }) => {
-  requireToken(token);
-  const res = await authApis(token).get(endpoints.categories, {
-    params: filters,
-  });
-  return normalizeListResponse(res?.data);
-};
-
 export const fetchAdminDashboard = async ({ token }) => {
   requireToken(token);
 
@@ -120,64 +112,4 @@ export const fetchAdminDashboard = async ({ token }) => {
     revenue_by_service_type: [],
     recent_pending_payments: [],
   };
-};
-
-export const createCategory = async ({ token, payload }) => {
-  requireToken(token);
-  const res = await authApis(token).post(endpoints.categories, payload);
-  return res?.data ?? null;
-};
-
-export const updateCategory = async ({ token, categoryId, payload }) => {
-  requireToken(token);
-  if (!categoryId) throw new Error("Missing categoryId");
-
-  const res = await authApis(token).patch(
-    `${endpoints.categories}${categoryId}/`,
-    payload,
-  );
-
-  return res?.data ?? null;
-};
-
-export const deleteCategory = async ({ token, categoryId }) => {
-  requireToken(token);
-  if (!categoryId) throw new Error("Missing categoryId");
-
-  await authApis(token).delete(`${endpoints.categories}${categoryId}/`);
-  return true;
-};
-
-export const fetchPromoBanners = async ({ token, filters = {} }) => {
-  requireToken(token);
-  const res = await authApis(token).get(endpoints.promoBanners, {
-    params: filters,
-  });
-  return normalizeListResponse(res?.data);
-};
-
-export const createPromoBanner = async ({ token, payload }) => {
-  requireToken(token);
-  const res = await authApis(token).post(endpoints.promoBanners, payload);
-  return res?.data ?? null;
-};
-
-export const updatePromoBanner = async ({ token, bannerId, payload }) => {
-  requireToken(token);
-  if (!bannerId) throw new Error("Missing bannerId");
-
-  const res = await authApis(token).patch(
-    `${endpoints.promoBanners}${bannerId}/`,
-    payload,
-  );
-
-  return res?.data ?? null;
-};
-
-export const deletePromoBanner = async ({ token, bannerId }) => {
-  requireToken(token);
-  if (!bannerId) throw new Error("Missing bannerId");
-
-  await authApis(token).delete(`${endpoints.promoBanners}${bannerId}/`);
-  return true;
 };

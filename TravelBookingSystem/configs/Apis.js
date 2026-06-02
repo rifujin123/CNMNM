@@ -19,6 +19,7 @@ export const endpoints = {
 
   providerPending: "/api/providers/pending/",
   providerVerification: (providerId) => `/api/providers/${providerId}/verification/`,
+  
   bookings: "/api/bookings/",
   payments: "/api/payments/",
   providerStats: "/api/provider/stats/",

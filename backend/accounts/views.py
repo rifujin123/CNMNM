@@ -13,6 +13,7 @@ from .models import User
 from .serializers import (
     ChangePasswordSerializer,
     MeUpdateSerializer,
+    PendingProviderReadSerializer,
     ProviderApprovalSerializer,
     RegisterSerializer,
     UserReadSerializer,
