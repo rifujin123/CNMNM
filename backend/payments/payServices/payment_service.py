@@ -1,4 +1,3 @@
-from bookings.models import Booking
 from payments.models import Payment
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
@@ -27,104 +26,84 @@ class StaticQrPaymentService:
         return payment
 
     def complete_payment(self, transaction_id, provider_transaction_id = None, result="success"):
-        with transaction.atomic():
-            payment = (Payment.objects
-                       .select_for_update()
-                       .select_related('booking')
-                       .get(transaction_id=transaction_id))
-            
-            if (
+        payment = (
+            Payment.objects
+            .select_related("booking")
+            .get(transaction_id=transaction_id)
+        )
+        normalized_result = (result or "").lower()
+        raw_payload = {
+            "result": normalized_result,
+            "provider_transaction_id": provider_transaction_id,
+            "source": "static_qr_confirmation",
+        }
+
+        if (
             payment.expires_at
             and payment.expires_at <= timezone.now()
-            and payment.payment_status in Payment.active_statuses()):
-                self.mark_expired(payment)
-                return payment
+            and payment.payment_status in Payment.active_statuses()
+        ):
+            return PaymentLifecycleService.expire_payment(
+                payment,
+                gateway="STATIC_QR",
+                raw_payload=raw_payload,
+            )
 
-            if payment.payment_status in [
-                Payment.PaymentStatus.SUCCESS,
-                Payment.PaymentStatus.REFUNDED]:
-                return payment
-            if payment.payment_status in [
-                Payment.PaymentStatus.CANCELLED,
-                Payment.PaymentStatus.EXPIRED,
-                Payment.PaymentStatus.FAILED
-                ]:
-                return payment
-            
-            normalized_result = (result or "").lower()
-
-            if normalized_result == "success":
-                self.mark_success(payment, provider_transaction_id)
-
-            elif normalized_result in ["cancelled", "canceled", "cancel"]:
-                self.mark_cancelled(payment)
-
-            elif normalized_result == "expired":
-                self.mark_expired(payment)
-
-            else:
-                self.mark_failed(payment)
-
+        if payment.payment_status in Payment.terminal_statuses():
             return payment
 
+        if normalized_result == "success":
+            return PaymentLifecycleService.mark_success(
+                payment,
+                provider_transaction_id=provider_transaction_id,
+                gateway="STATIC_QR",
+                raw_payload=raw_payload,
+            )
+
+        if normalized_result in ["cancelled", "canceled", "cancel"]:
+            return PaymentLifecycleService.cancel_payment(
+                payment,
+                gateway="STATIC_QR",
+                raw_payload=raw_payload,
+            )
+
+        if normalized_result == "expired":
+            return PaymentLifecycleService.expire_payment(
+                payment,
+                gateway="STATIC_QR",
+                raw_payload=raw_payload,
+            )
+
+        return PaymentLifecycleService.mark_failed(
+            payment,
+            gateway="STATIC_QR",
+            raw_payload=raw_payload,
+        )
+
     def mark_success(self, payment, provider_transaction_id = None):
-        payment.payment_status = Payment.PaymentStatus.SUCCESS
-        payment.paid_at = timezone.now()
-
-        update_fields = ["payment_status", "paid_at", "metadata", "updated_at"]
-
-        if provider_transaction_id:
-            payment.provider_transaction_id = provider_transaction_id
-            update_fields.append("provider_transaction_id")
-        elif str(payment.provider_transaction_id or "").startswith("STATICQR-"):
-            payment.provider_transaction_id = None
-            update_fields.append("provider_transaction_id")
-
-        payment.metadata = {
-            **(payment.metadata or {}),
-            "gateway": "STATIC_QR",
-            "gateway_status": "paid",
-            "paid_amount": str(payment.amount),
-        }
-
-        payment.save(update_fields=update_fields)
-
-        BookingService.confirm_booking(payment.booking)
-        
-        
+        return PaymentLifecycleService.mark_success(
+            payment,
+            provider_transaction_id=provider_transaction_id,
+            gateway="STATIC_QR",
+        )
     
     def mark_failed(self, payment):
-        payment.payment_status = Payment.PaymentStatus.FAILED
-        payment.metadata = {
-            **(payment.metadata or {}),
-            "gateway": "STATIC_QR",
-            "gateway_status": "failed",}
-        
-        payment.save(update_fields=["payment_status", "metadata", "updated_at"])
-        
-        BookingService.fail_booking(payment.booking)
+        return PaymentLifecycleService.mark_failed(
+            payment,
+            gateway="STATIC_QR",
+        )
 
     def mark_cancelled(self, payment):
-        payment.payment_status = Payment.PaymentStatus.CANCELLED
-        payment.metadata = {
-            **(payment.metadata or {}),
-            "gateway": "STATIC_QR",
-            "gateway_status": "cancelled",}
-        payment.save(update_fields=["payment_status", "metadata", "updated_at"])
-
-        BookingService.cancel_booking(payment.booking)
+        return PaymentLifecycleService.cancel_payment(
+            payment,
+            gateway="STATIC_QR",
+        )
 
     def mark_expired(self, payment):
-        payment.payment_status = Payment.PaymentStatus.EXPIRED
-        payment.metadata = {
-            **(payment.metadata or {}),
-            "gateway": "STATIC_QR",
-            "gateway_status": "expired",
-        }
-
-        payment.save(update_fields=["payment_status", "metadata", "updated_at"])
-
-        BookingService.expire_booking(payment.booking)
+        return PaymentLifecycleService.expire_payment(
+            payment,
+            gateway="STATIC_QR",
+        )
 
 
 def create_gateway_payment(payment, request):

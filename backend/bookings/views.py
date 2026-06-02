@@ -6,7 +6,6 @@ from bookings.services import BookingService
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .pagination import BookingLimitOffsetPagination
-from django.utils import timezone
 
 
 class BookingViewSet(mixins.ListModelMixin, 
