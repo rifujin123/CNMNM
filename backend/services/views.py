@@ -94,96 +94,69 @@ class TravelTourViewSet(viewsets.ModelViewSet):
     serializer_class = TravelTourReadDetailSerializer
 
     def get_queryset(self):
-        now = timezone.now()
         params = self.request.query_params
         user = self.request.user
+        now = timezone.now()
 
-        admin_request = bool(
-            str(params.get('admin', '')).lower() in ['1', 'true', 'yes']
-            and user.is_authenticated
-            and user.is_staff
+        queryset = TravelTour.objects.select_related(
+            'city',
+            'category',
+            'provider',
+        ).prefetch_related(
+            'images',
+            'tour_package',
         )
-        own_request = bool(
-            str(params.get('mine', '')).lower() in ['1', 'true', 'yes']
+
+        admin_mode = user.is_authenticated and user.is_staff
+
+        provider_mode = (
+            params.get('mine') == 'true'
             and user.is_authenticated
             and getattr(user, 'is_provider', False)
         )
-        show_all = admin_request or own_request
 
-        if self.action in ['update', 'partial_update', 'destroy']:
-            return TravelTour.objects.all()
-
-        if show_all:
-            queryset = TravelTour.objects.all()
+        if admin_mode:
+            pass
+        elif provider_mode:
+            queryset = queryset.filter(provider=user)
         else:
-            queryset = TravelTour.objects.filter(is_active=True)
+            queryset = queryset.filter(
+                is_active=True,
+                time_start__gte=now,
+                empty_slot__gt=0,
+            )
 
         queryset = queryset.annotate(
             popularity=Count('bookings', distinct=True)
         )
 
-        is_provider_own = (
-            show_all
-            or user.is_authenticated
-            and params.get('provider') == str(self.request.user.id)
-        )
-        if not is_provider_own:
+        filters = {
+            'city_id': params.get('city'),
+            'category_id': params.get('category'),
+            'provider_id': params.get('provider'),
+            'base_price__gte': params.get('min_price'),
+            'base_price__lte': params.get('max_price'),
+            'star_rating__gte': params.get('min_star'),
+            'star_rating__lte': params.get('max_star'),
+            'empty_slot__gte': params.get('min_empty_slot'),
+            'time_start__gte': params.get('time_start_from'),
+            'time_start__lte': params.get('time_start_to'),
+        }
+
+        queryset = queryset.filter(**{
+            key: value
+            for key, value in filters.items()
+            if value
+        })
+
+        q = params.get('q')
+        if q:
             queryset = queryset.filter(
-                time_start__gte=now,
-                empty_slot__gt=0,
+                Q(name__icontains=q)
+                | Q(description__icontains=q)
+                | Q(city__name__icontains=q)
+                | Q(category__name__icontains=q)
             )
-
-        search_query = params.get('q')
-        if search_query:
-            queryset = queryset.filter(
-                Q(name__icontains=search_query)
-                | Q(description__icontains=search_query)
-                | Q(city__name__icontains=search_query)
-                | Q(category__name__icontains=search_query)
-            )
-
-        city_id = params.get('city')
-        if city_id:
-            queryset = queryset.filter(city_id=city_id)
-
-        category_id = params.get('category')
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
-
-        provider_id = params.get('provider')
-        if provider_id:
-            queryset = queryset.filter(provider_id=provider_id)
-
-        if own_request and not user.is_staff:
-            queryset = queryset.filter(provider=user)
-
-        min_price = params.get('min_price')
-        if min_price:
-            queryset = queryset.filter(base_price__gte=min_price)
-
-        max_price = params.get('max_price')
-        if max_price:
-            queryset = queryset.filter(base_price__lte=max_price)
-
-        min_star = params.get('min_star')
-        if min_star:
-            queryset = queryset.filter(star_rating__gte=min_star)
-
-        max_star = params.get('max_star')
-        if max_star:
-            queryset = queryset.filter(star_rating__lte=max_star)
-
-        min_empty_slot = params.get('min_empty_slot')
-        if min_empty_slot:
-            queryset = queryset.filter(empty_slot__gte=min_empty_slot)
-
-        time_start_from = params.get('time_start_from')
-        if time_start_from:
-            queryset = queryset.filter(time_start__gte=time_start_from)
-
-        time_start_to = params.get('time_start_to')
-        if time_start_to:
-            queryset = queryset.filter(time_start__lte=time_start_to)
 
         allowed_ordering = {
             'newest': '-created_at',
@@ -197,14 +170,11 @@ class TravelTourViewSet(viewsets.ModelViewSet):
             'popularity_desc': '-popularity',
             'popularity_asc': 'popularity',
         }
+
         ordering = params.get('ordering')
-        if ordering in allowed_ordering:
-            queryset = queryset.order_by(allowed_ordering[ordering])
-        else:
-            queryset = queryset.order_by('-created_at')
-
-        return queryset
-
+        return queryset.order_by(
+            allowed_ordering.get(ordering, '-created_at')
+        )
     def get_serializer_class(self):
         if self.action in ['create','update','partial_update']:
             return TravelTourWriteSerializer
@@ -253,31 +223,24 @@ class TravelTourViewSet(viewsets.ModelViewSet):
 
 
 class HotelViewSet(viewsets.ModelViewSet):
-    queryset = Hotel.objects.annotate(popularity=Count('bookings'))
+    queryset = Hotel.objects.all()
 
     def get_queryset(self):
         params = self.request.query_params
         user = self.request.user
 
-        admin_request = bool(
-            str(params.get('admin', '')).lower() in ['1', 'true', 'yes']
-            and user.is_authenticated
-            and user.is_staff
+        queryset = Hotel.objects.select_related(
+            'city', 'category', 'provider'
+        ).prefetch_related(
+            'images', 'room_types', 'rooms'
         )
-        own_request = bool(
-            str(params.get('mine', '')).lower() in ['1', 'true', 'yes']
+
+        admin_mode = user.is_authenticated and user.is_staff
+        provider_mode = (
+            params.get('mine') == 'true'
             and user.is_authenticated
             and getattr(user, 'is_provider', False)
         )
-        show_all = admin_request or own_request
-
-        if self.action in ['update', 'partial_update', 'destroy']:
-            return Hotel.objects.all()
-
-        if show_all:
-            queryset = Hotel.objects.all()
-        else:
-            queryset = Hotel.objects.filter(is_active=True)
 
         queryset = queryset.annotate(
             popularity=Count('bookings', distinct=True),
@@ -288,36 +251,31 @@ class HotelViewSet(viewsets.ModelViewSet):
             ),
         )
 
-        if show_all and params.get('is_active') is not None:
-            queryset = queryset.filter(
-                is_active=str(params.get('is_active')).lower() in ['1', 'true', 'yes']
-            )
-
-        if not show_all:
-            queryset = queryset.filter(available_room_count__gt=0)
-
-        service_id = params.get('service_id') or params.get('id')
-        if service_id:
-            queryset = queryset.filter(id=service_id)
-
-        category_id = params.get('category')
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
-
-        provider_id = params.get('provider')
-        if provider_id:
-            queryset = queryset.filter(provider_id=provider_id)
-
-        if own_request and not user.is_staff:
+        if admin_mode:
+            pass
+        elif provider_mode:
             queryset = queryset.filter(provider=user)
+        else:
+            queryset = queryset.filter(is_active=True, available_room_count__gt=0)
 
-        search_query = params.get('q')
-        if search_query:
+        filters = {
+            'id': params.get('service_id') or params.get('id'),
+            'city_id': params.get('city'),
+            'category_id': params.get('category'),
+            'provider_id': params.get('provider'),
+            'star_rating__gte': params.get('min_star'),
+            'star_rating__lte': params.get('max_star'),
+            'base_price__gte': params.get('min_price'),
+            'base_price__lte': params.get('max_price'),
+        }
+
+        queryset = queryset.filter(**{k: v for k, v in filters.items() if v})
+
+        q = params.get('q')
+        if q:
             queryset = queryset.filter(
-                Q(name__icontains=search_query)
-                | Q(description__icontains=search_query)
-                | Q(city__name__icontains=search_query)
-                | Q(category__name__icontains=search_query)
+                Q(name__icontains=q) | Q(description__icontains=q) |
+                Q(city__name__icontains=q) | Q(address_detail__icontains=q)
             )
 
         allowed_ordering = {
@@ -328,18 +286,12 @@ class HotelViewSet(viewsets.ModelViewSet):
             'rating_asc': 'star_rating',
             'rating_desc': '-star_rating',
             'popularity_desc': '-popularity',
-            'popularity_asc': 'popularity',
         }
         ordering = params.get('ordering')
-        if ordering in allowed_ordering:
-            queryset = queryset.order_by(allowed_ordering[ordering])
-        else:
-            queryset = queryset.order_by('-created_at')
-
-        return queryset
+        return queryset.order_by(allowed_ordering.get(ordering, '-created_at'))
 
     def get_serializer_class(self):
-        if self.action in ['create','update','partial_update']:
+        if self.action in ['create', 'update', 'partial_update']:
             return HotelWriteSerializer
         return HotelDetailReadSerializer
 
@@ -350,32 +302,21 @@ class HotelViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
-        if self.action in ['create']:
+        if self.action == 'create':
             return [IsApprovedProviderOrAdmin()]
         return [ServiceOwnerOrAdmin()]
-
+    
 class TransportViewSet(viewsets.ModelViewSet):
-    queryset = Transport.objects.annotate(popularity=Count('bookings'))
+    queryset = Transport.objects.all()
 
     def get_queryset(self):
-        now = timezone.now()
         params = self.request.query_params
         user = self.request.user
+        now = timezone.now()
 
-        admin_request = bool(
-            str(params.get('admin', '')).lower() in ['1', 'true', 'yes']
-            and user.is_authenticated
-            and user.is_staff
-        )
-        own_request = bool(
-            str(params.get('mine', '')).lower() in ['1', 'true', 'yes']
-            and user.is_authenticated
-            and getattr(user, 'is_provider', False)
-        )
-        show_all = admin_request or own_request
-
-        if self.action in ['update', 'partial_update', 'destroy']:
-            return Transport.objects.all()
+        queryset = Transport.objects.select_related(
+            'city', 'category', 'provider'
+        ).prefetch_related('images', 'routes')
 
         available_future_seats = SeatStatus.objects.filter(
             route__transport=OuterRef('pk'),
@@ -384,68 +325,54 @@ class TransportViewSet(viewsets.ModelViewSet):
             booking__isnull=True,
         )
 
-        if show_all:
-            queryset = Transport.objects.all()
-        else:
-            queryset = Transport.objects.filter(is_active=True)
+        admin_mode = user.is_authenticated and user.is_staff
+        provider_mode = (
+            params.get('mine') == 'true'
+            and user.is_authenticated
+            and getattr(user, 'is_provider', False)
+        )
 
         queryset = queryset.annotate(
             popularity=Count('bookings', distinct=True),
             has_available_future_seat=Exists(available_future_seats),
         )
 
-        if show_all and params.get('is_active') is not None:
-            queryset = queryset.filter(
-                is_active=str(params.get('is_active')).lower() in ['1', 'true', 'yes']
-            )
-
-        if not show_all:
-            queryset = queryset.filter(has_available_future_seat=True)
-
-        service_id = params.get('service_id') or params.get('id')
-        if service_id:
-            queryset = queryset.filter(id=service_id)
-
-        category_id = params.get('category')
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
-
-        provider_id = params.get('provider')
-        if provider_id:
-            queryset = queryset.filter(provider_id=provider_id)
-
-        if own_request and not user.is_staff:
+        if admin_mode:
+            pass
+        elif provider_mode:
             queryset = queryset.filter(provider=user)
+        else:
+            queryset = queryset.filter(is_active=True, has_available_future_seat=True)
 
-        search_query = params.get('q')
-        if search_query:
+        filters = {
+            'id': params.get('service_id') or params.get('id'),
+            'city_id': params.get('city'),
+            'category_id': params.get('category'),
+            'provider_id': params.get('provider'),
+            'base_price__gte': params.get('min_price'),
+            'base_price__lte': params.get('max_price'),
+        }
+
+        queryset = queryset.filter(**{k: v for k, v in filters.items() if v})
+
+        q = params.get('q')
+        if q:
             queryset = queryset.filter(
-                Q(name__icontains=search_query)
-                | Q(description__icontains=search_query)
-                | Q(city__name__icontains=search_query)
-                | Q(category__name__icontains=search_query)
+                Q(name__icontains=q) | Q(brand_name__icontains=q) |
+                Q(license_plate__icontains=q) | Q(city__name__icontains=q)
             )
 
+        ordering = params.get('ordering')
         allowed_ordering = {
             'newest': '-created_at',
-            'oldest': 'created_at',
             'price_asc': 'base_price',
             'price_desc': '-base_price',
-            'rating_asc': 'star_rating',
-            'rating_desc': '-star_rating',
             'popularity_desc': '-popularity',
-            'popularity_asc': 'popularity',
         }
-        ordering = params.get('ordering')
-        if ordering in allowed_ordering:
-            queryset = queryset.order_by(allowed_ordering[ordering])
-        else:
-            queryset = queryset.order_by('-created_at')
-
-        return queryset
+        return queryset.order_by(allowed_ordering.get(ordering, '-created_at'))
 
     def get_serializer_class(self):
-        if self.action in ['create','update','partial_update']:
+        if self.action in ['create', 'update', 'partial_update']:
             return TransportWriteSerializer
         return TransportDetailReadSerializer
 
@@ -456,7 +383,7 @@ class TransportViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
-        if self.action in ['create']:
+        if self.action == 'create':
             return [IsApprovedProviderOrAdmin()]
         return [ServiceOwnerOrAdmin()]
 
@@ -516,3 +443,4 @@ class WishlistViewSet(viewsets.ModelViewSet):
     def remove_by_service_id(self, request):
         service_id = request.query_params.get('service_id') or request.query_params.get('tour_id')
         return self._delete_by_service_id(request, service_id)
+
