@@ -1,36 +1,62 @@
-import json
 from rest_framework import serializers
-from accounts.serializers import UserReadSerializer
-from locations.serializers import CityReadSerializer
 from .models import (
     BaseService,
     Category,
     Package,
     TourPackage,
     TravelTour,
-    Comment,
     Hotel,
-    Room,
-    RoomType,
-    Route,
     Transport,
+    RoomType,
+    Room,
     SeatType,
+    PhysicalSeat,
+    Route,
     SeatStatus,
-    PromoBanner,
     ServiceImage,
     Wishlist,
+    PromoBanner,
+    Comment,
 )
+from accounts.serializers import UserReadSerializer
+from locations.serializers import CityReadSerializer
 from django.db.models import Count
 from django.utils import timezone
 
 
-class CategorySerializer(serializers.ModelSerializer):
+# ==================== Category ====================
+class CategoryReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id','name']
+        fields = ['id', 'name', 'description', 'is_active']
 
-class ServiceImageSerializer(serializers.ModelSerializer):
+
+class CategoryWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['name', 'description', 'is_active']
+
+
+# ==================== Package ====================
+class PackageReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Package
+        fields = ['id', 'name']
+
+
+class PackageWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Package
+        fields = ['name']
+
+
+# ==================== Service Image ====================
+class ServiceImageReadSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ServiceImage
+        fields = ['id', 'image', 'image_url', 'caption', 'display_order']
 
     def get_image_url(self, obj):
         request = self.context.get("request")
@@ -39,40 +65,70 @@ class ServiceImageSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(url)
         return url
 
+
+class ServiceImageWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceImage
-        fields = ["id", "image", "image_url", "caption"]
+        fields = ['image', 'caption', 'display_order']
 
 
+# ==================== Base Service ====================
 class BaseServiceReadSerializer(serializers.ModelSerializer):
-    category = CategorySerializer()
+    category = CategoryReadSerializer()
     city = CityReadSerializer()
     provider = UserReadSerializer()
+    images = ServiceImageReadSerializer(many=True, read_only=True)
+
     class Meta:
         model = BaseService
-        fields = ['id','name','description','star_rating','base_price','city','provider','category']
+        fields = [
+            'id', 'name', 'description', 'service_type',
+            'base_price', 'departure_time', 'available_slots',
+            'star_rating', 'review_count', 'address_detail',
+            'city', 'provider', 'category', 'images',
+            'is_active', 'created_at', 'updated_at',
+        ]
 
-class PackageSerializer(serializers.ModelSerializer):
+
+class BaseServiceWriteSerializer(serializers.ModelSerializer):
+    images = ServiceImageWriteSerializer(many=True, write_only=True, required=False)
+
     class Meta:
-        model = Package
-        fields = ['id','name']
+        model = BaseService
+        fields = [
+            'name', 'description', 'service_type', 'base_price',
+            'departure_time', 'available_slots', 'address_detail',
+            'city', 'category', 'images',
+        ]
 
-class TourPackageSimpleReadSerializer(serializers.ModelSerializer):
-    total_price = serializers.SerializerMethodField()
+    def create(self, validated_data):
+        images_data = validated_data.pop('images', [])
+        service = BaseService.objects.create(**validated_data)
+        for img_data in images_data:
+            ServiceImage.objects.create(service=service, **img_data)
+        return service
 
-    def get_total_price(self, obj):
-        return obj.price + obj.tour.base_price
+    def update(self, instance, validated_data):
+        images_data = validated_data.pop('images', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if images_data is not None:
+            instance.images.all().delete()
+            for img_data in images_data:
+                ServiceImage.objects.create(service=instance, **img_data)
+        return instance
+
+
+# ==================== Tour Package ====================
+class TourPackageReadSerializer(serializers.ModelSerializer):
+    packages = PackageReadSerializer(many=True, read_only=True)
+    tour_name = serializers.CharField(source='tour.name', read_only=True)
 
     class Meta:
         model = TourPackage
-        fields = ['id', 'name', 'price', 'total_price']
+        fields = ['id', 'tour', 'tour_name', 'name', 'description', 'price', 'packages']
 
-class TourPackageDetailReadSerializer(TourPackageSimpleReadSerializer):
-    packages = PackageSerializer(many=True)
-
-    class Meta:
-        model = TourPackage
-        fields = TourPackageSimpleReadSerializer.Meta.fields + ['tour', 'packages']
 
 class TourPackageWriteSerializer(serializers.ModelSerializer):
     packages = serializers.PrimaryKeyRelatedField(
@@ -83,444 +139,269 @@ class TourPackageWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TourPackage
-        fields = ['tour', 'name', 'price', 'packages']
+        fields = ['tour', 'name', 'description', 'price', 'packages']
 
-class TravelTourSimpleReadSerializer(serializers.ModelSerializer):
-    city = CityReadSerializer()
-    category = CategorySerializer()
+    def create(self, validated_data):
+        packages = validated_data.pop('packages', [])
+        tour_package = TourPackage.objects.create(**validated_data)
+        if packages:
+            tour_package.packages.set(packages)
+        return tour_package
 
-    class Meta:
-        model = TravelTour
-        fields = ['id', 'name', 'city', 'category']
+    def update(self, instance, validated_data):
+        packages = validated_data.pop('packages', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if packages is not None:
+            instance.packages.set(packages)
+        return instance
 
-class TravelTourReadDetailSerializer(TravelTourSimpleReadSerializer):
-    tour_package = TourPackageSimpleReadSerializer(many=True)
-    images = ServiceImageSerializer(many=True, read_only=True)
+
+# ==================== Travel Tour ====================
+class TravelTourReadSerializer(BaseServiceReadSerializer):
+    tour_packages = TourPackageReadSerializer(many=True, read_only=True, source='tour_packages')
     comment_count = serializers.SerializerMethodField()
+
+    class Meta(BaseServiceReadSerializer.Meta):
+        fields = BaseServiceReadSerializer.Meta.fields + [
+            'time_start', 'empty_slot', 'tour_packages', 'comment_count',
+        ]
 
     def get_comment_count(self, obj):
         return obj.comments.count()
 
-    class Meta:
-        model = TravelTour
-        fields = TravelTourSimpleReadSerializer.Meta.fields + [
-            'description',
-            'star_rating',
-            'base_price',
-            'empty_slot',
-            'tour_package',
-            'images',
-            'comment_count',
-            'time_start',
-            'is_active',
-            'created_at',
-            'updated_at',
-        ]
 
-class TourPackageNestedWriteSerializer(serializers.ModelSerializer):
-    packages = serializers.PrimaryKeyRelatedField(
-        queryset=Package.objects.all(),
-        many=True,
-        required=False,
-    )
-
-    class Meta:
-        model = TourPackage
-        fields = ['name', 'price', 'packages']
+class TravelTourWriteSerializer(BaseServiceWriteSerializer):
+    class Meta(BaseServiceWriteSerializer.Meta):
+        fields = BaseServiceWriteSerializer.Meta.fields + ['time_start', 'empty_slot']
 
 
-class TravelTourWriteSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(required=False, write_only=True)
-    tour_packages = TourPackageNestedWriteSerializer(many=True, required=False, write_only=True)
-
-    def to_internal_value(self, data):
-        data = data.copy()
-        tour_packages = data.get('tour_packages')
-        if isinstance(tour_packages, str):
-            data['tour_packages'] = json.loads(tour_packages)
-        return super().to_internal_value(data)
-
-    class Meta:
-        model = TravelTour
-        fields = [
-            'name', 'description', 'base_price',
-            'time_start', 'empty_slot', 'city',
-            'image', 'tour_packages',
-        ]
-
-    def create(self, validated_data):
-        image = validated_data.pop('image', None)
-        packages_data = validated_data.pop('tour_packages', [])
-        tour = TravelTour.objects.create(**validated_data)
-        if image:
-            ServiceImage.objects.create(service=tour, image=image)
-        for pkg_data in packages_data:
-            sub_packages = pkg_data.pop('packages', [])
-            tp = TourPackage.objects.create(tour=tour, **pkg_data)
-            if sub_packages:
-                tp.packages.set(sub_packages)
-        return tour
-
-    def update(self, instance, validated_data):
-        image = validated_data.pop('image', None)
-        packages_data = validated_data.pop('tour_packages', None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        if image:
-            instance.images.all().delete()
-            ServiceImage.objects.create(service=instance, image=image)
-
-        if packages_data is not None:
-            instance.tour_package.all().delete()
-            for pkg_data in packages_data:
-                sub_packages = pkg_data.pop('packages', [])
-                tp = TourPackage.objects.create(tour=instance, **pkg_data)
-                if sub_packages:
-                    tp.packages.set(sub_packages)
-
-        return instance
-
-
-
-class CommentSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username', read_only=True)
-    user_id = serializers.IntegerField(source='user.id', read_only=True)
-    class Meta:
-        model = Comment
-        fields = ['id','user_id','username','content','rating']
-
-class WishlistSerializer(serializers.ModelSerializer):
-    service_id = serializers.IntegerField(write_only=True, required=False)
-    tour_id = serializers.IntegerField(write_only=True, required=False)
-    service = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Wishlist
-        fields = ['id', 'service_id', 'tour_id', 'service', 'created_at']
-
-    def validate(self, attrs):
-        sid = attrs.pop('service_id', None) or attrs.pop('tour_id', None)
-        if not sid:
-            raise serializers.ValidationError({'service_id': 'ID is required.'})
-
-        service = BaseService.objects.filter(pk=sid).first()
-        if not service:
-            raise serializers.ValidationError({'service_id': 'Does not exist.'})
-
-        attrs['service'] = service
-        return attrs
-
-    def get_service_type(self, service):
-        if hasattr(service, 'traveltour'):
-            return 'tour'
-        if hasattr(service, 'hotel'):
-            return 'hotel'
-        if hasattr(service, 'transport'):
-            return 'transport'
-        return 'service'
-
-    def get_service(self, obj):
-        service = obj.service
-        return {
-            'id': service.id,
-            'name': service.name,
-            'description': service.description,
-            'star_rating': service.star_rating,
-            'base_price': service.base_price,
-            'city': CityReadSerializer(service.city).data if service.city else None,
-            'category': CategorySerializer(service.category).data if service.category else None,
-            'type': self.get_service_type(service),
-        }
-
-class RoomTypeReadSerializer(serializers.ModelSerializer):
-    available_rooms = serializers.SerializerMethodField()
-
-    class Meta:
-        model = RoomType
-        fields = ['id', 'name', 'price', 'available_rooms']
-    
-    def get_available_rooms(self, obj):
-        return obj.rooms.filter(is_available=True).count()
-
+# ==================== Room ====================
 class RoomReadSerializer(serializers.ModelSerializer):
-    room_type = RoomTypeReadSerializer()
+    room_type_name = serializers.CharField(source='room_type.name', read_only=True)
+    hotel_name = serializers.CharField(source='hotel.name', read_only=True)
+
     class Meta:
         model = Room
-        fields = ['id','room_type','room_number','is_available','total_beds']
+        fields = ['id', 'room_number', 'is_available', 'total_beds', 'room_type_name', 'hotel_name']
+
 
 class RoomWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ['hotel','room_type','room_number','is_available','total_beds']
+        fields = ['hotel', 'room_type', 'room_number', 'is_available', 'total_beds']
 
 
-class RoomNestedWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Room
-        fields = ['room_number', 'is_available', 'total_beds']
-
-
-class RoomTypeNestedWriteSerializer(serializers.ModelSerializer):
-    rooms = RoomNestedWriteSerializer(many=True, required=False)
+# ==================== Room Type ====================
+class RoomTypeReadSerializer(serializers.ModelSerializer):
+    available_count = serializers.SerializerMethodField()
 
     class Meta:
         model = RoomType
-        fields = ['name', 'price', 'rooms']
+        fields = ['id', 'name', 'price', 'total_beds', 'available_count']
+
+    def get_available_count(self, obj):
+        return obj.rooms.filter(is_available=True).count()
 
 
-class HotelSimpleReadSerializer(serializers.ModelSerializer):
-    city = CityReadSerializer()
-    category = CategorySerializer()
-
-    class Meta:
-        model = Hotel
-        fields = ['id','name','city','category']
-
-
-
-class HotelDetailReadSerializer(HotelSimpleReadSerializer):
-    images = ServiceImageSerializer(many=True, read_only=True)
-    room_types = RoomTypeReadSerializer(many=True, read_only=True)
-    rooms = serializers.SerializerMethodField()
-
-    def get_rooms(self, obj):
-        rooms = obj.rooms.filter(is_available=True).select_related('room_type')
-        return RoomReadSerializer(rooms, many=True).data
+class RoomTypeWriteSerializer(serializers.ModelSerializer):
+    rooms = RoomWriteSerializer(many=True, write_only=True, required=False)
 
     class Meta:
-        model = Hotel
-        fields = HotelSimpleReadSerializer.Meta.fields + [
-            'description',
-            'star_rating',
-            'base_price',
-            'address_detail',
-            'total_rooms',
-            'room_types',
-            'rooms',
-            'images'
-        ]
-
-
-class HotelWriteSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(required=False, write_only=True)
-    room_types = RoomTypeNestedWriteSerializer(many=True, required=False, write_only=True)
-
-    def to_internal_value(self, data):
-        data = data.copy()
-        room_types = data.get('room_types')
-        if isinstance(room_types, str):
-            data['room_types'] = json.loads(room_types)
-        return super().to_internal_value(data)
-
-    class Meta:
-        model = Hotel
-        fields = [
-            'name', 'description', 'base_price',
-            'address_detail', 'city', 'image', 'room_types',
-        ]
+        model = RoomType
+        fields = ['hotel', 'name', 'price', 'total_beds', 'rooms']
 
     def create(self, validated_data):
-        image = validated_data.pop('image', None)
-        room_types_data = validated_data.pop('room_types', [])
-        hotel = Hotel.objects.create(**validated_data)
-        if image:
-            ServiceImage.objects.create(service=hotel, image=image)
-        for room_type_data in room_types_data:
-            rooms_data = room_type_data.pop('rooms', [])
-            room_type = RoomType.objects.create(hotel=hotel, **room_type_data)
-            for room_data in rooms_data:
-                Room.objects.create(hotel=hotel, room_type=room_type, **room_data)
-        return hotel
+        rooms_data = validated_data.pop('rooms', [])
+        room_type = RoomType.objects.create(**validated_data)
+        for room_data in rooms_data:
+            Room.objects.create(room_type=room_type, **room_data)
+        return room_type
 
     def update(self, instance, validated_data):
-        image = validated_data.pop('image', None)
-        room_types_data = validated_data.pop('room_types', None)
+        rooms_data = validated_data.pop('rooms', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        if image:
-            instance.images.all().delete()
-            ServiceImage.objects.create(service=instance, image=image)
-        if room_types_data is not None:
-            instance.room_types.all().delete()
-            for room_type_data in room_types_data:
-                rooms_data = room_type_data.pop('rooms', [])
-                room_type = RoomType.objects.create(hotel=instance, **room_type_data)
-                for room_data in rooms_data:
-                    Room.objects.create(hotel=instance, room_type=room_type, **room_data)
+        if rooms_data is not None:
+            instance.rooms.all().delete()
+            for room_data in rooms_data:
+                Room.objects.create(room_type=instance, **room_data)
         return instance
 
 
+# ==================== Hotel ====================
+class HotelReadSerializer(BaseServiceReadSerializer):
+    room_types = RoomTypeReadSerializer(many=True, read_only=True, source='room_types')
+    total_rooms = serializers.SerializerMethodField()
+
+    class Meta(BaseServiceReadSerializer.Meta):
+        fields = BaseServiceReadSerializer.Meta.fields + ['room_types', 'total_rooms']
+
+    def get_total_rooms(self, obj):
+        return obj.rooms.count()
+
+
+class HotelWriteSerializer(BaseServiceWriteSerializer):
+    room_types = RoomTypeWriteSerializer(many=True, write_only=True, required=False)
+
+    class Meta(BaseServiceWriteSerializer.Meta):
+        fields = BaseServiceWriteSerializer.Meta.fields + ['room_types']
+
+    def create(self, validated_data):
+        room_types_data = validated_data.pop('room_types', [])
+        service = super().create(validated_data)
+        for rt_data in room_types_data:
+            RoomTypeWriteSerializer().create(rt_data)
+        return service
+
+
+# ==================== Seat Type ====================
 class SeatTypeReadSerializer(serializers.ModelSerializer):
+    provider_name = serializers.CharField(source='provider.username', read_only=True)
+
     class Meta:
         model = SeatType
-        fields = ['id', 'name', 'price']
+        fields = ['id', 'name', 'price', 'provider_name']
 
 
-class TransportSimpleReadSerializer(serializers.ModelSerializer):
-    city = CityReadSerializer()
-    category = CategorySerializer()
+class SeatTypeWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SeatType
+        fields = ['name', 'price']
+
+
+# ==================== Physical Seat ====================
+class PhysicalSeatReadSerializer(serializers.ModelSerializer):
+    seat_type_name = serializers.CharField(source='seat_type.name', read_only=True)
+    transport_name = serializers.CharField(source='transport.name', read_only=True)
 
     class Meta:
-        model = Transport
-        fields = ['id', 'name', 'city', 'category']
+        model = PhysicalSeat
+        fields = ['id', 'seat_number', 'seat_type_name', 'transport_name']
 
+
+class PhysicalSeatWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PhysicalSeat
+        fields = ['transport', 'seat_type', 'seat_number']
+
+
+# ==================== Route ====================
 class RouteReadSerializer(serializers.ModelSerializer):
     from_city = CityReadSerializer()
     to_city = CityReadSerializer()
 
     class Meta:
         model = Route
-        fields = ['id', 'from_city', 'to_city', 'departure_time', 'arrival_time']
+        fields = ['id', 'transport', 'from_city', 'to_city', 'departure_time', 'arrival_time']
 
 
-class TransportDetailReadSerializer(TransportSimpleReadSerializer):
-    images = ServiceImageSerializer(many=True, read_only=True)
-    routes = serializers.SerializerMethodField()
-    seat_types = serializers.SerializerMethodField()
-    availability = serializers.SerializerMethodField()
-
-    def get_routes(self, obj):
-        routes = obj.routes.filter(
-            departure_time__gte=timezone.now()
-        ).order_by('departure_time')
-        return RouteReadSerializer(routes, many=True).data
-
-    def get_seat_types(self, obj):
-        seat_types = SeatType.objects.filter(
-            physical_seats__transport=obj
-        ).distinct()
-        return SeatTypeReadSerializer(seat_types, many=True).data
-
-    def get_availability(self, obj):
-        seat_types = list(
-            SeatType.objects.filter(physical_seats__transport=obj).distinct()
-        )
-
-        route_ids = list(
-            obj.routes.filter(
-                departure_time__gte=timezone.now()
-            ).values_list('id', flat=True)
-        )
-
-        rows = (
-            SeatStatus.objects
-            .filter(
-                route__transport=obj,
-                status=SeatStatus.Status.AVAILABLE,
-                booking__isnull=True,
-                route__departure_time__gte=timezone.now(),
-            )
-            .values('route_id', 'physical_seat__seat_type_id')
-            .annotate(available_seats=Count('id'))
-        )
-
-        count_map = {
-            (row['route_id'], row['physical_seat__seat_type_id']): row['available_seats']
-            for row in rows
-        }
-
-        return [
-            {
-                'route': route_id,
-                'seat_type': seat_type.id,
-                'available_seats': count_map.get((route_id, seat_type.id), 0),
-            }
-            for route_id in route_ids
-            for seat_type in seat_types
-        ]
-
-    class Meta:
-        model = Transport
-        fields = TransportSimpleReadSerializer.Meta.fields + [
-            'description',
-            'star_rating',
-            'base_price',
-            'brand_name',
-            'license_plate',
-            'images',
-            'total_seats',
-            'routes',
-            'seat_types',
-            'availability',
-        ]
-
-
-class RouteNestedWriteSerializer(serializers.ModelSerializer):
+class RouteWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Route
-        fields = ['from_city', 'to_city', 'departure_time', 'arrival_time']
+        fields = ['transport', 'from_city', 'to_city', 'departure_time', 'arrival_time']
 
 
-class TransportWriteSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(required=False, write_only=True)
-    routes = RouteNestedWriteSerializer(many=True, required=False, write_only=True)
-
-    def to_internal_value(self, data):
-        data = data.copy()
-        routes = data.get('routes')
-        if isinstance(routes, str):
-            data['routes'] = json.loads(routes)
-        return super().to_internal_value(data)
+# ==================== Seat Status ====================
+class SeatStatusReadSerializer(serializers.ModelSerializer):
+    seat_number = serializers.CharField(source='physical_seat.seat_number', read_only=True)
+    seat_type_name = serializers.CharField(source='physical_seat.seat_type.name', read_only=True)
 
     class Meta:
-        model = Transport
-        fields = [
-            'name',
-            'description',
-            'base_price',
-            'city',
-            'brand_name',
-            'license_plate',
-            'image',
-            'routes',
+        model = SeatStatus
+        fields = ['id', 'route', 'seat_number', 'seat_type_name', 'status', 'booking']
+
+
+# ==================== Transport ====================
+class TransportReadSerializer(BaseServiceReadSerializer):
+    routes = RouteReadSerializer(many=True, read_only=True)
+    seat_types = SeatTypeReadSerializer(many=True, read_only=True)
+
+    class Meta(BaseServiceReadSerializer.Meta):
+        fields = BaseServiceReadSerializer.Meta.fields + [
+            'brand_name', 'license_plate', 'routes', 'seat_types',
         ]
 
+
+class TransportWriteSerializer(BaseServiceWriteSerializer):
+    class Meta(BaseServiceWriteSerializer.Meta):
+        fields = BaseServiceWriteSerializer.Meta.fields + ['brand_name', 'license_plate']
+
+
+# ==================== Comment ====================
+class CommentReadSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'user_id', 'username', 'travel_tour', 'content', 'rating', 'created_at']
+
+
+class CommentWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['travel_tour', 'content', 'rating']
+
     def create(self, validated_data):
-        image = validated_data.pop('image', None)
-        routes_data = validated_data.pop('routes', [])
-        transport = Transport.objects.create(**validated_data)
-        if image:
-            ServiceImage.objects.create(service=transport, image=image)
-        for route_data in routes_data:
-            Route.objects.create(transport=transport, **route_data)
-        return transport
-
-    def update(self, instance, validated_data):
-        image = validated_data.pop('image', None)
-        routes_data = validated_data.pop('routes', None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        if image:
-            instance.images.all().delete()
-            ServiceImage.objects.create(service=instance, image=image)
-
-        if routes_data is not None:
-            instance.routes.all().delete()
-            for route_data in routes_data:
-                Route.objects.create(transport=instance, **route_data)
-
-        return instance
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
 
 
-class PromoBannerSerializer(serializers.ModelSerializer):
+# ==================== Wishlist ====================
+class WishlistReadSerializer(serializers.ModelSerializer):
+    service = BaseServiceReadSerializer(read_only=True)
+    service_id = serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = Wishlist
+        fields = ['id', 'service', 'service_id', 'created_at']
+
+
+class WishlistWriteSerializer(serializers.ModelSerializer):
+    service_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Wishlist
+        fields = ['service_id']
+
+    def validate_service_id(self, value):
+        if not BaseService.objects.filter(pk=value).exists():
+            raise serializers.ValidationError('Service does not exist.')
+        return value
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        validated_data['service_id'] = validated_data.pop('service_id')
+        return super().create(validated_data)
+
+
+# ==================== Promo Banner ====================
+class PromoBannerReadSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = PromoBanner
         fields = [
-            'id',
-            'title',
-            'subtitle',
-            'image',
-            'cta_text',
-            'background_color',
-            'is_active',
-            'display_order',
-            'created_at',
-            'updated_at',
+            'id', 'title', 'subtitle', 'image', 'image_url',
+            'cta_text', 'background_color', 'is_active',
+            'display_order', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['created_at', 'updated_at']
+
+    def get_image_url(self, obj):
+        request = self.context.get("request")
+        url = obj.image.url if obj.image else None
+        if request and url:
+            return request.build_absolute_uri(url)
+        return url
 
 
-
+class PromoBannerWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PromoBanner
+        fields = [
+            'title', 'subtitle', 'image', 'cta_text',
+            'background_color', 'is_active', 'display_order',
+        ]

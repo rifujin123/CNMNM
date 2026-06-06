@@ -9,8 +9,8 @@ from .models import (
     RoomType,
     Room,
     SeatType,
+    PhysicalSeat,
     Route,
-    Comment,
     ServiceImage,
     PromoBanner,
     Wishlist,
@@ -19,8 +19,9 @@ from .models import (
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name']
+    list_display = ['id', 'name', 'is_active']
     search_fields = ['name']
+    list_filter = ['is_active']
 
 
 @admin.register(Package)
@@ -60,14 +61,14 @@ class TransportAdmin(admin.ModelAdmin):
 
 @admin.register(RoomType)
 class RoomTypeAdmin(admin.ModelAdmin):
-    list_display = ['id', 'hotel', 'name', 'price']
+    list_display = ['id', 'hotel', 'name', 'price', 'total_beds']
     list_filter = ['hotel', 'hotel__city']
     search_fields = ['name', 'hotel__name']
 
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ['id', 'hotel', 'room_type', 'room_number', 'is_available', 'total_beds']
+    list_display = ['id', 'hotel', 'room_type', 'room_number', 'is_available']
     list_filter = ['is_available', 'hotel']
     search_fields = ['room_number', 'hotel__name', 'room_type__name']
 
@@ -79,6 +80,13 @@ class SeatTypeAdmin(admin.ModelAdmin):
     search_fields = ['name', 'provider__username']
 
 
+@admin.register(PhysicalSeat)
+class PhysicalSeatAdmin(admin.ModelAdmin):
+    list_display = ['id', 'transport', 'seat_type', 'seat_number']
+    list_filter = ['transport', 'seat_type']
+    search_fields = ['seat_number', 'transport__name']
+
+
 @admin.register(Route)
 class RouteAdmin(admin.ModelAdmin):
     list_display = ['id', 'transport', 'from_city', 'to_city', 'departure_time', 'arrival_time']
@@ -86,17 +94,10 @@ class RouteAdmin(admin.ModelAdmin):
     search_fields = ['transport__name', 'from_city__name', 'to_city__name']
 
 
-@admin.register(Comment)
-class CommentAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'travel_tour']
-    list_filter = ['travel_tour', 'user']
-    search_fields = ['user__username', 'travel_tour__name', 'content']
-
-
 @admin.register(ServiceImage)
 class ServiceImageAdmin(admin.ModelAdmin):
-    list_display = ['id', 'service', 'caption', 'created_at']
-    list_filter = ['created_at', 'service__category']
+    list_display = ['id', 'service', 'caption', 'display_order']
+    list_filter = ['service__category']
     search_fields = ['caption', 'service__name']
 
 

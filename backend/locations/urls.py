@@ -1,10 +1,11 @@
-from django.urls import path, include
-from . import views
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+from . import views
 
 router = DefaultRouter()
 router.register('countries', views.CountryViewSet, basename='country')
 router.register('cities', views.CityViewSet, basename='city')
+
 urlpatterns = [
     path('', include(router.urls)),
 ]

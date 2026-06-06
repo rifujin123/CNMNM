@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'bookings.apps.BookingsConfig',
     'payments.apps.PaymentsConfig',
     'locations.apps.LocationsConfig',
+    'provider.apps.ProviderConfig',
     'drf_yasg',
     'corsheaders',
     "cloudinary",

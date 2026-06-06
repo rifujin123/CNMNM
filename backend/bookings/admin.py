@@ -1,7 +1,5 @@
-from django.contrib import admin,messages
-from rest_framework.exceptions import ValidationError
-from .models import Booking
-from .services import BookingService
+from django.contrib import admin
+from .models import Booking, BookingItem, BookingReview
 
 
 @admin.register(Booking)
@@ -14,13 +12,13 @@ class BookingAdmin(admin.ModelAdmin):
         'total_price',
         'booking_status',
         'payment_status',
-        'created_date',
+        'created_at',
     ]
 
     list_filter = [
         'booking_status',
         'payment_status',
-        'created_date',
+        'created_at',
     ]
 
     search_fields = [
@@ -30,12 +28,9 @@ class BookingAdmin(admin.ModelAdmin):
     ]
 
     readonly_fields = [
-        'created_date',
-        'updated_date',
-        'total_price'
+        'created_at',
+        'updated_at',
     ]
-
-    filter_horizontal = ['rooms']
 
     fieldsets = [
         (
@@ -45,33 +40,8 @@ class BookingAdmin(admin.ModelAdmin):
                     'user',
                     'service',
                     'quantity',
+                    'unit_price',
                     'total_price',
-                ]
-            },
-        ),
-        (
-            'Booking Tour',
-            {
-                'fields': [
-                    'tour_package',
-                ]
-            },
-        ),
-        (
-            'Booking Hotel',
-            {
-                'fields': [
-                    'room_type',
-                    'rooms',
-                ]
-            },
-        ),
-        (
-            'Booking Transport',
-            {
-                'fields': [
-                    'route',
-                    'seat_type',
                 ]
             },
         ),
@@ -85,29 +55,40 @@ class BookingAdmin(admin.ModelAdmin):
             },
         ),
         (
+            'Hủy booking',
+            {
+                'fields': [
+                    'cancellation_reason',
+                    'cancelled_at',
+                ]
+            },
+        ),
+        (
             'Thời gian',
             {
                 'fields': [
-                    'created_date',
-                    'updated_date',
+                    'expires_at',
+                    'notes',
+                    'created_at',
+                    'updated_at',
                 ]
             },
         ),
     ]
 
-    ordering = ['-created_date']
+    ordering = ['-created_at']
 
-    def save_model(self, request, obj, form, change):
-        data = {
-            'service': obj.service,
-            'quantity': obj.quantity,
-            'tour_package': form.cleaned_data.get('tour_package'),
-            'room_type': form.cleaned_data.get('room_type'),
-            'rooms': form.cleaned_data.get('rooms'),
-            'route': form.cleaned_data.get('route'),
-            'seat_type': form.cleaned_data.get('seat_type'),
-        }
 
-        obj.total_price = BookingService.calculate_total_price(data)
+@admin.register(BookingItem)
+class BookingItemAdmin(admin.ModelAdmin):
+    list_display = ['id', 'booking', 'item_type', 'item_id', 'quantity', 'price']
+    list_filter = ['item_type']
+    search_fields = ['booking__id']
 
-        super().save_model(request, obj, form, change)
+
+@admin.register(BookingReview)
+class BookingReviewAdmin(admin.ModelAdmin):
+    list_display = ['id', 'booking', 'user', 'rating', 'created_at']
+    list_filter = ['rating', 'created_at']
+    search_fields = ['user__username', 'content']
+    readonly_fields = ['created_at']

@@ -1,96 +1,45 @@
 from rest_framework import serializers
-
+from .models import ProviderRevenue, ChatRoom, Message
 from accounts.serializers import UserReadSerializer
 
 
-class BookingSerializer(serializers.Serializer):
-    customer = UserReadSerializer(source="user", read_only=True)
-    service_name = serializers.CharField(source="service.name", read_only=True)
-    service_type = serializers.SerializerMethodField()
-    category = serializers.SerializerMethodField()
-    payment_status = serializers.CharField(read_only=True)
-
-    def get_service_type(self, obj):
-        service = getattr(obj, "service", None)
-        if hasattr(service, "traveltour"):
-            return "tour"
-        if hasattr(service, "hotel"):
-            return "hotel"
-        if hasattr(service, "transport"):
-            return "transport"
-        return "service"
-
-    def get_category(self, obj):
-        service = getattr(obj, "service", None)
-        category = getattr(service, "category", None)
-        if category:
-            return {
-                "id": category.id,
-                "name": category.name,
-            }
-        return None
+class ProviderRevenueReadSerializer(serializers.ModelSerializer):
+    period_display = serializers.CharField(source='get_period_display', read_only=True)
 
     class Meta:
+        model = ProviderRevenue
         fields = [
-            "id",
-            "customer",
-            "service_name",
-            "service_type",
-            "category",
-            "quantity",
-            "total_price",
-            "booking_status",
-            "payment_status",
-            "created_date",
+            'id', 'provider', 'period', 'period_display',
+            'period_value', 'total_bookings', 'total_revenue',
+            'service_breakdown', 'calculated_at',
         ]
 
 
-class RevenueByTypeSerializer(serializers.Serializer):
-    type = serializers.CharField()
-    revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
-    bookings = serializers.IntegerField()
-    percent = serializers.FloatField(required=False)
+class ChatRoomReadSerializer(serializers.ModelSerializer):
+    provider = UserReadSerializer(read_only=True)
+    customer = UserReadSerializer(read_only=True)
+    last_message = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChatRoom
+        fields = ['id', 'provider', 'customer', 'booking', 'last_message', 'last_message_at', 'created_at']
+
+    def get_last_message(self, obj):
+        last_msg = obj.messages.order_by('-created_at').first()
+        if last_msg:
+            return {'message': last_msg.message, 'created_at': last_msg.created_at}
+        return None
 
 
-class TopServiceSerializer(serializers.Serializer):
-    id = serializers.IntegerField(source="service__id")
-    name = serializers.CharField(source="service__name")
-    bookings = serializers.IntegerField()
-    revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
+class MessageReadSerializer(serializers.ModelSerializer):
+    sender = UserReadSerializer(read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'room', 'sender', 'message', 'is_read', 'created_at']
 
 
-class RevenueSummarySerializer(serializers.Serializer):
-    total_revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
-    total_bookings = serializers.IntegerField()
-    avg_per_booking = serializers.DecimalField(max_digits=12, decimal_places=2)
-    from_date = serializers.DateTimeField()
-    to_date = serializers.DateTimeField()
-
-
-class RevenueStatsSerializer(serializers.Serializer):
-    summary = RevenueSummarySerializer()
-    by_service_type = RevenueByTypeSerializer(many=True)
-    top_services = TopServiceSerializer(many=True)
-    revenue_series = serializers.ListField()
-
-
-class ServiceStatsSerializer(serializers.Serializer):
-    service = serializers.SerializerMethodField()
-    total_bookings = serializers.IntegerField()
-    total_revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
-    avg_rating = serializers.DecimalField(max_digits=3, decimal_places=2)
-
-    def get_service(self, obj):
-        service = obj["service"]
-        service_type = "service"
-        if hasattr(service, "traveltour"):
-            service_type = "tour"
-        elif hasattr(service, "hotel"):
-            service_type = "hotel"
-        elif hasattr(service, "transport"):
-            service_type = "transport"
-        return {
-            "id": service.id,
-            "name": service.name,
-            "type": service_type,
-        }
+class MessageWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ['room', 'message']
