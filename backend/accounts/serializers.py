@@ -205,3 +205,48 @@ class ChangePasswordSerializer(serializers.Serializer):
 class ProviderApprovalSerializer(serializers.Serializer):
     approved = serializers.BooleanField()
     reason = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+# UC27 - Admin user management
+class UserAdminReadSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'avatar', 'date_of_birth',
+            'is_customer', 'is_provider', 'is_admin', 'is_approved',
+            'is_active', 'is_staff', 'role',
+            'date_joined', 'last_login',
+        ]
+
+    def get_role(self, obj):
+        if obj.is_superuser:
+            return 'SuperAdmin'
+        if obj.is_staff or obj.is_admin:
+            return 'Admin'
+        if obj.is_provider:
+            return 'Provider'
+        return 'Customer'
+
+
+class UserAdminWriteSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8, required=False)
+
+    class Meta:
+        model = User
+        fields = [
+            'username', 'email', 'password',
+            'first_name', 'last_name', 'date_of_birth', 'avatar',
+            'is_customer', 'is_provider', 'is_admin', 'is_approved', 'is_active',
+        ]
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance

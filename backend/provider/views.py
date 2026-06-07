@@ -14,11 +14,9 @@ from services.perms import IsApprovedProviderOrAdmin
 from .serializers import (
     ProviderRevenueReadSerializer,
     ChatRoomReadSerializer,
-    MessageReadSerializer,
-    MessageWriteSerializer,
 )
 from bookings.serializers import RevenueStatsSerializer, ServiceStatsSerializer
-from .models import ChatRoom, Message
+from .models import ChatRoom
 
 
 # UC11 - Revenue statistics
@@ -131,7 +129,7 @@ class ProviderStatsViewSet(GenericViewSet):
         return Response(ServiceStatsSerializer(data).data)
 
 
-# UC12 - Chat with customer
+# UC12 - Chat with customer (messages via Firebase)
 class ChatViewSet(GenericViewSet):
     permission_classes = [IsAuthenticated]
 
@@ -139,9 +137,9 @@ class ChatViewSet(GenericViewSet):
     def list_rooms(self, request):
         user = request.user
         if user.is_provider:
-            rooms = ChatRoom.objects.filter(provider=user).order_by('-last_message_at')
+            rooms = ChatRoom.objects.filter(provider=user).order_by('-created_at')
         else:
-            rooms = ChatRoom.objects.filter(customer=user).order_by('-last_message_at')
+            rooms = ChatRoom.objects.filter(customer=user).order_by('-created_at')
         return Response(ChatRoomReadSerializer(rooms, many=True).data)
 
     @action(detail=False, methods=['post'], url_path='')
@@ -157,25 +155,9 @@ class ChatViewSet(GenericViewSet):
             return Response({'detail': 'Customer not found.'}, status=status.HTTP_404_NOT_FOUND)
         room, created = ChatRoom.objects.get_or_create(
             provider_id=provider_id, customer_id=customer_id,
-            defaults={'booking_id': request.data.get('booking_id')},
+            defaults={
+                'booking_id': request.data.get('booking_id'),
+                'firebase_key': f"{provider_id}_{customer_id}",
+            },
         )
         return Response(ChatRoomReadSerializer(room).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
-
-    @action(detail=True, methods=['get', 'post'], url_path='messages')
-    def messages(self, request, pk=None):
-        room = self.get_object()
-        # Verify user belongs to room
-        if request.user != room.provider and request.user != room.customer:
-            return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-
-        if request.method == 'GET':
-            messages = room.messages.order_by('created_at')
-            return Response(MessageReadSerializer(messages, many=True).data)
-
-        # POST - send message
-        serializer = MessageWriteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(room=room, sender=request.user)
-        room.last_message_at = timezone.now()
-        room.save(update_fields=['last_message_at'])
-        return Response(MessageReadSerializer(serializer.instance).data, status=status.HTTP_201_CREATED)

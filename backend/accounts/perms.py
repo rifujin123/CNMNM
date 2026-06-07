@@ -32,3 +32,14 @@ class IsAdmin(BasePermission):
             request.user and request.user.is_authenticated
             and (request.user.is_staff or getattr(request.user, 'is_admin', False))
         )
+
+
+# UC27 - Admin user management permission
+class IsSuperAdmin(BasePermission):
+    """Only superuser can manage all users (including other admins)."""
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user and request.user.is_authenticated
+            and request.user.is_superuser
+        )

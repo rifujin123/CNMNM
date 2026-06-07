@@ -11,7 +11,8 @@ from rest_framework.generics import (
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-
+from django.db.models import Avg
+from .pagination import ServicePageNumberPagination
 from .models import (
     Category, Package, TourPackage, TravelTour, Comment,
     Hotel, Transport, PromoBanner, Wishlist, SeatStatus, BaseService,
@@ -140,7 +141,8 @@ class TourPackageDetailView(PartialUpdateMixin, RetrieveUpdateDestroyAPIView):
 # ==================== Travel Tour (UC06-UC08, UC13-UC16) ====================
 
 class TourListCreateView(ListCreateAPIView):
-    """UC13 Search, UC14 Sort, UC06 Post Tour."""
+    """UC13 Search, UC14 Sort, UC22 Pagination (max 20/page), UC06 Post Tour."""
+    pagination_class = ServicePageNumberPagination
 
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -241,12 +243,18 @@ class TourCommentViewSet(GenericViewSet):
         serializer = CommentWriteSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user, travel_tour=tour)
+        tour.refresh_from_db()
+        agg = tour.comments.aggregate(avg_rating=Avg('rating'))
+        tour.star_rating = agg['avg_rating'] or 5.0
+        tour.review_count = tour.comments.count()
+        tour.save(update_fields=['star_rating', 'review_count', 'updated_at'])
         return Response(CommentReadSerializer(serializer.instance).data, status=status.HTTP_201_CREATED)
 
 
-# ==================== Hotel (UC06-UC08, UC13-UC16) ====================
+# ==================== Hotel (UC06-UC08, UC13-UC16, UC22) ====================
 
 class HotelListCreateView(ListCreateAPIView):
+    pagination_class = ServicePageNumberPagination
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
@@ -324,9 +332,10 @@ class HotelDetailView(PartialUpdateMixin, RetrieveUpdateDestroyAPIView):
         instance.save(update_fields=['is_active'])
 
 
-# ==================== Transport (UC06-UC08, UC13-UC16) ====================
+# ==================== Transport (UC06-UC08, UC13-UC16, UC22) ====================
 
 class TransportListCreateView(ListCreateAPIView):
+    pagination_class = ServicePageNumberPagination
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
@@ -365,6 +374,7 @@ class TransportListCreateView(ListCreateAPIView):
             'id': params.get('id'), 'city_id': params.get('city'),
             'category_id': params.get('category'), 'provider_id': params.get('provider'),
             'base_price__gte': params.get('min_price'), 'base_price__lte': params.get('max_price'),
+            'star_rating__gte': params.get('min_star'), 'star_rating__lte': params.get('max_star'),
         }
         qs = qs.filter(**{k: v for k, v in filters.items() if v})
 
@@ -373,8 +383,10 @@ class TransportListCreateView(ListCreateAPIView):
             qs = qs.filter(Q(name__icontains=q) | Q(brand_name__icontains=q) | Q(license_plate__icontains=q) | Q(city__name__icontains=q))
 
         ordering_map = {
-            'newest': '-created_at', 'price_asc': 'base_price',
-            'price_desc': '-base_price', 'popularity_desc': '-popularity',
+            'newest': '-created_at', 'oldest': 'created_at',
+            'price_asc': 'base_price', 'price_desc': '-base_price',
+            'rating_asc': 'star_rating', 'rating_desc': '-star_rating',
+            'popularity_desc': '-popularity',
         }
         return qs.order_by(ordering_map.get(params.get('ordering'), '-created_at'))
 

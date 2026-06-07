@@ -16,14 +16,21 @@ class CountryWriteSerializer(serializers.ModelSerializer):
 
 class CityReadSerializer(serializers.ModelSerializer):
     country = CountryReadSerializer(read_only=True)
-    country_id = serializers.IntegerField(source='country.id', read_only=True)
 
     class Meta:
         model = City
-        fields = ['id', 'name', 'country', 'country_id', 'description', 'image', 'is_active']
+        fields = ['id', 'name', 'country', 'description', 'image', 'is_active']
 
 
 class CityWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = City
         fields = ['name', 'country', 'description', 'image', 'is_active']
+
+
+class CityListSerializer(serializers.ModelSerializer):
+    country_name = serializers.CharField(source='country.name', read_only=True)
+
+    class Meta:
+        model = City
+        fields = ['id', 'name', 'country_name', 'description', 'image', 'is_active']

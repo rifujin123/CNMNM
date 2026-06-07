@@ -31,8 +31,9 @@ class ProviderRevenue(models.Model):
 
 
 class ChatRoom(models.Model):
-    """Chat room between provider and customer."""
+    """Chat room between provider and customer. Messages stored in Firebase."""
 
+    firebase_key = models.CharField(max_length=255, blank=True)
     provider = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -50,32 +51,11 @@ class ChatRoom(models.Model):
         blank=True,
         related_name='chat_rooms'
     )
-    last_message_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ['provider', 'customer']
-        ordering = ['-last_message_at', '-created_at']
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"Chat: {self.provider.username} ↔ {self.customer.username}"
-
-
-class Message(models.Model):
-    """Chat message in a chat room."""
-
-    room = models.ForeignKey('ChatRoom', on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='messages'
-    )
-    message = models.TextField()
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['created_at']
-
-    def __str__(self):
-        return f"{self.sender.username}: {self.message[:50]}"

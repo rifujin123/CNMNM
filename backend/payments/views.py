@@ -1,8 +1,9 @@
 from django.utils import timezone
 from rest_framework import status, permissions
 from rest_framework.decorators import action
-from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, GenericAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
 from .models import Payment
@@ -123,7 +124,7 @@ class PaymentActionViewSet(GenericViewSet):
 
 
 # UC29 - Admin dashboard
-class AdminDashboardView(GenericAPIView):
+class AdminDashboardView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):

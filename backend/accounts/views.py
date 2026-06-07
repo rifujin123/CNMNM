@@ -10,13 +10,15 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from .models import User
-from .perms import IsAdmin
+from .perms import IsAdmin, IsSuperAdmin
 from .serializers import (
     ChangePasswordSerializer,
     MeUpdateSerializer,
     ProviderApprovalSerializer,
     RegisterSerializer,
     UserReadSerializer,
+    UserAdminReadSerializer,
+    UserAdminWriteSerializer,
 )
 
 
@@ -122,3 +124,61 @@ class ProviderAdminViewSet(GenericViewSet):
             {'provider_id': provider.id, 'approved': approved, 'reason': reason},
             status=status.HTTP_200_OK,
         )
+
+
+# UC27 - Admin: manage all users
+class UserAdminViewSet(GenericViewSet):
+    """UC27: List, search, edit, suspend/activate users across all roles."""
+    permission_classes = [IsSuperAdmin]
+    queryset = User.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return UserAdminReadSerializer
+        return UserAdminWriteSerializer
+
+    def get_queryset(self):
+        params = self.request.query_params
+        qs = User.objects.all()
+
+        role = params.get('role')
+        if role == 'customer':
+            qs = qs.filter(is_customer=True)
+        elif role == 'provider':
+            qs = qs.filter(is_provider=True)
+        elif role == 'admin':
+            qs = qs.filter(is_staff=True) | qs.filter(is_admin=True)
+
+        is_approved = params.get('is_approved')
+        if is_approved is not None:
+            qs = qs.filter(is_approved=is_approved.lower() == 'true')
+
+        is_active = params.get('is_active')
+        if is_active is not None:
+            qs = qs.filter(is_active=is_active.lower() == 'true')
+
+        q = params.get('q')
+        if q:
+            qs = qs.filter(username__icontains=q) | qs.filter(email__icontains=q)
+
+        return qs.order_by('-date_joined')
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        user = self.get_object()
+        return Response(UserAdminReadSerializer(user).data)
+
+    def partial_update(self, request, pk=None):
+        user = self.get_object()
+        serializer = UserAdminWriteSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserAdminReadSerializer(user).data)
